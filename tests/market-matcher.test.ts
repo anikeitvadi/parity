@@ -131,8 +131,9 @@ describe('MarketMatcher', () => {
 
   describe('Keyword Matching', () => {
     it('should match questions with similar keywords at 0.7+ confidence', async () => {
-      const polymarkets = [createPolymarket({ question: 'Trump 2024 election win' })];
-      const kalshiMarkets = [createKalshi({ question: '2024 Trump presidential victory' })];
+      // High keyword overlap: 4/5 keywords match (trump, 2024, presidential, election)
+      const polymarkets = [createPolymarket({ question: 'Trump 2024 presidential election winner' })];
+      const kalshiMarkets = [createKalshi({ question: '2024 Trump presidential election results' })];
 
       const matches = await matcher.matchMarkets(polymarkets, kalshiMarkets);
 
@@ -241,8 +242,9 @@ describe('MarketMatcher', () => {
     });
 
     it('should return empty array when no matches found', async () => {
-      const polymarkets = [createPolymarket({ question: 'Completely unrelated question A' })];
-      const kalshiMarkets = [createKalshi({ question: 'Completely unrelated question B' })];
+      // Truly different questions with no keyword overlap
+      const polymarkets = [createPolymarket({ question: 'Will Apple stock reach $200 by December?' })];
+      const kalshiMarkets = [createKalshi({ question: 'Federal Reserve interest rate cuts in Q1?' })];
 
       const matches = await matcher.matchMarkets(polymarkets, kalshiMarkets);
       expect(matches).toEqual([]);
