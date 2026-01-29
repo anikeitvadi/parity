@@ -27,9 +27,19 @@ const envSchema = z.object({
   // Optional: Polymarket profile/funder address
   POLYMARKET_FUNDER_ADDRESS: z.string().optional(),
 
-  // Kalshi configuration (optional, used in Plan 04)
-  KALSHI_API_KEY: z.string().optional(),
-  KALSHI_API_SECRET: z.string().optional(),
+  // Kalshi configuration - required for Kalshi API access
+  // Get credentials from: Kalshi Dashboard -> Settings -> API Keys
+  KALSHI_API_KEY: z
+    .string()
+    .min(10, 'KALSHI_API_KEY must be at least 10 characters'),
+  KALSHI_API_SECRET: z
+    .string()
+    .min(10, 'KALSHI_API_SECRET must be at least 10 characters'),
+  // Use demo API instead of production (set to 'true' for demo mode)
+  KALSHI_USE_DEMO: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
 });
 
 // Parse and validate environment variables
