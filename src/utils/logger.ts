@@ -27,3 +27,4 @@ export const kalshiLogger = logger.child({ component: 'kalshi' });
 export const databaseLogger = logger.child({ component: 'database' });
 export const schedulerLogger = logger.child({ component: 'scheduler' });
 export const matcherLogger = logger.child({ component: 'matcher' });
+export const detectorLogger = logger.child({ component: 'detector' });

@@ -10,6 +10,7 @@
  */
 
 import { getDatabase } from '../database/schema.js';
+import { detectorLogger } from '../utils/logger.js';
 
 /**
  * Structure for multi-outcome market data
@@ -64,6 +65,19 @@ export interface ArbOpportunity {
 }
 
 /**
+ * Near-miss opportunity for monitoring
+ */
+interface NearMiss {
+  marketId: string;
+  platform: string;
+  type: 'buy' | 'sell';
+  grossEdge: number;
+  netEdge: number;
+  reason: 'low_edge' | 'low_liquidity' | 'fees_exceed_edge';
+  outcomeCount: number;
+}
+
+/**
  * Snapshot row structure from database
  */
 interface SnapshotRow {
@@ -85,6 +99,65 @@ interface SnapshotData {
   liquidity?: Record<string, number>;
 }
 
+// =============================================================================
+// Fee Calculation Utilities (Exported for reuse in Phase 2 scoring)
+// =============================================================================
+
+/**
+ * Calculate total fees for a multi-outcome trade
+ *
+ * @param outcomeCount - Number of outcomes being traded
+ * @param feePercent - Fee percentage per trade (default: 2% for Polymarket)
+ * @returns Total fee percentage
+ */
+export function calculateTotalFees(outcomeCount: number, feePercent: number = 2): number {
+  return outcomeCount * feePercent;
+}
+
+/**
+ * Calculate net edge after fees
+ *
+ * @param grossEdge - Gross edge percentage
+ * @param outcomeCount - Number of outcomes
+ * @param feePercent - Fee percentage per trade
+ * @returns Net edge after fees
+ */
+export function calculateNetEdge(
+  grossEdge: number,
+  outcomeCount: number,
+  feePercent: number = 2
+): number {
+  return grossEdge - calculateTotalFees(outcomeCount, feePercent);
+}
+
+/**
+ * Calculate buy arbitrage edge from prices
+ * Buy arb exists when sum of ask prices < 100%
+ *
+ * @param prices - Array of prices (0-1 scale)
+ * @returns Edge percentage (positive if arb exists)
+ */
+export function calculateBuyEdge(prices: number[]): number {
+  const sum = prices.reduce((acc, p) => acc + p, 0);
+  return (1 - sum) * 100;
+}
+
+/**
+ * Calculate sell arbitrage edge from prices
+ * Sell arb exists when sum of bid prices > 100%
+ *
+ * @param prices - Array of prices (0-1 scale)
+ * @returns Edge percentage (positive if arb exists)
+ */
+export function calculateSellEdge(prices: number[]): number {
+  const sum = prices.reduce((acc, p) => acc + p, 0);
+  return (sum - 1) * 100;
+}
+
+// =============================================================================
+// Multi-Outcome Arbitrage Detector
+// =============================================================================
+
 /**
  * Multi-Outcome Arbitrage Detector
  *
@@ -103,6 +176,10 @@ export class MultiOutcomeArbDetector {
   readonly feePercent: number;
   /** Maximum age of snapshots to consider (30 minutes in ms) */
   private readonly maxSnapshotAge = 30 * 60 * 1000;
+  /** Logger instance */
+  private readonly log = detectorLogger.child({ detector: 'multi-outcome-arb' });
+  /** Track near-misses for monitoring */
+  private nearMisses: NearMiss[] = [];
 
   /**
    * Create a new MultiOutcomeArbDetector
@@ -129,6 +206,7 @@ export class MultiOutcomeArbDetector {
    */
   async detect(platform: string): Promise<ArbOpportunity[]> {
     const db = getDatabase();
+    this.nearMisses = []; // Reset near-misses for this scan
 
     // Get recent snapshots (last 30 minutes)
     const cutoffTime = Math.floor((Date.now() - this.maxSnapshotAge) / 1000);
@@ -143,7 +221,7 @@ export class MultiOutcomeArbDetector {
 
     const rows = stmt.all(platform, cutoffTime) as SnapshotRow[];
 
-    // Group snapshots by market_id (keep most recent per market)
+    // Group snapshots by market_id using a single pass (optimized for large datasets)
     const latestByMarket = new Map<string, SnapshotRow>();
     for (const row of rows) {
       if (!latestByMarket.has(row.market_id)) {
@@ -166,7 +244,58 @@ export class MultiOutcomeArbDetector {
     // Sort by net edge descending
     opportunities.sort((a, b) => b.netEdge - a.netEdge);
 
+    // Log results
+    this.logResults(platform, latestByMarket.size, opportunities);
+
     return opportunities;
+  }
+
+  /**
+   * Get near-miss opportunities from last scan (for monitoring)
+   */
+  getNearMisses(): NearMiss[] {
+    return [...this.nearMisses];
+  }
+
+  /**
+   * Log detection results and near-misses
+   */
+  private logResults(platform: string, marketsScanned: number, opportunities: ArbOpportunity[]): void {
+    this.log.info(
+      {
+        platform,
+        marketsScanned,
+        opportunitiesFound: opportunities.length,
+        nearMissCount: this.nearMisses.length,
+      },
+      'Multi-outcome arb scan complete'
+    );
+
+    // Log near-misses for monitoring (helps track almost-profitable opportunities)
+    if (this.nearMisses.length > 0) {
+      this.log.debug(
+        {
+          nearMisses: this.nearMisses.slice(0, 5), // Top 5 near-misses
+        },
+        'Near-miss opportunities detected'
+      );
+    }
+
+    // Log each opportunity found
+    for (const opp of opportunities) {
+      this.log.info(
+        {
+          marketId: opp.marketId,
+          type: opp.type,
+          grossEdge: opp.grossEdge.toFixed(2),
+          netEdge: opp.netEdge.toFixed(2),
+          confidence: opp.confidence.toFixed(2),
+          outcomeCount: opp.outcomeCount,
+          minLiquidity: opp.minLiquidity,
+        },
+        'Arbitrage opportunity detected'
+      );
+    }
   }
 
   /**
@@ -209,14 +338,17 @@ export class MultiOutcomeArbDetector {
       return null;
     }
 
-    // Validate liquidity for all outcomes
-    if (!this.validateLiquidity(market)) {
+    // Calculate buy and sell arbitrage edges (optimized with utility functions)
+    const askPrices = this.extractPrices(market.askPrices, market.outcomes);
+    const bidPrices = this.extractPrices(market.bidPrices, market.outcomes);
+
+    // Early exit if prices are invalid
+    if (askPrices.length !== outcomeCount || bidPrices.length !== outcomeCount) {
       return null;
     }
 
-    // Calculate buy and sell arbitrage edges
-    const buyEdge = this.calculateBuyArbEdge(market.askPrices, market.outcomes);
-    const sellEdge = this.calculateSellArbEdge(market.bidPrices, market.outcomes);
+    const buyEdge = calculateBuyEdge(askPrices);
+    const sellEdge = calculateSellEdge(bidPrices);
 
     // Determine which arb type to use (if any)
     let type: 'buy' | 'sell';
@@ -232,11 +364,25 @@ export class MultiOutcomeArbDetector {
       return null; // No arbitrage opportunity
     }
 
-    // Adjust for fees
-    const netEdge = this.adjustForFees(grossEdge, outcomeCount);
+    // Calculate net edge using utility function
+    const netEdge = calculateNetEdge(grossEdge, outcomeCount, this.feePercent);
+
+    // Check if fees exceed gross edge (near-miss tracking)
+    if (netEdge <= 0) {
+      this.trackNearMiss(market, type, grossEdge, netEdge, 'fees_exceed_edge');
+      return null;
+    }
+
+    // Validate liquidity for all outcomes
+    const liquidityIssue = this.findLiquidityIssue(market);
+    if (liquidityIssue) {
+      this.trackNearMiss(market, type, grossEdge, netEdge, 'low_liquidity');
+      return null;
+    }
 
     // Check if net edge meets minimum threshold
     if (netEdge < this.minNetEdge) {
+      this.trackNearMiss(market, type, grossEdge, netEdge, 'low_edge');
       return null;
     }
 
@@ -271,62 +417,52 @@ export class MultiOutcomeArbDetector {
   }
 
   /**
-   * Calculate buy arbitrage edge
-   * Buy arb exists when sum of ask prices < 100%
-   *
-   * @param askPrices - Ask prices by outcome
-   * @param outcomes - Array of outcome names
-   * @returns Edge percentage (positive if arb exists)
+   * Extract prices from record into array (optimized for iteration)
    */
-  private calculateBuyArbEdge(askPrices: Record<string, number>, outcomes: string[]): number {
-    let sum = 0;
+  private extractPrices(priceRecord: Record<string, number>, outcomes: string[]): number[] {
+    const prices: number[] = [];
     for (const outcome of outcomes) {
-      const price = askPrices[outcome];
+      const price = priceRecord[outcome];
       if (typeof price !== 'number') {
-        return 0; // Invalid data
+        return []; // Invalid data
       }
-      sum += price;
+      prices.push(price);
     }
-
-    // Edge = 100% - sum of prices
-    // If sum < 100%, edge is positive
-    return (1 - sum) * 100;
+    return prices;
   }
 
   /**
-   * Calculate sell arbitrage edge
-   * Sell arb exists when sum of bid prices > 100%
-   *
-   * @param bidPrices - Bid prices by outcome
-   * @param outcomes - Array of outcome names
-   * @returns Edge percentage (positive if arb exists)
+   * Find first outcome with liquidity issue (returns outcome name or null)
    */
-  private calculateSellArbEdge(bidPrices: Record<string, number>, outcomes: string[]): number {
-    let sum = 0;
-    for (const outcome of outcomes) {
-      const price = bidPrices[outcome];
-      if (typeof price !== 'number') {
-        return 0; // Invalid data
+  private findLiquidityIssue(market: MultiOutcomeMarket): string | null {
+    for (const outcome of market.outcomes) {
+      const liq = market.liquidity[outcome];
+      if (typeof liq !== 'number' || liq < this.minLiquidityPerOutcome) {
+        return outcome;
       }
-      sum += price;
     }
-
-    // Edge = sum of prices - 100%
-    // If sum > 100%, edge is positive
-    return (sum - 1) * 100;
+    return null;
   }
 
   /**
-   * Adjust gross edge for fees
-   * Fee = outcomeCount * feePercent (each trade incurs fee)
-   *
-   * @param grossEdge - Gross edge percentage
-   * @param outcomeCount - Number of outcomes
-   * @returns Net edge after fees
+   * Track near-miss opportunity for monitoring
    */
-  private adjustForFees(grossEdge: number, outcomeCount: number): number {
-    const totalFees = outcomeCount * this.feePercent;
-    return grossEdge - totalFees;
+  private trackNearMiss(
+    market: MultiOutcomeMarket,
+    type: 'buy' | 'sell',
+    grossEdge: number,
+    netEdge: number,
+    reason: NearMiss['reason']
+  ): void {
+    this.nearMisses.push({
+      marketId: market.id,
+      platform: market.platform,
+      type,
+      grossEdge,
+      netEdge,
+      reason,
+      outcomeCount: market.outcomes.length,
+    });
   }
 
   /**
@@ -336,13 +472,7 @@ export class MultiOutcomeArbDetector {
    * @returns True if all outcomes have sufficient liquidity
    */
   private validateLiquidity(market: MultiOutcomeMarket): boolean {
-    for (const outcome of market.outcomes) {
-      const liq = market.liquidity[outcome];
-      if (typeof liq !== 'number' || liq < this.minLiquidityPerOutcome) {
-        return false;
-      }
-    }
-    return true;
+    return this.findLiquidityIssue(market) === null;
   }
 
   /**
