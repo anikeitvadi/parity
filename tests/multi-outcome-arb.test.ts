@@ -380,9 +380,10 @@ describe('MultiOutcomeArbDetector', () => {
     });
 
     it('should assign 0.7-0.9 confidence for moderate edge (1-3% net)', async () => {
-      // 10% gross, ~4% net (moderate)
+      // 8% gross - 6% fees = 2% net (moderate edge)
+      // Sum of prices: 32% + 32% + 28% = 92% -> 8% gross edge
       const market = createMultiOutcomeMarket({
-        askPrices: { 'Candidate A': 0.30, 'Candidate B': 0.30, 'Candidate C': 0.30 },
+        askPrices: { 'Candidate A': 0.32, 'Candidate B': 0.32, 'Candidate C': 0.28 },
         liquidity: { 'Candidate A': 600, 'Candidate B': 600, 'Candidate C': 600 },
       });
 
@@ -391,6 +392,7 @@ describe('MultiOutcomeArbDetector', () => {
       const opportunities = await detector.detect('polymarket');
 
       expect(opportunities.length).toBe(1);
+      expect(opportunities[0].netEdge).toBeCloseTo(2, 1); // Verify we have moderate edge
       expect(opportunities[0].confidence).toBeGreaterThanOrEqual(0.7);
       expect(opportunities[0].confidence).toBeLessThan(0.9);
     });
