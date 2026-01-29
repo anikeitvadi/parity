@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-01-29T20:50:00Z
+**Last Updated:** 2026-01-29T20:51:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -20,23 +20,23 @@
 ## Current Position
 
 **Phase:** 1 of 6 (Data Foundation & Infrastructure)
-**Plan:** 3 of 10 complete
+**Plan:** 4 of 10 complete
 **Status:** In progress
-**Last activity:** 2026-01-29 - Completed 01-03-PLAN.md (Polymarket CLOB Client)
+**Last activity:** 2026-01-29 - Completed 01-04-PLAN.md (Kalshi REST API Integration)
 
 **Progress Bar:**
 ```
 Phase 1: Data Foundation & Infrastructure
-[██████░░░░░░░░░░░░░░] 30% (3/10 plans)
+[████████░░░░░░░░░░░░] 40% (4/10 plans)
 
 Overall Roadmap:
-[██░░░░░░░░░░░░░░░░░░] 7% (3/42 requirements)
+[███░░░░░░░░░░░░░░░░░] 10% (4/42 requirements)
 ```
 
 **What's Next:**
-- Execute 01-04-PLAN.md (Kalshi REST Client)
 - Execute 01-05-PLAN.md (Scheduler & Logging)
 - Execute 01-06-PLAN.md (Market Matching)
+- Test Kalshi client with live credentials
 
 ## Performance Metrics
 
@@ -70,7 +70,9 @@ Overall Roadmap:
 | ES2022 target with ESNext modules | Modern Node.js support, better tree-shaking | 2026-01-29 |
 | 50% safety margin on rate limits | Prevent API bans (research-backed) | 2026-01-29 |
 | Full jitter on exponential backoff | Prevent thundering herd on retries | 2026-01-29 |
-| Kalshi credentials optional in env | Plan 04 handles Kalshi; keep Plan 03 focused | 2026-01-29 |
+| Kalshi credentials required in env | Core data source for cross-platform matching | 2026-01-29 |
+| KALSHI_USE_DEMO flag for demo API | Enables testing without production credentials | 2026-01-29 |
+| Kalshi prices normalized (cents to 0-1) | Match Polymarket format for downstream comparison | 2026-01-29 |
 | Use ethers v5 wallet for CLOB client | CLOB client type compatibility | 2026-01-29 |
 | Lazy CLOB client initialization | Allow market fetch without auth; order book needs it | 2026-01-29 |
 
@@ -135,18 +137,18 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-01-29T20:50:00Z
-- Completed 01-03-PLAN.md (Polymarket CLOB Client)
-- PolymarketClient with Gamma API and CLOB order book support
-- Environment validation with Zod, rate limiting integration
-- Commits: 54677d8 (env), 65bb037 (client), 56c3896 (fetchers)
+**Last Session:** 2026-01-29T20:51:00Z
+- Completed 01-04-PLAN.md (Kalshi REST API Integration)
+- KalshiClient with API key auth, rate limiting, market/orderbook fetchers
+- Credentials now required in env, KALSHI_USE_DEMO flag added
+- Commits: 4702c2b (all tasks)
 
-**Resume Point:** 01-04-PLAN.md (Kalshi REST Client)
+**Resume Point:** 01-05-PLAN.md (Scheduler & Logging)
 
 **Next Session Should:**
-- Execute 01-04-PLAN.md (Kalshi REST Client)
 - Execute 01-05-PLAN.md (Scheduler & Logging)
-- Test Polymarket client with live credentials
+- Execute 01-06-PLAN.md (Market Matching)
+- Test Kalshi client with live credentials
 
 ---
 
