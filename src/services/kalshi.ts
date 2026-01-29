@@ -76,18 +76,15 @@ export class KalshiClient {
   private rateLimiter: RateLimiter;
 
   constructor() {
-    if (!env.KALSHI_API_KEY || !env.KALSHI_API_SECRET) {
-      throw new Error(
-        'Kalshi credentials not configured. Set KALSHI_API_KEY and KALSHI_API_SECRET environment variables.'
-      );
-    }
-
-    this.baseUrl = KALSHI_PROD_API;
+    this.baseUrl = env.KALSHI_USE_DEMO ? KALSHI_DEMO_API : KALSHI_PROD_API;
     this.apiKey = env.KALSHI_API_KEY;
     this.apiSecret = env.KALSHI_API_SECRET;
     this.rateLimiter = createKalshiLimiter();
 
-    kalshiLogger.info({ baseUrl: this.baseUrl }, 'Kalshi client initialized');
+    kalshiLogger.info(
+      { baseUrl: this.baseUrl, demo: env.KALSHI_USE_DEMO },
+      'Kalshi client initialized'
+    );
   }
 
   /**

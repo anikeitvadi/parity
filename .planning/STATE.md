@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-01-29
+**Last Updated:** 2026-01-29T20:47:47Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -67,6 +67,9 @@ Overall Roadmap:
 | INSERT OR IGNORE for snapshot duplicates | Idempotent inserts simplify retry logic in API clients | 2026-01-29 |
 | Transaction batching for bulk inserts | 10-100x speedup for batch snapshot storage | 2026-01-29 |
 | INTEGER timestamps in SQLite | More efficient than ISO strings for range queries | 2026-01-29 |
+| ES2022 target with ESNext modules | Modern Node.js support, better tree-shaking | 2026-01-29 |
+| 50% safety margin on rate limits | Prevent API bans (research-backed) | 2026-01-29 |
+| Full jitter on exponential backoff | Prevent thundering herd on retries | 2026-01-29 |
 
 ### Active Constraints
 
@@ -129,17 +132,17 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-01-29T20:42:40Z
-- Completed 01-02-PLAN.md (SQLite Database Layer)
-- TDD: 16 tests passing, database schema and queries implemented
-- Commits: 6eeddf7 (tests), aea6311 (implementation)
+**Last Session:** 2026-01-29T20:47:47Z
+- Completed 01-01-PLAN.md (Project Foundation)
+- Logger with error serialization, rate limiter with exponential backoff
+- Commits: af76d17 (init), 595f145 (logger), 3283021 (blocking fix)
 
-**Resume Point:** 01-03-PLAN.md (Polymarket CLOB Client)
+**Resume Point:** 01-02-PLAN.md (SQLite Database Layer)
 
 **Next Session Should:**
+- Execute 01-02-PLAN.md (SQLite Database Layer)
 - Execute 01-03-PLAN.md (Polymarket CLOB Client)
 - Verify Polymarket API key access
-- Execute 01-04-PLAN.md (Kalshi REST Client)
 
 ---
 
