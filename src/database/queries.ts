@@ -125,3 +125,52 @@ export function getLatestSnapshot(
   const row = stmt.get(platform, marketId) as SnapshotRow | undefined;
   return row ? rowToSnapshot(row) : null;
 }
+
+/**
+ * Matched market pair row structure
+ */
+interface MatchedMarketRow {
+  id: number;
+  polymarket_id: string;
+  kalshi_ticker: string;
+  confidence: number;
+  method: string;
+  timestamp: number;
+}
+
+/**
+ * Insert or update a matched market pair.
+ * Uses INSERT OR REPLACE to update existing matches with new confidence/method.
+ */
+export function insertMatch(
+  polymarketId: string,
+  kalshiTicker: string,
+  confidence: number,
+  method: string
+): void {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO matched_markets
+    (polymarket_id, kalshi_ticker, confidence, method, timestamp)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  stmt.run(polymarketId, kalshiTicker, confidence, method, Date.now());
+}
+
+/**
+ * Get recent matched market pairs above a minimum confidence threshold.
+ */
+export function getRecentMatches(
+  minConfidence: number = 0.5,
+  limit: number = 100
+): MatchedMarketRow[] {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT id, polymarket_id, kalshi_ticker, confidence, method, timestamp
+    FROM matched_markets
+    WHERE confidence >= ?
+    ORDER BY timestamp DESC
+    LIMIT ?
+  `);
+  return stmt.all(minConfidence, limit) as MatchedMarketRow[];
+}

@@ -36,6 +36,22 @@ export function initDatabase(dbPath: string = 'markets.db'): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_snapshots_market
       ON market_snapshots(market_id, timestamp DESC);
+
+    CREATE TABLE IF NOT EXISTS matched_markets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      polymarket_id TEXT NOT NULL,
+      kalshi_ticker TEXT NOT NULL,
+      confidence REAL NOT NULL,
+      method TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      UNIQUE(polymarket_id, kalshi_ticker)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_matched_markets_timestamp
+      ON matched_markets(timestamp DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_matched_markets_confidence
+      ON matched_markets(confidence DESC);
   `);
 
   return db;
