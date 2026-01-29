@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-01-29T21:07:24Z
+**Last Updated:** 2026-01-29T21:13:44Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -86,6 +86,9 @@ Overall Roadmap:
 | 10% minimum net edge for cross-platform arb | Must cover 9% fees + settlement risk buffer | 2026-01-29 |
 | 30-minute max snapshot age | Stale prices lead to false arbitrage opportunities | 2026-01-29 |
 | Feature flag pattern for gated features | Safe enablement of risky features after dependencies met | 2026-01-29 |
+| PM2 with graceful 5s shutdown | Allows in-flight requests to complete before restart | 2026-01-29 |
+| Rsync excludes planning docs | Keep development artifacts off production VPS | 2026-01-29 |
+| chmod 600 for .env on VPS | Script enforces secure permissions on credentials | 2026-01-29 |
 
 ### Active Constraints
 
@@ -106,14 +109,15 @@ Overall Roadmap:
 ### Todos & Blockers
 
 **Immediate Todos:**
-- [ ] Plan Phase 1 execution
+- [x] Plan Phase 1 execution
 - [ ] Verify Polymarket API key access
 - [ ] Verify Kalshi API key access
-- [ ] Set up VPS environment (Hetzner 2 vCPU / 8GB RAM)
+- [ ] Set up VPS environment (Hetzner 2 vCPU / 8GB RAM) - BLOCKING 01-09 Tasks 2-3
+- [ ] Create hot wallet for CLOB auth ($1-5 gas only) - BLOCKING 01-09 Tasks 2-3
 - [ ] Configure Twilio WhatsApp sandbox for testing
 
 **Known Blockers:**
-- None currently
+- 01-09 Tasks 2-3 blocked on VPS provisioning and hot wallet creation
 
 **Research Needed During Planning:**
 - Phase 3: Settlement rule extraction methodology (Polymarket UMA oracle vs Kalshi resolution)
@@ -148,20 +152,21 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-01-29T21:07:24Z
-- Completed 01-10-PLAN.md (Cross-Platform Arbitrage Detector with TDD)
-- Feature flags config with crossPlatformArb: false (DISABLED until Phase 3)
-- CrossPlatformArbDetector with configurable fees and liquidity thresholds
-- 23 tests covering all detector requirements
-- Commits: 13de5ff (RED: tests), 66f8797 (GREEN: implementation)
+**Last Session:** 2026-01-29T21:13:44Z
+- Partially completed 01-09-PLAN.md (Production Deployment)
+- Task 1 complete: PM2 ecosystem config, deploy.sh, .env.production template
+- Tasks 2-3 PENDING: Require human action (VPS provisioning and deployment)
+- Commit: 57a2d86 (feat: add PM2 ecosystem config and deployment script)
 
-**Resume Point:** Phase 2 - Scoring & Alert Foundation
+**Resume Point:** Complete 01-09 Tasks 2-3 (human action required)
 
 **Next Session Should:**
-- Begin Phase 2 planning
-- Test job scheduler with live API credentials
-- Verify data collection pipeline end-to-end
-- Note: Cross-platform arb detector is DISABLED until Phase 3
+- Complete VPS provisioning (Hetzner 2 vCPU / 8GB RAM)
+- Create hot wallet for Polymarket CLOB auth
+- Configure .env on VPS with credentials
+- Run ./deploy.sh to deploy system
+- Verify PM2 shows market-scanner online
+- Then begin Phase 2 planning
 
 ---
 
