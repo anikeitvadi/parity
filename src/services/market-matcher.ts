@@ -29,15 +29,32 @@ interface ManualMatch {
   verified: boolean;
 }
 
-// Common stop words to filter from keyword extraction
+/**
+ * Common stop words to filter from keyword extraction.
+ * These words don't contribute to semantic matching.
+ */
 const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'up', 'about', 'into', 'over', 'after',
+  // Articles and conjunctions
+  'the', 'a', 'an', 'and', 'or', 'but', 'nor', 'so', 'yet',
+  // Prepositions
+  'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up',
+  'about', 'into', 'over', 'after', 'before', 'between', 'under', 'during',
+  // Verbs (forms of be/have/do)
   'will', 'be', 'is', 'are', 'was', 'were', 'been', 'being',
   'have', 'has', 'had', 'do', 'does', 'did', 'done',
-  'this', 'that', 'these', 'those', 'it', 'its',
-  'what', 'which', 'who', 'whom', 'whose',
+  'can', 'could', 'would', 'should', 'may', 'might', 'must',
+  // Pronouns and determiners
+  'this', 'that', 'these', 'those', 'it', 'its', 'they', 'them', 'their',
+  'what', 'which', 'who', 'whom', 'whose', 'how', 'when', 'where', 'why',
+  // Common prediction market words (too generic)
+  'market', 'prediction', 'price', 'outcome',
 ]);
+
+/** Minimum keyword overlap (Jaccard) to consider for matching */
+const MIN_JACCARD_THRESHOLD = 0.5;
+
+/** Days allowed between close dates for compatible markets */
+const MAX_CLOSE_DATE_DIFF_DAYS = 7;
 
 /**
  * MarketMatcher identifies equivalent events across prediction market platforms.
@@ -127,9 +144,33 @@ export class MarketMatcher {
 
           matchedKalshiIds.add(kalshi.id);
           break; // Move to next Polymarket market
+        } else if (confidence > 0 && confidence < this.minConfidence) {
+          // Log low-confidence matches for manual review
+          logger.debug(
+            {
+              polyId: poly.id,
+              kalshiId: kalshi.id,
+              polyQuestion: poly.question.substring(0, 50),
+              kalshiQuestion: kalshi.question.substring(0, 50),
+              confidence,
+            },
+            'Low confidence match found - consider manual curation'
+          );
         }
       }
     }
+
+    logger.info(
+      {
+        polymarketCount: polymarkets.length,
+        kalshiCount: kalshiMarkets.length,
+        matchCount: matches.length,
+        manualMatches: matches.filter((m) => m.method === 'manual_curated').length,
+        exactMatches: matches.filter((m) => m.method === 'exact_match').length,
+        keywordMatches: matches.filter((m) => m.method === 'keyword_match').length,
+      },
+      'Market matching complete'
+    );
 
     return matches;
   }
@@ -180,15 +221,15 @@ export class MarketMatcher {
     const union = new Set([...polyKeywords, ...kalshiKeywords]);
     const jaccard = intersection.length / union.size;
 
-    // Require at least 50% keyword overlap to consider it a potential match
+    // Require minimum overlap to consider it a potential match
     // This prevents matching markets that just share a few common words
-    if (jaccard < 0.5) {
+    if (jaccard < MIN_JACCARD_THRESHOLD) {
       return 0.0;
     }
 
     // Scale to 0.7-0.9 range for keyword matches
-    // jaccard 0.5 -> 0.7, jaccard 1.0 -> 0.9
-    return 0.7 + (jaccard - 0.5) * 0.4;
+    // jaccard MIN_JACCARD_THRESHOLD -> 0.7, jaccard 1.0 -> 0.9
+    return 0.7 + (jaccard - MIN_JACCARD_THRESHOLD) * (0.2 / (1 - MIN_JACCARD_THRESHOLD));
   }
 
   /**
@@ -211,7 +252,7 @@ export class MarketMatcher {
       }
 
       const daysDiff = Math.abs(polyDate.getTime() - kalshiDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysDiff > 7) {
+      if (daysDiff > MAX_CLOSE_DATE_DIFF_DAYS) {
         return false;
       }
     }
