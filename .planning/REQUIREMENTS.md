@@ -109,19 +109,68 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-* | TBD | Pending |
-| EDGE-* | TBD | Pending |
-| RATE-* | TBD | Pending |
-| ALRT-* | TBD | Pending |
-| SIZE-* | TBD | Pending |
-| TRCK-* | TBD | Pending |
-| INFR-* | TBD | Pending |
+| INFR-01 | Phase 1 | Pending |
+| INFR-02 | Phase 1 | Pending |
+| INFR-03 | Phase 1 | Pending |
+| INFR-04 | Phase 1 | Pending |
+| INFR-05 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Pending |
+| DATA-07 | Phase 1 | Pending |
+| DATA-08 | Phase 1 | Pending |
+| EDGE-04 | Phase 1 | Pending |
+| EDGE-05 | Phase 1 | Pending |
+| RATE-01 | Phase 2 | Pending |
+| RATE-02 | Phase 2 | Pending |
+| RATE-03 | Phase 2 | Pending |
+| RATE-04 | Phase 2 | Pending |
+| RATE-05 | Phase 2 | Pending |
+| RATE-06 | Phase 2 | Pending |
+| RATE-07 | Phase 2 | Pending |
+| ALRT-01 | Phase 2 | Pending |
+| ALRT-02 | Phase 2 | Pending |
+| ALRT-03 | Phase 2 | Pending |
+| ALRT-04 | Phase 2 | Pending |
+| ALRT-05 | Phase 2 | Pending |
+| ALRT-06 | Phase 2 | Pending |
+| SIZE-01 | Phase 2 | Pending |
+| SIZE-02 | Phase 2 | Pending |
+| SIZE-03 | Phase 2 | Pending |
+| SIZE-04 | Phase 2 | Pending |
+| TRCK-01 | Phase 2 | Pending |
+| TRCK-02 | Phase 2 | Pending |
+| EDGE-07 | Phase 3 | Pending |
+| EDGE-02 | Phase 3 | Pending |
+| DATA-03 | Phase 4 | Pending |
+| EDGE-01 | Phase 4 | Pending |
+| EDGE-03 | Phase 5 | Pending |
+| TRCK-03 | Phase 5 | Pending |
+| TRCK-04 | Phase 5 | Pending |
+| TRCK-05 | Phase 5 | Pending |
+| TRCK-07 | Phase 5 | Pending |
+| DATA-06 | Phase 6 | Pending |
+| EDGE-06 | Phase 6 | Pending |
+| TRCK-06 | Phase 6 | Pending |
+| TRCK-08 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 42 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 42
+- Mapped to phases: 42 (100% coverage)
+- Unmapped: 0
+
+**Coverage Validation:**
+- Phase 1: 13 requirements
+- Phase 2: 18 requirements
+- Phase 3: 2 requirements
+- Phase 4: 2 requirements
+- Phase 5: 5 requirements
+- Phase 6: 4 requirements
+- Total: 44 requirement mappings (EDGE-02 built in Phase 1, enabled in Phase 3)
+
+**Note:** EDGE-02 (cross-platform arbitrage) is mapped to both Phase 1 (detector built but DISABLED) and Phase 3 (enabled after settlement parser). This intentional duplication ensures settlement divergence risk is mitigated before any cross-platform arb alerts are sent.
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after initial definition*
+*Last updated: 2026-01-29 after roadmap creation*
