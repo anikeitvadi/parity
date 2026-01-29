@@ -4,11 +4,40 @@
  * Detects pricing inconsistencies in correlated markets on the same platform.
  * EDGE-04 requirement: identifies opportunities where related markets are mispriced.
  *
+ * Detection patterns:
+ * - Binary markets where YES + NO != 100% (buy/sell both outcomes)
+ * - Multi-outcome markets where sum of prices != 100%
+ *
+ * Note: This detector operates within a single platform only.
+ * Cross-platform arbitrage (EDGE-02) is handled separately and disabled until Phase 3.
+ *
  * @module detectors/correlated-markets
  */
 
 import type { Market } from '../types/market.js';
 import { logger } from '../utils/logger.js';
+
+// Configuration constants
+/** Default minimum edge percentage to flag an opportunity */
+const DEFAULT_MIN_EDGE_PERCENT = 2;
+
+/** Default minimum liquidity threshold in USD */
+const DEFAULT_MIN_LIQUIDITY = 500;
+
+/** Edge threshold for high confidence (>5% = 0.9+ confidence) */
+const HIGH_CONFIDENCE_EDGE_THRESHOLD = 5;
+
+/** Maximum edge for confidence scaling (10% = 1.0 confidence) */
+const MAX_EDGE_FOR_CONFIDENCE = 10;
+
+/** Minimum confidence for moderate edge (2-5%) */
+const MIN_CONFIDENCE = 0.7;
+
+/** Confidence at threshold (5% edge) */
+const THRESHOLD_CONFIDENCE = 0.9;
+
+/** Maximum confidence (>10% edge) */
+const MAX_CONFIDENCE = 1.0;
 
 /**
  * Opportunity type for correlated market mispricing
@@ -33,6 +62,8 @@ export interface CorrelatedOpportunity {
   confidence: number;
   /** Sum of all outcome prices (should be ~1.0) */
   priceSum: number;
+  /** Expected value as decimal (e.g., 0.05 = 5% EV) */
+  expectedValue: number;
   /** Timestamp of detection */
   timestamp: number;
 }
@@ -43,39 +74,69 @@ export interface CorrelatedOpportunity {
  * Identifies pricing inconsistencies within the same platform:
  * - Binary markets where YES + NO != 100%
  * - Multi-outcome markets where sum of prices != 100%
+ *
+ * @example
+ * ```typescript
+ * const detector = new CorrelatedMarketsDetector(2, 500);
+ * const opportunities = detector.detectFromMarkets(markets);
+ * ```
  */
 export class CorrelatedMarketsDetector {
   private readonly detectorLogger = logger.child({ component: 'correlated-detector' });
+  private readonly minEdgePercent: number;
+  private readonly minLiquidity: number;
 
   constructor(
-    private minEdgePercent: number = 2,
-    private minLiquidity: number = 500
-  ) {}
+    minEdgePercent: number = DEFAULT_MIN_EDGE_PERCENT,
+    minLiquidity: number = DEFAULT_MIN_LIQUIDITY
+  ) {
+    this.minEdgePercent = minEdgePercent;
+    this.minLiquidity = minLiquidity;
+  }
 
   /**
    * Detect opportunities from a list of markets
+   *
+   * @param markets - Array of markets to analyze
+   * @returns Array of opportunities sorted by edge size (descending)
    */
   detectFromMarkets(markets: Market[]): CorrelatedOpportunity[] {
     const opportunities: CorrelatedOpportunity[] = [];
+    let skippedCount = 0;
 
     for (const market of markets) {
       const opportunity = this.analyzeMarket(market);
       if (opportunity) {
         opportunities.push(opportunity);
+      } else {
+        skippedCount++;
       }
     }
 
     // Sort by edge size descending (best opportunities first)
     opportunities.sort((a, b) => b.edgeSize - a.edgeSize);
 
+    // Log results
     if (opportunities.length > 0) {
       this.detectorLogger.info(
         {
           marketCount: markets.length,
           opportunityCount: opportunities.length,
+          skippedCount,
           topEdge: opportunities[0]?.edgeSize,
+          topType: opportunities[0]?.type,
         },
         'Correlated market analysis complete'
+      );
+    } else if (markets.length > 0) {
+      this.detectorLogger.debug(
+        {
+          marketCount: markets.length,
+          skippedCount,
+          minEdgePercent: this.minEdgePercent,
+          minLiquidity: this.minLiquidity,
+        },
+        'No correlated market opportunities found'
       );
     }
 
@@ -88,6 +149,10 @@ export class CorrelatedMarketsDetector {
   private analyzeMarket(market: Market): CorrelatedOpportunity | null {
     // Skip single outcome markets (no correlation check possible)
     if (market.outcomes.length < 2) {
+      this.detectorLogger.debug(
+        { marketId: market.id, outcomeCount: market.outcomes.length },
+        'Skipping single-outcome market'
+      );
       return null;
     }
 
@@ -98,6 +163,10 @@ export class CorrelatedMarketsDetector {
 
     // Validate price data
     if (!this.hasValidPrices(market)) {
+      this.detectorLogger.debug(
+        { marketId: market.id, prices: market.prices },
+        'Skipping market with invalid prices'
+      );
       return null;
     }
 
@@ -121,12 +190,16 @@ export class CorrelatedMarketsDetector {
     // Calculate confidence
     const confidence = this.calculateConfidence(edgeSize);
 
+    // Calculate expected value
+    const expectedValue = this.calculateExpectedValue(priceSum, type);
+
     return {
       market,
       type,
       edgeSize,
       confidence,
       priceSum,
+      expectedValue,
       timestamp: Date.now(),
     };
   }
@@ -135,7 +208,6 @@ export class CorrelatedMarketsDetector {
    * Check if market meets minimum liquidity threshold
    */
   private meetsLiquidityThreshold(market: Market): boolean {
-    // Skip markets without liquidity data
     if (market.liquidity === undefined || market.liquidity === null) {
       return false;
     }
@@ -192,17 +264,33 @@ export class CorrelatedMarketsDetector {
    * Calculate confidence score based on edge size
    *
    * Confidence scaling:
-   * - 2-5% edge: 0.7-0.9 confidence (proportional)
-   * - >5% edge: 0.9-1.0 confidence (proportional, capped at 1.0)
+   * - 2-5% edge: 0.7-0.9 confidence (linear interpolation)
+   * - 5-10% edge: 0.9-1.0 confidence (linear interpolation)
+   * - >10% edge: 1.0 confidence (capped)
    */
   private calculateConfidence(edgeSize: number): number {
-    if (edgeSize > 5) {
-      // 0.9 at 5%, scales toward 1.0 (cap at 10% edge for max confidence)
-      const scaledEdge = Math.min(edgeSize, 10);
-      return 0.9 + ((scaledEdge - 5) / 5) * 0.1;
+    if (edgeSize > HIGH_CONFIDENCE_EDGE_THRESHOLD) {
+      // High confidence range: 5-10% edge -> 0.9-1.0 confidence
+      const scaledEdge = Math.min(edgeSize, MAX_EDGE_FOR_CONFIDENCE);
+      const range = MAX_EDGE_FOR_CONFIDENCE - HIGH_CONFIDENCE_EDGE_THRESHOLD;
+      const progress = (scaledEdge - HIGH_CONFIDENCE_EDGE_THRESHOLD) / range;
+      return THRESHOLD_CONFIDENCE + progress * (MAX_CONFIDENCE - THRESHOLD_CONFIDENCE);
     } else {
-      // 0.7 at 2%, 0.9 at 5%
-      return 0.7 + ((edgeSize - 2) / 3) * 0.2;
+      // Moderate confidence range: 2-5% edge -> 0.7-0.9 confidence
+      const range = HIGH_CONFIDENCE_EDGE_THRESHOLD - this.minEdgePercent;
+      const progress = (edgeSize - this.minEdgePercent) / range;
+      return MIN_CONFIDENCE + progress * (THRESHOLD_CONFIDENCE - MIN_CONFIDENCE);
     }
+  }
+
+  /**
+   * Calculate expected value from the opportunity
+   *
+   * For overpriced markets: EV = (sum - 1) since selling all outcomes yields sum but costs 1
+   * For underpriced markets: EV = (1 - sum) since buying all outcomes costs sum but yields 1
+   */
+  private calculateExpectedValue(priceSum: number, type: OpportunityType): number {
+    const isOverpriced = type === 'binary_overpriced' || type === 'multi_overpriced';
+    return isOverpriced ? priceSum - 1 : 1 - priceSum;
   }
 }

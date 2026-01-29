@@ -385,6 +385,7 @@ describe('CorrelatedMarketsDetector', () => {
       expect(opp).toHaveProperty('edgeSize');
       expect(opp).toHaveProperty('confidence');
       expect(opp).toHaveProperty('priceSum');
+      expect(opp).toHaveProperty('expectedValue');
       expect(opp).toHaveProperty('timestamp');
     });
 
@@ -421,5 +422,53 @@ describe('CorrelatedOpportunity Type', () => {
     const types = opportunities.map((o) => o.type);
     expect(types).toContain('binary_overpriced');
     expect(types).toContain('binary_underpriced');
+  });
+});
+
+describe('Expected Value Calculation', () => {
+  let detector: CorrelatedMarketsDetector;
+
+  beforeEach(() => {
+    detector = new CorrelatedMarketsDetector();
+  });
+
+  it('should calculate positive EV for overpriced market', () => {
+    // Sum is 105%, so EV = 0.05 (sell both for 1.05, pay out 1.00)
+    const market = createBinaryMarket({
+      prices: { Yes: 0.55, No: 0.50 },
+      liquidity: 10000,
+    });
+    const opportunities = detector.detectFromMarkets([market]);
+
+    expect(opportunities[0].expectedValue).toBeCloseTo(0.05, 2);
+  });
+
+  it('should calculate positive EV for underpriced market', () => {
+    // Sum is 95%, so EV = 0.05 (buy both for 0.95, receive 1.00)
+    const market = createBinaryMarket({
+      prices: { Yes: 0.45, No: 0.50 },
+      liquidity: 10000,
+    });
+    const opportunities = detector.detectFromMarkets([market]);
+
+    expect(opportunities[0].expectedValue).toBeCloseTo(0.05, 2);
+  });
+
+  it('should scale EV with edge size', () => {
+    const smallEdge = createBinaryMarket({
+      id: 'small',
+      prices: { Yes: 0.52, No: 0.51 }, // 103%
+      liquidity: 10000,
+    });
+    const largeEdge = createBinaryMarket({
+      id: 'large',
+      prices: { Yes: 0.58, No: 0.50 }, // 108%
+      liquidity: 10000,
+    });
+
+    const smallOpp = detector.detectFromMarkets([smallEdge]);
+    const largeOpp = detector.detectFromMarkets([largeEdge]);
+
+    expect(largeOpp[0].expectedValue).toBeGreaterThan(smallOpp[0].expectedValue);
   });
 });
