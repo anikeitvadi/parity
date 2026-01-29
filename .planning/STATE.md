@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-01-29T20:51:00Z
+**Last Updated:** 2026-01-29T20:57:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -20,23 +20,23 @@
 ## Current Position
 
 **Phase:** 1 of 6 (Data Foundation & Infrastructure)
-**Plan:** 4 of 10 complete
+**Plan:** 5 of 10 complete
 **Status:** In progress
-**Last activity:** 2026-01-29 - Completed 01-04-PLAN.md (Kalshi REST API Integration)
+**Last activity:** 2026-01-29 - Completed 01-05-PLAN.md (Cross-Platform Market Matcher)
 
 **Progress Bar:**
 ```
 Phase 1: Data Foundation & Infrastructure
-[████████░░░░░░░░░░░░] 40% (4/10 plans)
+[██████████░░░░░░░░░░] 50% (5/10 plans)
 
 Overall Roadmap:
-[███░░░░░░░░░░░░░░░░░] 10% (4/42 requirements)
+[████░░░░░░░░░░░░░░░░] 12% (5/42 requirements)
 ```
 
 **What's Next:**
-- Execute 01-05-PLAN.md (Scheduler & Logging)
-- Execute 01-06-PLAN.md (Market Matching)
-- Test Kalshi client with live credentials
+- Execute 01-06-PLAN.md (Scheduler & Logging)
+- Test MarketMatcher with live API data
+- Verify 50+ matched pairs between Polymarket and Kalshi
 
 ## Performance Metrics
 
@@ -75,6 +75,9 @@ Overall Roadmap:
 | Kalshi prices normalized (cents to 0-1) | Match Polymarket format for downstream comparison | 2026-01-29 |
 | Use ethers v5 wallet for CLOB client | CLOB client type compatibility | 2026-01-29 |
 | Lazy CLOB client initialization | Allow market fetch without auth; order book needs it | 2026-01-29 |
+| 50% Jaccard threshold for keyword matches | Prevents false positives from shared common words | 2026-01-29 |
+| 7-day max difference for close dates | Markets often have slightly different resolution dates | 2026-01-29 |
+| 0.7 minimum confidence for matches | Balances precision vs recall for cross-platform matching | 2026-01-29 |
 
 ### Active Constraints
 
@@ -137,18 +140,18 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-01-29T20:51:00Z
-- Completed 01-04-PLAN.md (Kalshi REST API Integration)
-- KalshiClient with API key auth, rate limiting, market/orderbook fetchers
-- Credentials now required in env, KALSHI_USE_DEMO flag added
-- Commits: 4702c2b (all tasks)
+**Last Session:** 2026-01-29T20:57:00Z
+- Completed 01-05-PLAN.md (Cross-Platform Market Matcher)
+- MarketMatcher with Jaccard keyword similarity (TDD: 30 tests)
+- Text normalization, keyword extraction, manual curation support
+- Commits: 09f061a (RED), 7b3936b (GREEN), a976d54 (REFACTOR)
 
-**Resume Point:** 01-05-PLAN.md (Scheduler & Logging)
+**Resume Point:** 01-06-PLAN.md (Scheduler & Logging)
 
 **Next Session Should:**
-- Execute 01-05-PLAN.md (Scheduler & Logging)
-- Execute 01-06-PLAN.md (Market Matching)
-- Test Kalshi client with live credentials
+- Execute 01-06-PLAN.md (Scheduler & Logging)
+- Test MarketMatcher with live API data
+- Verify 50+ matched pairs between Polymarket and Kalshi
 
 ---
 
