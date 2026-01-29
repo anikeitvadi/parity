@@ -15,6 +15,8 @@ This roadmap delivers a prediction market edge scanner that identifies profitabl
 
 **Dependencies:** None (foundation)
 
+**Plans:** 9 plans
+
 **Requirements:**
 - INFR-01: VPS deployment with continuous operation
 - INFR-02: Secure credential storage (environment variables)
@@ -36,6 +38,17 @@ This roadmap delivers a prediction market edge scanner that identifies profitabl
 3. Order book depth is available for liquidity filtering (minimum $500 threshold enforced)
 4. Cross-platform market matching identifies 50+ equivalent events across platforms
 5. System recovers gracefully from API failures without manual intervention
+
+Plans:
+- [ ] 01-01-PLAN.md — Project foundation (TypeScript, logger, rate limiter)
+- [ ] 01-02-PLAN.md — Database layer (SQLite with WAL mode) [TDD]
+- [ ] 01-03-PLAN.md — Polymarket integration (CLOB client, market + order book fetching)
+- [ ] 01-04-PLAN.md — Kalshi integration (REST client, market + order book fetching)
+- [ ] 01-05-PLAN.md — Market matching (cross-platform matcher) [TDD]
+- [ ] 01-06-PLAN.md — Job scheduler (Bree with periodic data collection)
+- [ ] 01-07-PLAN.md — Correlated markets detector (consistency checker) [TDD]
+- [ ] 01-08-PLAN.md — Multi-outcome arbitrage detector [TDD]
+- [ ] 01-09-PLAN.md — Production deployment (VPS + PM2 + hot wallet)
 
 ---
 
