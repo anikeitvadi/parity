@@ -35,7 +35,7 @@ const envSchema = z.object({
   KALSHI_API_SECRET: z
     .string()
     .min(10, 'KALSHI_API_SECRET must be at least 10 characters'),
-  // Use demo API instead of production (set to 'true' for demo mode)
+  // Use demo API instead of production
   KALSHI_USE_DEMO: z
     .string()
     .optional()
@@ -52,12 +52,13 @@ if (!parseResult.success) {
   }
   console.error('\nRequired environment variables:');
   console.error('  POLYMARKET_PRIVATE_KEY: Ethereum private key (64+ hex chars)');
+  console.error('  KALSHI_API_KEY: Kalshi API key (from Dashboard -> Settings -> API Keys)');
+  console.error('  KALSHI_API_SECRET: Kalshi API secret');
   console.error('\nOptional environment variables:');
   console.error('  NODE_ENV: development | production (default: development)');
   console.error('  POLYMARKET_API_KEY: Gamma API key (if required)');
   console.error('  POLYMARKET_FUNDER_ADDRESS: Polymarket profile address');
-  console.error('  KALSHI_API_KEY: Kalshi API key');
-  console.error('  KALSHI_API_SECRET: Kalshi API secret');
+  console.error('  KALSHI_USE_DEMO: Set to "true" to use demo API');
   process.exit(1);
 }
 
