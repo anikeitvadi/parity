@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-01-29T20:57:00Z
+**Last Updated:** 2026-01-29T20:58:50Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -20,23 +20,23 @@
 ## Current Position
 
 **Phase:** 1 of 6 (Data Foundation & Infrastructure)
-**Plan:** 5 of 10 complete
+**Plan:** 6 of 10 complete
 **Status:** In progress
-**Last activity:** 2026-01-29 - Completed 01-05-PLAN.md (Cross-Platform Market Matcher)
+**Last activity:** 2026-01-29 - Completed 01-06-PLAN.md (Job Scheduler with Bree)
 
 **Progress Bar:**
 ```
 Phase 1: Data Foundation & Infrastructure
-[██████████░░░░░░░░░░] 50% (5/10 plans)
+[████████████░░░░░░░░] 60% (6/10 plans)
 
 Overall Roadmap:
-[████░░░░░░░░░░░░░░░░] 12% (5/42 requirements)
+[█████░░░░░░░░░░░░░░░] 14% (6/42 requirements)
 ```
 
 **What's Next:**
-- Execute 01-06-PLAN.md (Scheduler & Logging)
-- Test MarketMatcher with live API data
-- Verify 50+ matched pairs between Polymarket and Kalshi
+- Execute 01-07-PLAN.md (Edge Detection Core)
+- Test job scheduler with live API credentials
+- Verify data collection pipeline end-to-end
 
 ## Performance Metrics
 
@@ -78,6 +78,10 @@ Overall Roadmap:
 | 50% Jaccard threshold for keyword matches | Prevents false positives from shared common words | 2026-01-29 |
 | 7-day max difference for close dates | Markets often have slightly different resolution dates | 2026-01-29 |
 | 0.7 minimum confidence for matches | Balances precision vs recall for cross-platform matching | 2026-01-29 |
+| 15-minute interval for data collection | Balance API quota vs data freshness | 2026-01-29 |
+| 30-minute interval for market matching | Reduce computation overhead | 2026-01-29 |
+| $500 liquidity threshold for order books | Focus on liquid markets only | 2026-01-29 |
+| Worker threads via Bree | Isolation prevents job failures from crashing scheduler | 2026-01-29 |
 
 ### Active Constraints
 
@@ -140,18 +144,19 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-01-29T20:57:00Z
-- Completed 01-05-PLAN.md (Cross-Platform Market Matcher)
-- MarketMatcher with Jaccard keyword similarity (TDD: 30 tests)
-- Text normalization, keyword extraction, manual curation support
-- Commits: 09f061a (RED), 7b3936b (GREEN), a976d54 (REFACTOR)
+**Last Session:** 2026-01-29T20:58:50Z
+- Completed 01-06-PLAN.md (Job Scheduler with Bree)
+- Bree scheduler with 3 jobs: fetch-polymarket, fetch-kalshi, match-markets
+- matched_markets table added to schema
+- Graceful shutdown with @ladjs/graceful
+- Commits: d7711a8 (Task 1), 77d86eb (Task 2), a812857 (Task 3)
 
-**Resume Point:** 01-06-PLAN.md (Scheduler & Logging)
+**Resume Point:** 01-07-PLAN.md (Edge Detection Core)
 
 **Next Session Should:**
-- Execute 01-06-PLAN.md (Scheduler & Logging)
-- Test MarketMatcher with live API data
-- Verify 50+ matched pairs between Polymarket and Kalshi
+- Execute 01-07-PLAN.md (Edge Detection Core)
+- Test job scheduler with live API credentials
+- Verify data collection stores snapshots correctly
 
 ---
 
