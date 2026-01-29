@@ -15,7 +15,7 @@ This roadmap delivers a prediction market edge scanner that identifies profitabl
 
 **Dependencies:** None (foundation)
 
-**Plans:** 9 plans
+**Plans:** 10 plans
 
 **Requirements:**
 - INFR-01: VPS deployment with continuous operation
@@ -29,6 +29,7 @@ This roadmap delivers a prediction market edge scanner that identifies profitabl
 - DATA-05: Order book depth fetching for liquidity assessment
 - DATA-07: Market snapshot storage for historical analysis
 - DATA-08: Rate limiting with exponential backoff
+- EDGE-02: Cross-platform arbitrage detector (built in Phase 1, DISABLED until Phase 3)
 - EDGE-04: Correlated market consistency detector
 - EDGE-05: Multi-outcome arbitrage detector
 
@@ -49,6 +50,7 @@ Plans:
 - [ ] 01-07-PLAN.md — Correlated markets detector (consistency checker) [TDD]
 - [ ] 01-08-PLAN.md — Multi-outcome arbitrage detector [TDD]
 - [ ] 01-09-PLAN.md — Production deployment (VPS + PM2 + hot wallet)
+- [ ] 01-10-PLAN.md — Cross-platform arbitrage detector (DISABLED until Phase 3) [TDD]
 
 ---
 
@@ -168,14 +170,14 @@ Plans:
 
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
-| 1 - Data Foundation & Infrastructure | Pending | 13 | 0% |
+| 1 - Data Foundation & Infrastructure | Pending | 14 | 0% |
 | 2 - Scoring Engine & Alert System | Pending | 18 | 0% |
 | 3 - Cross-Platform Arbitrage Enablement | Pending | 2 | 0% |
 | 4 - Metaculus Integration | Pending | 2 | 0% |
 | 5 - Longshot Bias Detection | Pending | 5 | 0% |
 | 6 - Whale Tracking & Production Hardening | Pending | 4 | 0% |
 
-**Overall:** 0/42 requirements complete (0%)
+**Overall:** 0/45 requirements complete (0%)
 
 ---
 
