@@ -3,5 +3,6 @@
  * Entry point for the application
  */
 
-// Placeholder - will be implemented in subsequent plans
-console.log('Prediction Market Edge Scanner');
+import { logger } from './utils/logger.js';
+
+logger.info('Prediction Market Scanner starting...');
