@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-02T16:35:00Z
+**Last Updated:** 2026-02-02T17:05:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -20,9 +20,9 @@
 ## Current Position
 
 **Phase:** 2 of 6 (Scoring & Alert Foundation)
-**Plan:** 2 of 5 complete
-**Status:** In progress
-**Last activity:** 2026-02-02 - Completed 02-03-PLAN.md (Opportunity Aggregator)
+**Plan:** 5 of 5 complete (Phase 2 COMPLETE)
+**Status:** Phase complete
+**Last activity:** 2026-02-02 - Completed 02-05-PLAN.md (Scheduled Detection & Persistence)
 
 **Progress Bar:**
 ```
@@ -30,15 +30,14 @@ Phase 1: Data Foundation & Infrastructure
 [████████████████████] 100% (10/10 plans)
 
 Phase 2: Scoring & Alert Foundation
-[████████░░░░░░░░░░░░] 40% (2/5 plans)
+[████████████████████] 100% (5/5 plans)
 
 Overall Roadmap:
-[████████████░░░░░░░░] 29% (12/42 requirements)
+[████████████████░░░░] 36% (15/42 requirements)
 ```
 
 **What's Next:**
-- Execute 02-04-PLAN.md (CLI Dashboard)
-- Execute 02-05-PLAN.md (WhatsApp Integration)
+- Phase 2 complete - begin Phase 3 (Cross-Platform Safety)
 
 ## Performance Metrics
 
@@ -99,6 +98,9 @@ Overall Roadmap:
 | Reset expired dedup entries on re-record | When window expires, treat as new opportunity to allow re-alerting | 2026-02-02 |
 | Double-check feature flag at aggregator level | Even if detector has own check, aggregator must also verify for safety | 2026-02-02 |
 | Hash key = type:platform:marketId | Ignore fluctuating edge values; same market+type = duplicate | 2026-02-02 |
+| UNIQUE(opportunity_id, detected_at) | Same opportunity detected at different times creates separate rows for history | 2026-02-02 |
+| Kelly position sizing in detection job | Uses BANKROLL env var; allows different bankroll configs without code changes | 2026-02-02 |
+| MIN_SCORE=5 default threshold | Only persist opportunities scoring 5+; reduces database noise | 2026-02-02 |
 
 ### Active Constraints
 
@@ -163,17 +165,18 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-02T16:35:00Z
-- Completed 02-03-PLAN.md (Opportunity Aggregator)
-- Created: src/aggregator/*.ts, tests/aggregator.test.ts
-- 23 aggregator tests, 250 total tests passing
-- Commits: 19c3857, 24a6344, 596572e
+**Last Session:** 2026-02-02T17:05:00Z
+- Completed 02-05-PLAN.md (Scheduled Detection & Persistence)
+- Created: src/jobs/detect-opportunities.ts
+- Modified: src/database/schema.ts, src/database/queries.ts, src/index.ts
+- 10 new opportunity tests, 260 total tests passing
+- Commits: 3848bd3, 68c1550, 0fd9a34
 
-**Resume Point:** Continue Phase 2 (02-04 CLI Dashboard)
+**Resume Point:** Phase 2 complete - ready for Phase 3
 
 **Next Session Should:**
-- Execute 02-04-PLAN.md (CLI Dashboard)
-- Execute 02-05-PLAN.md (WhatsApp Integration)
+- Begin Phase 3 planning (Cross-Platform Safety)
+- Execute 03-01-PLAN.md
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
