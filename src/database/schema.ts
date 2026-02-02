@@ -52,6 +52,35 @@ export function initDatabase(dbPath: string = 'markets.db'): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_matched_markets_confidence
       ON matched_markets(confidence DESC);
+
+    CREATE TABLE IF NOT EXISTS opportunities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      opportunity_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      market_id TEXT NOT NULL,
+      market_question TEXT NOT NULL,
+      gross_edge REAL NOT NULL,
+      net_edge REAL NOT NULL,
+      score REAL NOT NULL,
+      position_size REAL NOT NULL,
+      position_percent REAL NOT NULL,
+      liquidity REAL NOT NULL,
+      detected_at INTEGER NOT NULL,
+      close_date TEXT,
+      score_breakdown TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+      UNIQUE(opportunity_id, detected_at)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_opportunities_detected
+    ON opportunities(detected_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_opportunities_score
+    ON opportunities(score DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_opportunities_type
+    ON opportunities(type);
   `);
 
   return db;
