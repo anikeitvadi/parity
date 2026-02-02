@@ -29,6 +29,7 @@ import {
   scoreOpportunity,
   DEFAULT_WEIGHTS,
   meetsMinimumThreshold,
+  validateWeights,
 } from '../src/scoring/composite-scorer.js';
 
 // =============================================================================
@@ -659,5 +660,60 @@ describe('Type Exports', () => {
     const result = scoreOpportunity(opp);
     const breakdown: ScoreBreakdown = result!.scoreBreakdown;
     expect(breakdown.edgeScore).toBeDefined();
+  });
+});
+
+// =============================================================================
+// Weight Validation Tests
+// =============================================================================
+
+describe('validateWeights', () => {
+  it('should return true for valid weights summing to 1.0', () => {
+    const validWeights: ScoringWeights = {
+      edgeSize: 0.35,
+      confidence: 0.25,
+      liquidity: 0.20,
+      timeToResolution: 0.10,
+      feeAdjustedProfit: 0.10,
+    };
+    expect(validateWeights(validWeights)).toBe(true);
+  });
+
+  it('should return true for DEFAULT_WEIGHTS', () => {
+    expect(validateWeights(DEFAULT_WEIGHTS)).toBe(true);
+  });
+
+  it('should return false for weights summing to less than 1.0', () => {
+    const invalidWeights: ScoringWeights = {
+      edgeSize: 0.30,
+      confidence: 0.20,
+      liquidity: 0.20,
+      timeToResolution: 0.10,
+      feeAdjustedProfit: 0.10,
+    }; // Sum = 0.90
+    expect(validateWeights(invalidWeights)).toBe(false);
+  });
+
+  it('should return false for weights summing to more than 1.0', () => {
+    const invalidWeights: ScoringWeights = {
+      edgeSize: 0.40,
+      confidence: 0.30,
+      liquidity: 0.20,
+      timeToResolution: 0.10,
+      feeAdjustedProfit: 0.10,
+    }; // Sum = 1.10
+    expect(validateWeights(invalidWeights)).toBe(false);
+  });
+
+  it('should handle floating point precision', () => {
+    // This tests floating point tolerance
+    const weights: ScoringWeights = {
+      edgeSize: 0.333,
+      confidence: 0.333,
+      liquidity: 0.334,
+      timeToResolution: 0.0,
+      feeAdjustedProfit: 0.0,
+    }; // Sum = 1.000
+    expect(validateWeights(weights)).toBe(true);
   });
 });

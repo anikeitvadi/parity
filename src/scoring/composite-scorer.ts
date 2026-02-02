@@ -44,9 +44,22 @@ export const MIN_NET_EDGE_THRESHOLD = 0.05;
  * determinants of expected value. Liquidity ensures executability.
  * Time and profit factors provide secondary signals.
  *
+ * Weight Tuning Guide:
+ * ---------------------
+ * - Increase edgeSize (0.35-0.50) if you want to prioritize raw profitability
+ * - Increase confidence (0.25-0.40) if you want to prioritize signal reliability
+ * - Increase liquidity (0.20-0.35) if you have larger position sizes
+ * - Increase timeToResolution (0.10-0.20) if you prefer faster turnover
+ * - feeAdjustedProfit overlaps with edgeSize; keep low (0.05-0.15)
+ *
+ * Backtesting Tips:
+ * - Track win rate by score bracket (7+, 5-7, <5)
+ * - If high-scoring opportunities underperform, reduce edge weight
+ * - If execution slippage is high, increase liquidity weight
+ *
  * @remarks
- * Weights can be tuned based on backtesting results.
- * Sum should equal 1.0 for proper weighted average.
+ * Weights must sum to 1.0 for proper weighted average.
+ * Use validateWeights() to ensure valid configuration.
  */
 export const DEFAULT_WEIGHTS: ScoringWeights = {
   edgeSize: 0.35,
@@ -55,6 +68,32 @@ export const DEFAULT_WEIGHTS: ScoringWeights = {
   timeToResolution: 0.10,
   feeAdjustedProfit: 0.10,
 };
+
+/**
+ * Validate that weights sum to 1.0 (within floating point tolerance)
+ *
+ * @param weights - Weights to validate
+ * @returns true if weights are valid, false otherwise
+ *
+ * @example
+ * ```typescript
+ * const customWeights = { edgeSize: 0.50, ... };
+ * if (!validateWeights(customWeights)) {
+ *   throw new Error('Weights must sum to 1.0');
+ * }
+ * ```
+ */
+export function validateWeights(weights: ScoringWeights): boolean {
+  const sum =
+    weights.edgeSize +
+    weights.confidence +
+    weights.liquidity +
+    weights.timeToResolution +
+    weights.feeAdjustedProfit;
+
+  // Allow for floating point tolerance
+  return Math.abs(sum - 1.0) < 0.0001;
+}
 
 /**
  * Check if opportunity meets minimum threshold

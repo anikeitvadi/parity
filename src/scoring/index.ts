@@ -65,6 +65,7 @@ export {
   CompositeScorer,
   scoreOpportunity,
   meetsMinimumThreshold,
+  validateWeights,
   DEFAULT_WEIGHTS,
   MIN_NET_EDGE_THRESHOLD,
 } from './composite-scorer.js';
