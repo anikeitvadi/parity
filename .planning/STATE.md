@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-02T16:01:20Z
+**Last Updated:** 2026-02-02T16:06:30Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -20,9 +20,9 @@
 ## Current Position
 
 **Phase:** 2 of 6 (Scoring & Alert Foundation)
-**Plan:** 2 of 5 complete
+**Plan:** 1 of 5 complete
 **Status:** In progress
-**Last activity:** 2026-02-02 - Completed 02-02-PLAN.md (Kelly Criterion Position Sizing with TDD)
+**Last activity:** 2026-02-02 - Completed 02-01-PLAN.md (Scoring Engine with TDD)
 
 **Progress Bar:**
 ```
@@ -30,10 +30,10 @@ Phase 1: Data Foundation & Infrastructure
 [████████████████████] 100% (10/10 plans)
 
 Phase 2: Scoring & Alert Foundation
-[████████░░░░░░░░░░░░] 40% (2/5 plans)
+[████░░░░░░░░░░░░░░░░] 20% (1/5 plans)
 
 Overall Roadmap:
-[████████████░░░░░░░░] 29% (12/42 requirements)
+[███████████░░░░░░░░░] 26% (11/42 requirements)
 ```
 
 **What's Next:**
@@ -94,6 +94,9 @@ Overall Roadmap:
 | chmod 600 for .env on VPS | Script enforces secure permissions on credentials | 2026-01-29 |
 | Confidence threshold < 0.1 returns 0 | Confidence of exactly 0.10 can still bet (1% position with 20% edge) | 2026-02-02 |
 | Round positionPercent to 4 decimals | Avoid floating-point precision issues in Kelly calculation | 2026-02-02 |
+| 5% minimum net edge threshold | $0.05 profit minimum on $100 trade covers execution overhead | 2026-02-02 |
+| Weighted average scoring | Configurable weights allow tuning without code changes | 2026-02-02 |
+| Pure functions for scoring factors | Testability, predictability, no side effects | 2026-02-02 |
 
 ### Active Constraints
 
@@ -157,18 +160,18 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-02T16:01:20Z
-- Completed 02-02-PLAN.md (Kelly Criterion Position Sizing)
-- TDD cycle: RED (51e0821) -> GREEN (6957784)
-- 24/24 tests passing
-- Files created: src/scoring/kelly.ts, tests/kelly.test.ts
+**Last Session:** 2026-02-02T16:06:30Z
+- Completed 02-01-PLAN.md (Scoring Engine with TDD)
+- TDD cycle: RED (478c3ff) -> GREEN (85ad44e) -> REFACTOR (cee7927)
+- 71/71 scoring tests passing, 227 total tests passing
+- Files created: src/scoring/*.ts, tests/scoring.test.ts
 
-**Resume Point:** Continue Phase 2 (02-03 Alert System)
+**Resume Point:** Continue Phase 2 (02-02 Kelly Position Sizing)
 
 **Next Session Should:**
+- Execute 02-02-PLAN.md (Kelly Criterion Position Sizing)
 - Execute 02-03-PLAN.md (Alert System)
 - Execute 02-04-PLAN.md (CLI Dashboard)
-- Execute 02-05-PLAN.md (WhatsApp Integration)
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
