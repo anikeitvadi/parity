@@ -122,8 +122,18 @@ export class OpportunityDeduplicator {
     const now = Date.now();
 
     if (existing) {
-      existing.lastSeen = now;
-      existing.highestScore = Math.max(existing.highestScore, score);
+      // Check if entry has expired - if so, reset as new entry
+      const isExpired = now - existing.firstSeen >= this.dedupWindowMs;
+      if (isExpired) {
+        // Reset as new entry (window expired)
+        existing.firstSeen = now;
+        existing.lastSeen = now;
+        existing.highestScore = score;
+      } else {
+        // Update existing entry within window
+        existing.lastSeen = now;
+        existing.highestScore = Math.max(existing.highestScore, score);
+      }
     } else {
       this.seen.set(hash, {
         hash,
