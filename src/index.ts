@@ -50,6 +50,11 @@ async function main(): Promise<void> {
         interval: '30m',
         timeout: '10m',
       },
+      {
+        name: 'detect-opportunities',
+        interval: '30m',
+        timeout: '10m',
+      },
     ],
     errorHandler: (error, data) => {
       logger.error(
