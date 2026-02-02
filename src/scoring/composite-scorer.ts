@@ -28,6 +28,7 @@ import { calculateConfidenceScore } from './factors/confidence-factor.js';
 import { calculateLiquidityScore } from './factors/liquidity-factor.js';
 import { calculateTimeScore } from './factors/time-factor.js';
 import { calculateProfitScore } from './factors/fee-factor.js';
+import { calculateKelly } from './kelly.js';
 
 /**
  * Minimum net edge threshold
@@ -106,28 +107,32 @@ export function meetsMinimumThreshold(opportunity: UnifiedOpportunity): boolean 
 }
 
 /**
- * Score an opportunity using default weights
+ * Score an opportunity with position sizing
  *
- * Convenience function that creates a scorer and scores in one call.
+ * Convenience function that creates a scorer and scores in one call,
+ * including Kelly criterion position sizing.
  *
  * @param opportunity - Opportunity to score
+ * @param bankroll - Total bankroll for position sizing (default: 500)
  * @param weights - Optional custom weights (defaults to DEFAULT_WEIGHTS)
  * @returns ScoredOpportunity if above threshold, null otherwise
  *
  * @example
  * ```typescript
  * const opp = { netEdge: 0.10, ... };
- * const scored = scoreOpportunity(opp);
+ * const scored = scoreOpportunity(opp, 500);
  * if (scored) {
  *   console.log(`Score: ${scored.score}`);
+ *   console.log(`Position: $${scored.positionSize}`);
  * }
  * ```
  */
 export function scoreOpportunity(
   opportunity: UnifiedOpportunity,
+  bankroll: number = 500,
   weights: ScoringWeights = DEFAULT_WEIGHTS
 ): ScoredOpportunity | null {
-  const scorer = new CompositeScorer(weights);
+  const scorer = new CompositeScorer(weights, bankroll);
   return scorer.score(opportunity);
 }
 
@@ -136,10 +141,11 @@ export function scoreOpportunity(
  *
  * Calculates weighted composite scores for opportunities.
  * Enforces minimum threshold and provides score breakdown.
+ * Includes Kelly criterion position sizing.
  *
  * @example
  * ```typescript
- * const scorer = new CompositeScorer();
+ * const scorer = new CompositeScorer(DEFAULT_WEIGHTS, 500);
  * const opportunities = [...];
  * const scored = opportunities
  *   .map(opp => scorer.score(opp))
@@ -149,14 +155,17 @@ export function scoreOpportunity(
  */
 export class CompositeScorer {
   private readonly weights: ScoringWeights;
+  private readonly bankroll: number;
 
   /**
    * Create a new CompositeScorer
    *
    * @param weights - Scoring weights (defaults to DEFAULT_WEIGHTS)
+   * @param bankroll - Total bankroll for position sizing (default: 500)
    */
-  constructor(weights: ScoringWeights = DEFAULT_WEIGHTS) {
+  constructor(weights: ScoringWeights = DEFAULT_WEIGHTS, bankroll: number = 500) {
     this.weights = weights;
+    this.bankroll = bankroll;
   }
 
   /**
@@ -197,13 +206,20 @@ export class CompositeScorer {
     // Ensure score is in 1-10 range
     const finalScore = Math.max(1, Math.min(10, compositeScore));
 
-    // Create scored opportunity (position sizing to be added in plan 02-02)
+    // Calculate position sizing using Kelly criterion
+    const kellyResult = calculateKelly({
+      edge: opportunity.netEdge,
+      confidence: opportunity.detectorConfidence,
+      bankroll: this.bankroll,
+    });
+
+    // Create scored opportunity with position sizing
     return {
       ...opportunity,
       score: finalScore,
       scoreBreakdown,
-      positionSize: 0, // Placeholder - implemented in 02-02
-      positionPercent: 0, // Placeholder - implemented in 02-02
+      positionSize: kellyResult.positionSize,
+      positionPercent: kellyResult.positionPercent,
     };
   }
 

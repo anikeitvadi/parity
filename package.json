@@ -10,8 +10,8 @@
     "dev": "ts-node src/index.ts",
     "test": "vitest",
     "test:run": "vitest run",
-    "dashboard": "tsx src/cli.ts",
-    "dashboard:watch": "tsx src/cli.ts --watch"
+    "dashboard": "tsx src/cli.tsx",
+    "dashboard:watch": "tsx src/cli.tsx --watch"
   },
   "keywords": [
     "prediction-markets",
