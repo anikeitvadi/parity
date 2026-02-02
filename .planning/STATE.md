@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-02T17:05:00Z
+**Last Updated:** 2026-02-02T17:09:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -101,6 +101,8 @@ Overall Roadmap:
 | UNIQUE(opportunity_id, detected_at) | Same opportunity detected at different times creates separate rows for history | 2026-02-02 |
 | Kelly position sizing in detection job | Uses BANKROLL env var; allows different bankroll configs without code changes | 2026-02-02 |
 | MIN_SCORE=5 default threshold | Only persist opportunities scoring 5+; reduces database noise | 2026-02-02 |
+| Use standard react-jsx without jsxImportSource | Ink v6 uses React's standard JSX runtime, not a custom one | 2026-02-02 |
+| scoreOpportunity accepts bankroll parameter | Integrated Kelly criterion position sizing into composite scorer | 2026-02-02 |
 
 ### Active Constraints
 
