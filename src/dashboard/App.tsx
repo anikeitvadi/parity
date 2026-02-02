@@ -28,6 +28,7 @@ import { StatusBar } from './components/StatusBar.js';
 import { OpportunityAggregator } from '../aggregator/opportunity-aggregator.js';
 import { OpportunityDeduplicator } from '../aggregator/deduplicator.js';
 import { scoreOpportunity } from '../scoring/index.js';
+import { initDatabase } from '../database/schema.js';
 import type { ScoredOpportunity } from '../scoring/types.js';
 
 /**
@@ -57,13 +58,20 @@ export function App({ bankroll, minScore, watchMode, refreshInterval }: AppProps
   const [errorCount, setErrorCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dbInitialized, setDbInitialized] = useState(false);
 
   // Refs for stable references
   const aggregatorRef = useRef<OpportunityAggregator | null>(null);
   const deduplicatorRef = useRef<OpportunityDeduplicator | null>(null);
 
-  // Initialize aggregator and deduplicator
+  // Initialize database, aggregator, and deduplicator
   useEffect(() => {
+    try {
+      initDatabase();
+      setDbInitialized(true);
+    } catch (err) {
+      setError(`Database init failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
     aggregatorRef.current = new OpportunityAggregator();
     deduplicatorRef.current = new OpportunityDeduplicator();
     return () => {
@@ -76,7 +84,7 @@ export function App({ bankroll, minScore, watchMode, refreshInterval }: AppProps
    * Refresh opportunities from aggregator
    */
   const refresh = useCallback(async () => {
-    if (!aggregatorRef.current || !deduplicatorRef.current) {
+    if (!aggregatorRef.current || !deduplicatorRef.current || !dbInitialized) {
       return;
     }
 
@@ -110,7 +118,7 @@ export function App({ bankroll, minScore, watchMode, refreshInterval }: AppProps
     } finally {
       setIsLoading(false);
     }
-  }, [bankroll, minScore]);
+  }, [bankroll, minScore, dbInitialized]);
 
   // Initial load
   useEffect(() => {

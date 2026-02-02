@@ -6,7 +6,7 @@
 
 ## Overview
 
-This roadmap delivers a prediction market edge scanner that identifies profitable opportunities across Polymarket, Kalshi, and Metaculus. The system follows a layered architecture (Data → Processing → Detection → Scoring → Alerting) with critical safety measures: rate limiting from day 1, cross-platform arbitrage disabled until settlement verification, and human-in-the-loop alerting. Each phase delivers a complete, verifiable capability.
+This roadmap delivers a prediction market edge scanner that identifies profitable opportunities across Polymarket, Kalshi, and Metaculus. The system follows a layered architecture (Data → Processing → Detection → Scoring → Display) with critical safety measures: rate limiting from day 1, cross-platform arbitrage disabled until settlement verification, and human-in-the-loop via CLI dashboard. Each phase delivers a complete, verifiable capability.
 
 ## Phases
 
@@ -54,8 +54,8 @@ Plans:
 
 ---
 
-### Phase 2: Scoring Engine & Alert System
-**Goal:** Rate opportunities 1-10 and deliver actionable alerts via WhatsApp with position sizing guidance
+### Phase 2: Scoring Engine & CLI Dashboard
+**Goal:** Rate opportunities 1-10 and display via CLI dashboard with position sizing guidance
 
 **Dependencies:** Phase 1 (requires market data and edge detection)
 
@@ -66,26 +66,31 @@ Plans:
 - RATE-04: Liquidity factor (fill probability at target price)
 - RATE-05: Time to resolution factor (urgency)
 - RATE-06: Fee-adjusted profit potential (>5% threshold)
-- RATE-07: Tiered alert triggers (7+ immediate, 5-6 daily digest, <5 logged only)
-- ALRT-01: WhatsApp integration via Twilio
-- ALRT-02: Immediate alerts for 7+ rated opportunities
-- ALRT-03: Daily digest for 5-6 rated opportunities
-- ALRT-04: Alert format with rating, link, edge type, reasoning, position size
-- ALRT-05: "More" reply triggers deeper Claude analysis
-- ALRT-06: Deduplication (no re-alert within 4-6 hours)
+- RATE-07: Tiered display (7+ highlighted, 5-6 normal, <5 dimmed)
+- CLI-01: Interactive terminal dashboard with table display
+- CLI-02: Filter by minimum score, edge type, platform
+- CLI-03: Detail view for individual opportunities (market link, reasoning, risks)
+- CLI-04: Watch mode with auto-refresh (configurable interval)
+- CLI-05: Deduplication (same opportunity not re-highlighted within 4-6 hours)
 - SIZE-01: Kelly criterion position size calculation
 - SIZE-02: Inputs: edge estimate, bankroll, confidence level
 - SIZE-03: Fractional Kelly output (half-Kelly for safety)
 - SIZE-04: Configurable cap (10% bankroll max per trade)
-- TRCK-01: Log all alerts with timestamp, edge type, rating, market details
-- TRCK-02: Track user actions (acted/passed/no response)
+- TRCK-01: Log all opportunities with timestamp, edge type, rating, market details
 
 **Success Criteria:**
-1. User receives WhatsApp alert within 60 seconds when 7+ rated opportunity detected
-2. Alert includes actionable details: market link, why mispriced, suggested position size, rating breakdown
-3. User can reply "more" and receive deeper analysis with risk factors and resolution rule warnings
-4. Daily digest arrives at 6 PM with summary of 5-6 rated opportunities from past 24 hours
-5. No duplicate alerts for same opportunity within 6 hours (deduplication working)
+1. `npm run dashboard` displays live opportunities table sorted by score
+2. Each row shows: score, market name, edge %, edge type, suggested position size
+3. User can press Enter on a row to see detailed breakdown (link, reasoning, risks)
+4. Watch mode refreshes every 5 minutes by default, configurable via flag
+5. High-score opportunities (7+) visually highlighted in terminal
+
+Plans:
+- [ ] 02-01-PLAN.md — Scoring engine (factors, composite scorer) [TDD]
+- [ ] 02-02-PLAN.md — Kelly criterion position sizing [TDD]
+- [ ] 02-03-PLAN.md — Opportunity aggregator (combine detectors, dedup)
+- [ ] 02-04-PLAN.md — CLI dashboard (Ink, interactive table, detail view)
+- [ ] 02-05-PLAN.md — Detection job and opportunity persistence
 
 ---
 
@@ -154,15 +159,13 @@ Plans:
 **Requirements:**
 - DATA-06: Whale wallet activity tracking (on-chain data)
 - EDGE-06: Whale tracking detector (flag when profitable wallets take positions)
-- TRCK-06: Alert-to-action rate calculation
-- TRCK-08: Weekly performance summary via WhatsApp
+- CLI-06: Performance summary command (ROI, edge type breakdown, win rates)
 
 **Success Criteria:**
 1. System tracks 20+ historically profitable wallet addresses on Polymarket
 2. Whale position alerts trigger when tracked wallet places >$5K on a market
-3. User receives weekly performance summary every Sunday with ROI, alert stats, edge type breakdown
-4. Alert-to-action rate visible to calibrate alert threshold tuning
-5. System demonstrates <30 second detection latency for top 50 markets
+3. `npm run stats` shows performance summary with ROI, edge type breakdown
+4. System demonstrates <30 second detection latency for top 50 markets
 
 ---
 
@@ -170,14 +173,14 @@ Plans:
 
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
-| 1 - Data Foundation & Infrastructure | Pending | 14 | 0% |
-| 2 - Scoring Engine & Alert System | Pending | 18 | 0% |
+| 1 - Data Foundation & Infrastructure | Complete | 14 | 100% |
+| 2 - Scoring Engine & CLI Dashboard | Pending | 14 | 0% |
 | 3 - Cross-Platform Arbitrage Enablement | Pending | 2 | 0% |
 | 4 - Metaculus Integration | Pending | 2 | 0% |
 | 5 - Longshot Bias Detection | Pending | 5 | 0% |
-| 6 - Whale Tracking & Production Hardening | Pending | 4 | 0% |
+| 6 - Whale Tracking & Production Hardening | Pending | 3 | 0% |
 
-**Overall:** 0/45 requirements complete (0%)
+**Overall:** 14/40 requirements complete (35%)
 
 ---
 

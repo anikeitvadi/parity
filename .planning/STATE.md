@@ -14,7 +14,7 @@
 - SQLite (better-sqlite3) for market snapshots
 - Polymarket CLOB client (official package)
 - Kalshi REST API
-- Twilio WhatsApp API
+- Ink + @inkjs/ui for CLI dashboard
 - Bree scheduler, Pino logger, Zod validation
 
 ## Current Position
@@ -124,11 +124,12 @@ Overall Roadmap:
 
 **Immediate Todos:**
 - [x] Plan Phase 1 execution
+- [x] Plan Phase 2 execution
 - [ ] Verify Polymarket API key access
 - [ ] Verify Kalshi API key access
 - [ ] Set up VPS environment (Hetzner 2 vCPU / 8GB RAM) - BLOCKING 01-09 Tasks 2-3
 - [ ] Create hot wallet for CLOB auth ($1-5 gas only) - BLOCKING 01-09 Tasks 2-3
-- [ ] Configure Twilio WhatsApp sandbox for testing
+- [ ] Test dashboard: npm run dashboard
 
 **Known Blockers:**
 - 01-09 Tasks 2-3 blocked on VPS provisioning and hot wallet creation
