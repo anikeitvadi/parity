@@ -13,21 +13,22 @@ const GAMMA_API_HOST = 'https://gamma-api.polymarket.com';
 
 /**
  * Zod schema for Polymarket market response from Gamma API
- * Based on 01-RESEARCH.md lines 257-286
+ * Updated to match actual API response (camelCase fields)
  */
 const PolymarketMarketSchema = z.object({
   id: z.string().optional(),
-  condition_id: z.string(),
-  question_id: z.string().optional(),
+  conditionId: z.string().optional(),  // camelCase in API
+  questionId: z.string().optional(),
   question: z.string(),
-  end_date_iso: z.string().optional(),
-  game_start_time: z.string().optional(),
-  outcomes: z.array(z.string()).optional(),
-  outcomePrices: z.string().optional(),
+  slug: z.string().optional(),
+  endDate: z.string().optional(),      // camelCase in API
+  startDate: z.string().optional(),
+  outcomes: z.union([z.array(z.string()), z.string()]).optional(), // Can be array or comma-separated string
+  outcomePrices: z.union([z.array(z.string()), z.string()]).optional(),
   tokens: z
     .array(
       z.object({
-        token_id: z.string(),
+        token_id: z.string().optional(),
         outcome: z.string(),
         price: z.union([z.string(), z.number()]).optional(),
       })
@@ -37,8 +38,9 @@ const PolymarketMarketSchema = z.object({
   liquidity: z.union([z.string(), z.number()]).optional(),
   active: z.boolean().optional(),
   closed: z.boolean().optional(),
-  accepting_orders: z.boolean().optional(),
-});
+  acceptingOrders: z.boolean().optional(),  // camelCase
+  category: z.string().optional(),
+}).passthrough();  // Allow additional fields
 
 type PolymarketMarketResponse = z.infer<typeof PolymarketMarketSchema>;
 
@@ -66,35 +68,51 @@ const OrderBookResponseSchema = z.object({
  * Polymarket client for fetching market data and order books.
  * Uses the official @polymarket/clob-client for CLOB operations
  * and the Gamma API for market data.
+ *
+ * In demo mode (no private key), only public Gamma API data is available.
+ * Order book methods will throw an error without credentials.
  */
 export class PolymarketClient {
   private clobClient: ClobClient | null = null;
-  private wallet: Wallet;
+  private wallet: Wallet | null = null;
   private rateLimiter: RateLimiter;
   private initialized = false;
+  private demoMode: boolean;
 
   constructor() {
-    // Create wallet from private key
-    const privateKey = env.POLYMARKET_PRIVATE_KEY.startsWith('0x')
-      ? env.POLYMARKET_PRIVATE_KEY
-      : `0x${env.POLYMARKET_PRIVATE_KEY}`;
-    this.wallet = new Wallet(privateKey);
+    this.demoMode = !env.POLYMARKET_PRIVATE_KEY;
+
+    // Create wallet from private key (if available)
+    if (env.POLYMARKET_PRIVATE_KEY) {
+      const privateKey = env.POLYMARKET_PRIVATE_KEY.startsWith('0x')
+        ? env.POLYMARKET_PRIVATE_KEY
+        : `0x${env.POLYMARKET_PRIVATE_KEY}`;
+      this.wallet = new Wallet(privateKey);
+      logger.info(
+        { address: this.wallet.address },
+        'PolymarketClient created with wallet'
+      );
+    } else {
+      logger.info('PolymarketClient running in demo mode (public data only)');
+    }
 
     // Initialize rate limiter
     this.rateLimiter = createPolymarketLimiter();
-
-    logger.info(
-      { address: this.wallet.address },
-      'PolymarketClient created with wallet'
-    );
   }
 
   /**
    * Initialize the CLOB client with authentication.
    * Must be called before using order book methods.
+   * In demo mode, this is a no-op.
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
+      return;
+    }
+
+    if (this.demoMode || !this.wallet) {
+      logger.info('CLOB client not initialized (demo mode)');
+      this.initialized = true;
       return;
     }
 
@@ -167,10 +185,22 @@ export class PolymarketClient {
    * Returns order book with bid/ask levels and total depth.
    *
    * @param tokenId - The token ID (not market ID) for the outcome
+   * @throws Error if running in demo mode (no CLOB access)
    */
   async getOrderBook(tokenId: string): Promise<OrderBook> {
     if (!this.clobClient) {
       await this.initialize();
+    }
+
+    if (this.demoMode || !this.clobClient) {
+      logger.warn({ tokenId }, 'Order book unavailable in demo mode');
+      // Return empty order book in demo mode
+      return {
+        bids: [],
+        asks: [],
+        depth: 0,
+        timestamp: Date.now(),
+      };
     }
 
     const startTime = Date.now();
@@ -229,10 +259,20 @@ export class PolymarketClient {
    * Transform Gamma API market response to normalized Market format
    */
   private transformMarket(raw: PolymarketMarketResponse): Market {
-    // Parse outcomes from tokens or outcomes array
-    const outcomes = raw.outcomes || raw.tokens?.map((t) => t.outcome) || ['Yes', 'No'];
+    // Parse outcomes from tokens or outcomes field
+    let outcomes: string[];
+    if (raw.tokens && raw.tokens.length > 0) {
+      outcomes = raw.tokens.map((t) => t.outcome);
+    } else if (Array.isArray(raw.outcomes)) {
+      outcomes = raw.outcomes;
+    } else if (typeof raw.outcomes === 'string') {
+      // Handle comma-separated string format
+      outcomes = raw.outcomes.split(',').map(s => s.trim());
+    } else {
+      outcomes = ['Yes', 'No'];
+    }
 
-    // Parse prices from tokens or outcomePrices string
+    // Parse prices from tokens or outcomePrices
     const prices: Record<string, number> = {};
     if (raw.tokens) {
       for (const token of raw.tokens) {
@@ -245,7 +285,8 @@ export class PolymarketClient {
       }
     } else if (raw.outcomePrices) {
       try {
-        const priceArray = JSON.parse(raw.outcomePrices) as string[];
+        const priceStr = typeof raw.outcomePrices === 'string' ? raw.outcomePrices : JSON.stringify(raw.outcomePrices);
+        const priceArray = JSON.parse(priceStr) as string[];
         outcomes.forEach((outcome, i) => {
           prices[outcome] = parseFloat(priceArray[i] || '0');
         });
@@ -258,12 +299,12 @@ export class PolymarketClient {
     }
 
     return {
-      id: raw.condition_id,
+      id: raw.conditionId || raw.id || '',  // Use camelCase field
       platform: 'polymarket',
       question: raw.question,
       outcomes,
       prices,
-      closeDate: raw.end_date_iso || raw.game_start_time || '',
+      closeDate: raw.endDate || raw.startDate || '',  // Use camelCase field
       volume: raw.volume
         ? typeof raw.volume === 'string'
           ? parseFloat(raw.volume)
@@ -275,8 +316,10 @@ export class PolymarketClient {
           : raw.liquidity
         : undefined,
       metadata: {
+        slug: raw.slug,
         tokens: raw.tokens,
-        accepting_orders: raw.accepting_orders,
+        acceptingOrders: raw.acceptingOrders,
+        category: raw.category,
       },
     };
   }

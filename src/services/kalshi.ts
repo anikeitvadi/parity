@@ -68,23 +68,30 @@ type KalshiMarket = z.infer<typeof KalshiMarketSchema>;
  * - API key/secret authentication via headers
  * - Automatic retry on 429 and network errors
  * - Zod validation of all API responses
+ * - Demo mode: returns empty results if no credentials
  */
 export class KalshiClient {
   private baseUrl: string;
-  private apiKey: string;
-  private apiSecret: string;
+  private apiKey: string | undefined;
+  private apiSecret: string | undefined;
   private rateLimiter: RateLimiter;
+  private demoMode: boolean;
 
   constructor() {
+    this.demoMode = !env.KALSHI_API_KEY || !env.KALSHI_API_SECRET;
     this.baseUrl = env.KALSHI_USE_DEMO ? KALSHI_DEMO_API : KALSHI_PROD_API;
     this.apiKey = env.KALSHI_API_KEY;
     this.apiSecret = env.KALSHI_API_SECRET;
     this.rateLimiter = createKalshiLimiter();
 
-    kalshiLogger.info(
-      { baseUrl: this.baseUrl, demo: env.KALSHI_USE_DEMO },
-      'Kalshi client initialized'
-    );
+    if (this.demoMode) {
+      kalshiLogger.info('Kalshi client running in demo mode (no API access)');
+    } else {
+      kalshiLogger.info(
+        { baseUrl: this.baseUrl, demo: env.KALSHI_USE_DEMO },
+        'Kalshi client initialized'
+      );
+    }
   }
 
   /**
@@ -98,6 +105,10 @@ export class KalshiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    if (!this.apiKey || !this.apiSecret) {
+      throw new Error('Kalshi API credentials not configured');
+    }
+
     const url = `${this.baseUrl}${endpoint}`;
 
     // Generate timestamp for auth
@@ -153,9 +164,14 @@ export class KalshiClient {
   /**
    * Fetch active markets from Kalshi
    *
-   * @returns Array of normalized Market objects
+   * @returns Array of normalized Market objects (empty if demo mode)
    */
   async getActiveMarkets(): Promise<Market[]> {
+    if (this.demoMode) {
+      kalshiLogger.debug('Skipping Kalshi fetch (demo mode)');
+      return [];
+    }
+
     const startTime = Date.now();
 
     return this.rateLimiter.execute(async () => {
@@ -194,9 +210,14 @@ export class KalshiClient {
    * Fetch order book for a specific market
    *
    * @param ticker - Market ticker
-   * @returns OrderBook with bid/ask levels and depth
+   * @returns OrderBook with bid/ask levels and depth (empty if demo mode)
    */
   async getOrderBook(ticker: string): Promise<OrderBook> {
+    if (this.demoMode) {
+      kalshiLogger.debug({ ticker }, 'Skipping order book fetch (demo mode)');
+      return { bids: [], asks: [], depth: 0, timestamp: Date.now() };
+    }
+
     const startTime = Date.now();
 
     return this.rateLimiter.execute(async () => {
