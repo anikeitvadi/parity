@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-02T16:06:30Z
+**Last Updated:** 2026-02-02T16:35:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -20,9 +20,9 @@
 ## Current Position
 
 **Phase:** 2 of 6 (Scoring & Alert Foundation)
-**Plan:** 1 of 5 complete
+**Plan:** 2 of 5 complete
 **Status:** In progress
-**Last activity:** 2026-02-02 - Completed 02-01-PLAN.md (Scoring Engine with TDD)
+**Last activity:** 2026-02-02 - Completed 02-03-PLAN.md (Opportunity Aggregator)
 
 **Progress Bar:**
 ```
@@ -30,16 +30,15 @@ Phase 1: Data Foundation & Infrastructure
 [████████████████████] 100% (10/10 plans)
 
 Phase 2: Scoring & Alert Foundation
-[████░░░░░░░░░░░░░░░░] 20% (1/5 plans)
+[████████░░░░░░░░░░░░] 40% (2/5 plans)
 
 Overall Roadmap:
-[███████████░░░░░░░░░] 26% (11/42 requirements)
+[████████████░░░░░░░░] 29% (12/42 requirements)
 ```
 
 **What's Next:**
-- Complete 02-03 (Alert System)
-- Complete 02-04 (CLI Dashboard)
-- Complete 02-05 (WhatsApp Integration)
+- Execute 02-04-PLAN.md (CLI Dashboard)
+- Execute 02-05-PLAN.md (WhatsApp Integration)
 
 ## Performance Metrics
 
@@ -66,7 +65,7 @@ Overall Roadmap:
 | Human-in-the-loop alerts only | 75%+ of traders lose money with full automation | 2026-01-29 |
 | WhatsApp as primary interface | User preference, enables reply-for-analysis workflow | 2026-01-29 |
 | 5% fee threshold for alerts | Edges <5% eaten by fees (research-backed) | 2026-01-29 |
-| Build order: Data → Scoring → Detection | Must validate pipeline before complex edge sources | 2026-01-29 |
+| Build order: Data -> Scoring -> Detection | Must validate pipeline before complex edge sources | 2026-01-29 |
 | INSERT OR IGNORE for snapshot duplicates | Idempotent inserts simplify retry logic in API clients | 2026-01-29 |
 | Transaction batching for bulk inserts | 10-100x speedup for batch snapshot storage | 2026-01-29 |
 | INTEGER timestamps in SQLite | More efficient than ISO strings for range queries | 2026-01-29 |
@@ -97,6 +96,9 @@ Overall Roadmap:
 | 5% minimum net edge threshold | $0.05 profit minimum on $100 trade covers execution overhead | 2026-02-02 |
 | Weighted average scoring | Configurable weights allow tuning without code changes | 2026-02-02 |
 | Pure functions for scoring factors | Testability, predictability, no side effects | 2026-02-02 |
+| Reset expired dedup entries on re-record | When window expires, treat as new opportunity to allow re-alerting | 2026-02-02 |
+| Double-check feature flag at aggregator level | Even if detector has own check, aggregator must also verify for safety | 2026-02-02 |
+| Hash key = type:platform:marketId | Ignore fluctuating edge values; same market+type = duplicate | 2026-02-02 |
 
 ### Active Constraints
 
@@ -137,19 +139,20 @@ Overall Roadmap:
 - Research-driven roadmap (pitfall prevention built into phases)
 - Explicit safety gates (disabled features until dependencies met)
 - Observable success criteria (no implementation tasks, only user behaviors)
+- Graceful error handling (one detector failure doesn't crash aggregation)
 
 **Watch Out For:**
 - API rate limiting (implement shared limiter in Phase 1)
 - Wash trading volume inflation (use order book depth, not 24h volume)
 - Settlement rule divergence (highest severity risk for cross-platform arb)
-- Alert fatigue (deduplication critical in Phase 2)
+- Alert fatigue (deduplication critical in Phase 2) - NOW IMPLEMENTED
 
 ### Notes
 
 **From Research:**
-- Polycule bot hacked for $230K (Jan 2026) due to reversible key storage → INFR-02 critical
-- Sports bot made $8M exploiting time lag → we can't compete on speed with $500 capital
-- Columbia study: 25-60% of Polymarket volume is wash trading → use order book depth exclusively
+- Polycule bot hacked for $230K (Jan 2026) due to reversible key storage -> INFR-02 critical
+- Sports bot made $8M exploiting time lag -> we can't compete on speed with $500 capital
+- Columbia study: 25-60% of Polymarket volume is wash trading -> use order book depth exclusively
 - Cross-platform arb extracted $40M+ in 2024-2025 but settlement divergence causes double losses
 
 **Phase Rationale:**
@@ -160,18 +163,17 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-02T16:06:30Z
-- Completed 02-01-PLAN.md (Scoring Engine with TDD)
-- TDD cycle: RED (478c3ff) -> GREEN (85ad44e) -> REFACTOR (cee7927)
-- 71/71 scoring tests passing, 227 total tests passing
-- Files created: src/scoring/*.ts, tests/scoring.test.ts
+**Last Session:** 2026-02-02T16:35:00Z
+- Completed 02-03-PLAN.md (Opportunity Aggregator)
+- Created: src/aggregator/*.ts, tests/aggregator.test.ts
+- 23 aggregator tests, 250 total tests passing
+- Commits: 19c3857, 24a6344, 596572e
 
-**Resume Point:** Continue Phase 2 (02-02 Kelly Position Sizing)
+**Resume Point:** Continue Phase 2 (02-04 CLI Dashboard)
 
 **Next Session Should:**
-- Execute 02-02-PLAN.md (Kelly Criterion Position Sizing)
-- Execute 02-03-PLAN.md (Alert System)
 - Execute 02-04-PLAN.md (CLI Dashboard)
+- Execute 02-05-PLAN.md (WhatsApp Integration)
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
