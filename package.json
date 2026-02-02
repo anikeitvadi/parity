@@ -9,7 +9,9 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "dashboard": "tsx src/cli.ts",
+    "dashboard:watch": "tsx src/cli.ts --watch"
   },
   "keywords": [
     "prediction-markets",
@@ -22,13 +24,18 @@
     "test": "tests"
   },
   "dependencies": {
+    "@inkjs/ui": "^2.0.0",
     "@ladjs/graceful": "^5.0.0",
     "@polymarket/clob-client": "^5.2.1",
     "better-sqlite3": "^12.6.2",
     "bree": "^9.2.8",
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
     "dotenv": "^17.2.3",
     "ethers": "^6.16.0",
     "exponential-backoff": "^3.1.3",
+    "ink": "^6.6.0",
+    "meow": "^14.0.0",
     "pino": "^10.3.0",
     "zod": "^4.3.6"
   },
@@ -36,6 +43,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.1.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
