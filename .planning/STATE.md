@@ -1,13 +1,13 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-01-29T21:13:44Z
+**Last Updated:** 2026-02-02T16:01:20Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
 
 **Core Value:** Surface high-confidence mispricings where analysis shows the market is wrong, filtered so only quality opportunities reach the user.
 
-**Current Focus:** Phase 1 - Data Foundation & Infrastructure
+**Current Focus:** Phase 2 - Scoring & Alert Foundation
 
 **Tech Stack:**
 - Node.js 20+ & TypeScript 5.5+
@@ -19,24 +19,27 @@
 
 ## Current Position
 
-**Phase:** 1 of 6 (Data Foundation & Infrastructure)
-**Plan:** 10 of 10 complete
-**Status:** Phase complete
-**Last activity:** 2026-01-29 - Completed 01-10-PLAN.md (Cross-Platform Arbitrage Detector with TDD)
+**Phase:** 2 of 6 (Scoring & Alert Foundation)
+**Plan:** 2 of 5 complete
+**Status:** In progress
+**Last activity:** 2026-02-02 - Completed 02-02-PLAN.md (Kelly Criterion Position Sizing with TDD)
 
 **Progress Bar:**
 ```
 Phase 1: Data Foundation & Infrastructure
 [████████████████████] 100% (10/10 plans)
 
+Phase 2: Scoring & Alert Foundation
+[████████░░░░░░░░░░░░] 40% (2/5 plans)
+
 Overall Roadmap:
-[█████████░░░░░░░░░░░] 24% (10/42 requirements)
+[████████████░░░░░░░░] 29% (12/42 requirements)
 ```
 
 **What's Next:**
-- Begin Phase 2 (Scoring & Alert Foundation)
-- Test job scheduler with live API credentials
-- Verify data collection pipeline end-to-end
+- Complete 02-03 (Alert System)
+- Complete 02-04 (CLI Dashboard)
+- Complete 02-05 (WhatsApp Integration)
 
 ## Performance Metrics
 
@@ -89,6 +92,8 @@ Overall Roadmap:
 | PM2 with graceful 5s shutdown | Allows in-flight requests to complete before restart | 2026-01-29 |
 | Rsync excludes planning docs | Keep development artifacts off production VPS | 2026-01-29 |
 | chmod 600 for .env on VPS | Script enforces secure permissions on credentials | 2026-01-29 |
+| Confidence threshold < 0.1 returns 0 | Confidence of exactly 0.10 can still bet (1% position with 20% edge) | 2026-02-02 |
+| Round positionPercent to 4 decimals | Avoid floating-point precision issues in Kelly calculation | 2026-02-02 |
 
 ### Active Constraints
 
@@ -152,21 +157,22 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-01-29T21:13:44Z
-- Partially completed 01-09-PLAN.md (Production Deployment)
-- Task 1 complete: PM2 ecosystem config, deploy.sh, .env.production template
-- Tasks 2-3 PENDING: Require human action (VPS provisioning and deployment)
-- Commit: 57a2d86 (feat: add PM2 ecosystem config and deployment script)
+**Last Session:** 2026-02-02T16:01:20Z
+- Completed 02-02-PLAN.md (Kelly Criterion Position Sizing)
+- TDD cycle: RED (51e0821) -> GREEN (6957784)
+- 24/24 tests passing
+- Files created: src/scoring/kelly.ts, tests/kelly.test.ts
 
-**Resume Point:** Complete 01-09 Tasks 2-3 (human action required)
+**Resume Point:** Continue Phase 2 (02-03 Alert System)
 
 **Next Session Should:**
-- Complete VPS provisioning (Hetzner 2 vCPU / 8GB RAM)
-- Create hot wallet for Polymarket CLOB auth
-- Configure .env on VPS with credentials
-- Run ./deploy.sh to deploy system
-- Verify PM2 shows market-scanner online
-- Then begin Phase 2 planning
+- Execute 02-03-PLAN.md (Alert System)
+- Execute 02-04-PLAN.md (CLI Dashboard)
+- Execute 02-05-PLAN.md (WhatsApp Integration)
+
+**Outstanding from Phase 1:**
+- VPS provisioning still pending (01-09 Tasks 2-3)
+- Hot wallet creation still pending
 
 ---
 
