@@ -1,4 +1,5 @@
 import { getDatabase } from './schema.js';
+import type { ScoredOpportunity } from '../scoring/types.js';
 
 /**
  * Market snapshot data structure
@@ -173,4 +174,148 @@ export function getRecentMatches(
     LIMIT ?
   `);
   return stmt.all(minConfidence, limit) as MatchedMarketRow[];
+}
+
+// =============================================================================
+// Opportunity Persistence Queries
+// =============================================================================
+
+/**
+ * Database row structure for opportunities
+ */
+export interface OpportunityRow {
+  id: number;
+  opportunity_id: string;
+  type: string;
+  platform: string;
+  market_id: string;
+  market_question: string;
+  gross_edge: number;
+  net_edge: number;
+  score: number;
+  position_size: number;
+  position_percent: number;
+  liquidity: number;
+  detected_at: number;
+  close_date: string | null;
+  score_breakdown: string;
+  created_at: number;
+}
+
+/**
+ * Insert a single scored opportunity.
+ * Uses INSERT OR IGNORE to handle duplicates gracefully.
+ */
+export function insertOpportunity(opp: ScoredOpportunity): void {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO opportunities
+    (opportunity_id, type, platform, market_id, market_question,
+     gross_edge, net_edge, score, position_size, position_percent,
+     liquidity, detected_at, close_date, score_breakdown)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    opp.id,
+    opp.type,
+    opp.platform,
+    opp.marketId,
+    opp.marketQuestion,
+    opp.grossEdge,
+    opp.netEdge,
+    opp.score,
+    opp.positionSize,
+    opp.positionPercent,
+    opp.minLiquidity,
+    opp.detectedAt,
+    opp.closeDate ?? null,
+    JSON.stringify(opp.scoreBreakdown)
+  );
+}
+
+/**
+ * Batch insert multiple scored opportunities within a transaction.
+ * Uses INSERT OR IGNORE for duplicate handling.
+ * Provides 10-100x speedup compared to individual inserts.
+ */
+export function insertOpportunities(opps: ScoredOpportunity[]): void {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO opportunities
+    (opportunity_id, type, platform, market_id, market_question,
+     gross_edge, net_edge, score, position_size, position_percent,
+     liquidity, detected_at, close_date, score_breakdown)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertMany = db.transaction((opportunities: ScoredOpportunity[]) => {
+    for (const opp of opportunities) {
+      stmt.run(
+        opp.id,
+        opp.type,
+        opp.platform,
+        opp.marketId,
+        opp.marketQuestion,
+        opp.grossEdge,
+        opp.netEdge,
+        opp.score,
+        opp.positionSize,
+        opp.positionPercent,
+        opp.minLiquidity,
+        opp.detectedAt,
+        opp.closeDate ?? null,
+        JSON.stringify(opp.scoreBreakdown)
+      );
+    }
+  });
+
+  insertMany(opps);
+}
+
+/**
+ * Get recent opportunities above a minimum score threshold.
+ * Results ordered by detected_at descending, then score descending.
+ *
+ * @param minScore - Minimum score threshold (default: 0)
+ * @param limit - Maximum number of results (default: 100)
+ * @param hoursBack - How many hours back to search (default: 24)
+ * @returns Array of opportunity rows
+ */
+export function getRecentOpportunities(
+  minScore: number = 0,
+  limit: number = 100,
+  hoursBack: number = 24
+): OpportunityRow[] {
+  const db = getDatabase();
+  const cutoff = Date.now() - hoursBack * 60 * 60 * 1000;
+  const stmt = db.prepare(`
+    SELECT * FROM opportunities
+    WHERE score >= ? AND detected_at >= ?
+    ORDER BY detected_at DESC, score DESC
+    LIMIT ?
+  `);
+  return stmt.all(minScore, cutoff, limit) as OpportunityRow[];
+}
+
+/**
+ * Get aggregate statistics about stored opportunities.
+ *
+ * @returns Object with total count, counts by type, and average score
+ */
+export function getOpportunityStats(): {
+  total: number;
+  byType: Record<string, number>;
+  avgScore: number;
+} {
+  const db = getDatabase();
+  const total = db.prepare('SELECT COUNT(*) as count FROM opportunities').get() as { count: number };
+  const byType = db.prepare('SELECT type, COUNT(*) as count FROM opportunities GROUP BY type').all() as { type: string; count: number }[];
+  const avgScore = db.prepare('SELECT AVG(score) as avg FROM opportunities').get() as { avg: number | null };
+
+  return {
+    total: total.count,
+    byType: Object.fromEntries(byType.map(r => [r.type, r.count])),
+    avgScore: avgScore.avg ?? 0,
+  };
 }
