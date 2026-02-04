@@ -6,7 +6,7 @@
 
 ## Overview
 
-This roadmap delivers a prediction market edge scanner that identifies profitable opportunities across Polymarket, Kalshi, and Metaculus. The system follows a layered architecture (Data → Processing → Detection → Scoring → Display) with critical safety measures: rate limiting from day 1, cross-platform arbitrage disabled until settlement verification, and human-in-the-loop via CLI dashboard. Each phase delivers a complete, verifiable capability.
+This roadmap delivers a prediction market edge scanner that identifies profitable opportunities across Polymarket, Kalshi, and Metaculus. The system follows a layered architecture (Data -> Processing -> Detection -> Scoring -> Display) with critical safety measures: rate limiting from day 1, cross-platform arbitrage disabled until settlement verification, and human-in-the-loop via CLI dashboard. Each phase delivers a complete, verifiable capability.
 
 ## Phases
 
@@ -41,16 +41,16 @@ This roadmap delivers a prediction market edge scanner that identifies profitabl
 5. System recovers gracefully from API failures without manual intervention
 
 Plans:
-- [ ] 01-01-PLAN.md — Project foundation (TypeScript, logger, rate limiter)
-- [ ] 01-02-PLAN.md — Database layer (SQLite with WAL mode) [TDD]
-- [ ] 01-03-PLAN.md — Polymarket integration (CLOB client, market + order book fetching)
-- [ ] 01-04-PLAN.md — Kalshi integration (REST client, market + order book fetching)
-- [ ] 01-05-PLAN.md — Market matching (cross-platform matcher) [TDD]
-- [ ] 01-06-PLAN.md — Job scheduler (Bree with periodic data collection)
-- [ ] 01-07-PLAN.md — Correlated markets detector (consistency checker) [TDD]
-- [ ] 01-08-PLAN.md — Multi-outcome arbitrage detector [TDD]
-- [ ] 01-09-PLAN.md — Production deployment (VPS + PM2 + hot wallet)
-- [ ] 01-10-PLAN.md — Cross-platform arbitrage detector (DISABLED until Phase 3) [TDD]
+- [x] 01-01-PLAN.md - Project foundation (TypeScript, logger, rate limiter)
+- [x] 01-02-PLAN.md - Database layer (SQLite with WAL mode) [TDD]
+- [x] 01-03-PLAN.md - Polymarket integration (CLOB client, market + order book fetching)
+- [x] 01-04-PLAN.md - Kalshi integration (REST client, market + order book fetching)
+- [x] 01-05-PLAN.md - Market matching (cross-platform matcher) [TDD]
+- [x] 01-06-PLAN.md - Job scheduler (Bree with periodic data collection)
+- [x] 01-07-PLAN.md - Correlated markets detector (consistency checker) [TDD]
+- [x] 01-08-PLAN.md - Multi-outcome arbitrage detector [TDD]
+- [x] 01-09-PLAN.md - Production deployment (VPS + PM2 + hot wallet)
+- [x] 01-10-PLAN.md - Cross-platform arbitrage detector (DISABLED until Phase 3) [TDD]
 
 ---
 
@@ -58,6 +58,8 @@ Plans:
 **Goal:** Rate opportunities 1-10 and display via CLI dashboard with position sizing guidance
 
 **Dependencies:** Phase 1 (requires market data and edge detection)
+
+**Plans:** 5 plans
 
 **Requirements:**
 - RATE-01: Composite 1-10 opportunity scoring
@@ -86,11 +88,11 @@ Plans:
 5. High-score opportunities (7+) visually highlighted in terminal
 
 Plans:
-- [ ] 02-01-PLAN.md — Scoring engine (factors, composite scorer) [TDD]
-- [ ] 02-02-PLAN.md — Kelly criterion position sizing [TDD]
-- [ ] 02-03-PLAN.md — Opportunity aggregator (combine detectors, dedup)
-- [ ] 02-04-PLAN.md — CLI dashboard (Ink, interactive table, detail view)
-- [ ] 02-05-PLAN.md — Detection job and opportunity persistence
+- [x] 02-01-PLAN.md - Scoring engine (factors, composite scorer) [TDD]
+- [x] 02-02-PLAN.md - Kelly criterion position sizing [TDD]
+- [x] 02-03-PLAN.md - Opportunity aggregator (combine detectors, dedup)
+- [x] 02-04-PLAN.md - CLI dashboard (Ink, interactive table, detail view)
+- [x] 02-05-PLAN.md - Detection job and opportunity persistence
 
 ---
 
@@ -98,6 +100,8 @@ Plans:
 **Goal:** Safely enable cross-platform arbitrage with settlement rule verification to prevent divergence losses
 
 **Dependencies:** Phase 1 (market matching), Phase 2 (scoring and alerts)
+
+**Plans:** 5 plans
 
 **Requirements:**
 - EDGE-07: Settlement rule parser (extract resolution criteria, data sources, timestamps)
@@ -109,6 +113,13 @@ Plans:
 3. Alert downgrades rating by 2-3 points if settlement mechanisms differ (UMA oracle vs centralized)
 4. User can view side-by-side settlement rule comparison for any arbitrage opportunity
 5. Settlement divergence database tracks historical mismatches to improve matching accuracy
+
+Plans:
+- [ ] 03-01-PLAN.md - Settlement types, database schema, and dependencies
+- [ ] 03-02-PLAN.md - Polymarket and Kalshi settlement parsers
+- [ ] 03-03-PLAN.md - Settlement comparator service [TDD]
+- [ ] 03-04-PLAN.md - Cross-platform detector integration and feature flag enablement
+- [ ] 03-05-PLAN.md - Dashboard settlement view and verification checkpoint
 
 ---
 
@@ -174,13 +185,13 @@ Plans:
 | Phase | Status | Requirements | Completion |
 |-------|--------|--------------|------------|
 | 1 - Data Foundation & Infrastructure | Complete | 14 | 100% |
-| 2 - Scoring Engine & CLI Dashboard | Pending | 14 | 0% |
-| 3 - Cross-Platform Arbitrage Enablement | Pending | 2 | 0% |
+| 2 - Scoring Engine & CLI Dashboard | Complete | 14 | 100% |
+| 3 - Cross-Platform Arbitrage Enablement | In Progress | 2 | 0% |
 | 4 - Metaculus Integration | Pending | 2 | 0% |
 | 5 - Longshot Bias Detection | Pending | 5 | 0% |
 | 6 - Whale Tracking & Production Hardening | Pending | 3 | 0% |
 
-**Overall:** 14/40 requirements complete (35%)
+**Overall:** 28/40 requirements complete (70%)
 
 ---
 
@@ -197,11 +208,11 @@ Plans:
 - Earlier phases deliver value without on-chain dependency
 
 **Build Order (Non-Negotiable):**
-1. Data collection → Processing → Detection → Scoring → Alerting
+1. Data collection -> Processing -> Detection -> Scoring -> Alerting
 2. Rate limiting (DATA-08) in Phase 1 prevents API bans
 3. Security (INFR-02, INFR-03) in Phase 1 prevents key compromise
 4. Settlement verification (Phase 3) before cross-platform arb enabled
 
 ---
 
-*Last updated: 2026-01-29*
+*Last updated: 2026-02-04*
