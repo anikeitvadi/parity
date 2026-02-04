@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-04T16:10:20Z
+**Last Updated:** 2026-02-04T16:15:58Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -21,9 +21,9 @@
 ## Current Position
 
 **Phase:** 3 of 6 (Cross-Platform Arbitrage Enablement)
-**Plan:** 1 of 3 complete
+**Plan:** 2 of 3 complete
 **Status:** In progress
-**Last activity:** 2026-02-04 - Completed 03-01-PLAN.md (Settlement Rule Verification Foundation)
+**Last activity:** 2026-02-04 - Completed 03-02-PLAN.md (Settlement Rule Parsing Implementation)
 
 **Progress Bar:**
 ```
@@ -34,14 +34,14 @@ Phase 2: Scoring & Alert Foundation
 [████████████████████] 100% (5/5 plans)
 
 Phase 3: Cross-Platform Arbitrage Enablement
-[██████░░░░░░░░░░░░░░] 33% (1/3 plans)
+[█████████████░░░░░░░] 67% (2/3 plans)
 
 Overall Roadmap:
-[████████████████░░░░] 38% (16/42 requirements)
+[████████████████░░░░] 40% (17/42 requirements)
 ```
 
 **What's Next:**
-- Phase 3 Plan 02: Settlement rule parsing implementation
+- Phase 3 Plan 03: Settlement comparison logic implementation
 
 ## Performance Metrics
 
@@ -111,6 +111,10 @@ Overall Roadmap:
 | Use chrono-node for date extraction | Robust NLP-based date parsing from resolution text | 2026-02-04 |
 | Track settlement outcomes for divergence rate | Historical data enables confidence threshold tuning | 2026-02-04 |
 | Support manual overrides for settlement safety | Human verification can override automated comparison | 2026-02-04 |
+| Filter sentence starters from entity extraction | Prevents false positives like "Will Elon Musk" instead of "Elon Musk" | 2026-02-04 |
+| Prioritize specific data source patterns | "official data from" before "based on" for more precise extraction | 2026-02-04 |
+| Use latest parsed date as resolution date fallback | When structured date field missing, NLP-extracted dates provide fallback | 2026-02-04 |
+| Map Kalshi strike types to scalar settlement type | greater/less/between indicate scalar markets vs binary Yes/No | 2026-02-04 |
 
 ### Active Constraints
 
@@ -176,17 +180,17 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T16:10:20Z
-- Completed 03-01-PLAN.md (Settlement Rule Verification Foundation)
-- Created: src/types/settlement.ts, tests/database/settlement-queries.test.ts
-- Modified: src/database/schema.ts, src/database/queries.ts, package.json
-- 12 new settlement tests, 272 total tests passing
-- Commits: 0f3c23e, 8c6937a, 323ebdf
+**Last Session:** 2026-02-04T16:15:58Z
+- Completed 03-02-PLAN.md (Settlement Rule Parsing Implementation)
+- Created: src/parsers/polymarket-parser.ts, src/parsers/kalshi-parser.ts, tests/parsers/polymarket-parser.test.ts, tests/parsers/kalshi-parser.test.ts
+- 30 new parser tests (15 per platform), 302 total tests passing
+- Commits: 577fbbc, 098b2dd
+- Fixed entity extraction bug (sentence starters), adjusted data source test expectations
 
-**Resume Point:** Phase 3 Plan 1 complete - 2 plans remaining
+**Resume Point:** Phase 3 Plan 2 complete - 1 plan remaining
 
 **Next Session Should:**
-- Execute 03-02-PLAN.md (Settlement rule parsing implementation)
+- Execute 03-03-PLAN.md (Settlement comparison logic implementation)
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
