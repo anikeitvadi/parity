@@ -22,9 +22,9 @@
 ## Current Position
 
 **Phase:** 4 of 6 (Advanced Edge Detection)
-**Plan:** 3 of 5 complete
+**Plan:** 4 of 5 complete
 **Status:** In progress
-**Last activity:** 2026-02-04 - Completed 04-03-PLAN.md (Question-to-Market Matcher)
+**Last activity:** 2026-02-04 - Completed 04-04-PLAN.md (Metaculus Divergence Detector)
 
 **Progress Bar:**
 ```
@@ -38,15 +38,15 @@ Phase 3: Cross-Platform Arbitrage Enablement
 [████████████████████] 100% (5/5 plans)
 
 Phase 4: Advanced Edge Detection
-[████████████░░░░░░░░] 60% (3/5 plans)
+[████████████████░░░░] 80% (4/5 plans)
 
 Overall Roadmap:
-[████████████████░░░░] 57.5% (23/40 requirements)
+[████████████████░░░░] 60% (24/40 requirements)
 ```
 
 **What's Next:**
-- 04-04: Metaculus divergence detector
-- 04-05: Dashboard integration
+- 04-05: Dashboard integration for Metaculus divergence
+- Phase 5: Longshot bias detection
 
 ## Performance Metrics
 
@@ -139,6 +139,10 @@ Overall Roadmap:
 | Default 0.5 description similarity for Metaculus | Markets lack detailed descriptions, neutral score avoids penalizing matches | 2026-02-04 |
 | Manual Metaculus matches take absolute precedence | Human curation more reliable than algorithmic for edge cases | 2026-02-04 |
 | Binary Metaculus questions only | Numeric/date/multiple choice have different semantics from Yes/No markets | 2026-02-04 |
+| 5% minimum divergence for Metaculus opportunities | Smaller edges likely eaten by fees and slippage | 2026-02-04 |
+| 7-day freshness threshold for Metaculus forecasts | Predictions >7 days old trigger staleness warnings | 2026-02-04 |
+| Manual day calculation without date-fns | Avoid adding dependency for simple date arithmetic | 2026-02-04 |
+| Sort divergence opportunities by percent descending | Highest divergences = highest priority for user review | 2026-02-04 |
 
 ### Active Constraints
 
@@ -204,13 +208,13 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T18:43:34Z
-- Completed 04-03-PLAN.md (Question-to-Market Matcher)
-  - TDD cycle: comprehensive tests → implementation → refactoring
-  - Created `src/services/metaculus-matcher.ts` with multi-level similarity scoring
-  - Multi-dimensional matching: title (50%), description (30%), timing (20%)
-  - Conservative 0.8 confidence threshold, 14-day timing window
-  - 24 new unit tests + integration test framework (375 total tests passing)
+**Last Session:** 2026-02-04T18:50:52Z
+- Completed 04-04-PLAN.md (Metaculus Divergence Detector)
+  - TDD cycle: RED → GREEN → REFACTOR (5 minutes)
+  - Created `src/detectors/metaculus-divergence.ts` implementing detector pattern
+  - Divergence detection with 5% threshold, staleness tracking with 7-day threshold
+  - Feature flag gating (metaculusDivergence) as first check
+  - 19 new unit tests (394 total tests passing, up from 375)
 
 **Phase 3 Complete:**
 - 03-01: Settlement types + database schema
@@ -223,13 +227,14 @@ Overall Roadmap:
 - 04-01: ✅ Metaculus foundation types
 - 04-02: ✅ Metaculus API client
 - 04-03: ✅ Question-to-market matcher
+- 04-04: ✅ Metaculus divergence detector
 
-**Resume Point:** Ready for 04-04 (Metaculus divergence detector)
+**Resume Point:** Ready for 04-05 (Dashboard integration)
 
 **Next Session Should:**
-- Build divergence detector using MetaculusMatcher to find opportunities
-- Calculate divergence between superforecaster consensus and market prices
-- Apply staleness checks to forecast age
+- Integrate MetaculusDivergenceDetector into dashboard display
+- Add Metaculus divergence section to CLI dashboard
+- Test with live Metaculus API once credentials configured
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
