@@ -4,6 +4,8 @@
  * Runs every 15 minutes to collect market data and order book snapshots
  * from Polymarket. Stores data in SQLite for historical analysis.
  *
+ * Collects bid/ask prices from order books for arbitrage detection.
+ *
  * @module jobs/fetch-polymarket
  */
 
@@ -16,17 +18,25 @@ import { polymarketLogger as logger } from '../utils/logger.js';
 // Minimum liquidity threshold for order book fetching (in USD)
 const MIN_LIQUIDITY_THRESHOLD = 500;
 
+// Token metadata type
+interface TokenInfo {
+  token_id: string;
+  outcome: string;
+}
+
 async function run(): Promise<void> {
   const startTime = Date.now();
   let marketsCount = 0;
   let snapshotsStored = 0;
+  let orderBooksCollected = 0;
 
   try {
     // Initialize database
     initDatabase();
 
-    // Create Polymarket client
+    // Create Polymarket client and initialize CLOB
     const client = new PolymarketClient();
+    await client.initialize();
 
     // Fetch active markets
     logger.info('Fetching active markets from Polymarket');
@@ -39,19 +49,57 @@ async function run(): Promise<void> {
     const snapshots: MarketSnapshot[] = [];
 
     for (const market of markets) {
-      // Only fetch order book for liquid markets
-      let orderBookDepth: number | undefined;
+      // Initialize bid/ask prices from mid-market prices (fallback)
+      const askPrices: Record<string, number> = { ...market.prices };
+      const bidPrices: Record<string, number> = { ...market.prices };
+      const liquidity: Record<string, number> = {};
+      let hasOrderBook = false;
 
+      // Fetch order books for liquid markets
       if (market.liquidity && market.liquidity >= MIN_LIQUIDITY_THRESHOLD) {
-        try {
-          // Get first token ID for order book (typically the "Yes" outcome)
-          const tokens = market.metadata?.tokens as Array<{ token_id: string }> | undefined;
-          if (tokens && tokens.length > 0) {
-            const orderBook = await client.getOrderBook(tokens[0].token_id);
-            orderBookDepth = orderBook.depth;
+        // Get token IDs from CLOB API (Gamma API doesn't include them)
+        const clobMarket = await client.getMarketDetails(market.id);
+        const tokens = clobMarket?.tokens;
+
+        if (tokens && tokens.length > 0) {
+          for (const token of tokens) {
+            if (!token.token_id) continue;
+
+            try {
+              const orderBook = await client.getOrderBook(token.token_id);
+
+              // Best ask = lowest ask price (what you pay to buy)
+              if (orderBook.asks.length > 0) {
+                askPrices[token.outcome] = orderBook.asks[0].price;
+              }
+
+              // Best bid = highest bid price (what you get when selling)
+              if (orderBook.bids.length > 0) {
+                bidPrices[token.outcome] = orderBook.bids[0].price;
+              }
+
+              // Calculate liquidity at best price (top of book)
+              const askLiq = orderBook.asks.slice(0, 3).reduce((sum, a) => sum + a.size * a.price, 0);
+              const bidLiq = orderBook.bids.slice(0, 3).reduce((sum, b) => sum + b.size * b.price, 0);
+              liquidity[token.outcome] = Math.min(askLiq, bidLiq);
+
+              hasOrderBook = true;
+            } catch (error) {
+              logger.debug({ marketId: market.id, outcome: token.outcome, error }, 'Order book fetch failed');
+            }
           }
-        } catch (error) {
-          logger.warn({ marketId: market.id, error }, 'Failed to fetch order book');
+
+          if (hasOrderBook) {
+            orderBooksCollected++;
+          }
+        }
+      }
+
+      // If no order book data, use market liquidity distributed evenly
+      if (!hasOrderBook && market.liquidity) {
+        const perOutcome = market.liquidity / market.outcomes.length;
+        for (const outcome of market.outcomes) {
+          liquidity[outcome] = perOutcome;
         }
       }
 
@@ -63,9 +111,11 @@ async function run(): Promise<void> {
           question: market.question,
           outcomes: market.outcomes,
           prices: market.prices,
+          askPrices,
+          bidPrices,
+          liquidity,
           volume: market.volume,
-          liquidity: market.liquidity,
-          orderBookDepth,
+          totalLiquidity: market.liquidity,
         },
       });
     }
@@ -78,7 +128,7 @@ async function run(): Promise<void> {
 
     const durationMs = Date.now() - startTime;
     logger.info(
-      { job: 'fetch-polymarket', marketsCount, snapshotsStored, durationMs },
+      { job: 'fetch-polymarket', marketsCount, snapshotsStored, orderBooksCollected, durationMs },
       'Job completed successfully'
     );
 
@@ -88,6 +138,7 @@ async function run(): Promise<void> {
         success: true,
         marketsCount,
         snapshotsStored,
+        orderBooksCollected,
         durationMs,
       });
     }

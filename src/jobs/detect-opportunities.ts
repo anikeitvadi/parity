@@ -43,6 +43,28 @@ async function run(): Promise<void> {
     const result = await aggregator.aggregate();
     detectedCount = result.opportunities.length;
 
+    // Log settlement verification results for cross-platform opportunities
+    const crossPlatformOpps = result.opportunities.filter(o => o.type === 'cross_platform');
+    if (crossPlatformOpps.length > 0) {
+      const lowRisk = crossPlatformOpps.filter(o => {
+        const raw = o.raw as any;
+        return raw.settlementRisk === 'LOW';
+      }).length;
+      const mediumRisk = crossPlatformOpps.filter(o => {
+        const raw = o.raw as any;
+        return raw.settlementRisk === 'MEDIUM';
+      }).length;
+
+      jobLogger.info(
+        {
+          crossPlatformCount: crossPlatformOpps.length,
+          withLowRisk: lowRisk,
+          withMediumRisk: mediumRisk,
+        },
+        'Cross-platform detection complete with settlement verification'
+      );
+    }
+
     // Score opportunities that meet threshold
     const scoredOpportunities: ScoredOpportunity[] = [];
 
