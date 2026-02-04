@@ -60,10 +60,19 @@ export function OpportunityTable({ opportunities, onSelect }: OpportunityTablePr
     );
   }
 
-  const options = opportunities.map((opp) => ({
-    label: formatRow(opp),
-    value: opp.id,
-  }));
+  // Ensure unique keys by appending index if duplicate IDs exist
+  const seenIds = new Set<string>();
+  const options = opportunities.map((opp, index) => {
+    let value = opp.id;
+    if (seenIds.has(value)) {
+      value = `${value}-${index}`;
+    }
+    seenIds.add(opp.id);
+    return {
+      label: formatRow(opp),
+      value,
+    };
+  });
 
   return (
     <Box flexDirection="column">

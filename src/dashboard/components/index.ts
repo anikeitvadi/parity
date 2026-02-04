@@ -9,3 +9,4 @@
 export { OpportunityTable, ScoreIndicator } from './OpportunityTable.js';
 export { OpportunityDetail } from './OpportunityDetail.js';
 export { StatusBar } from './StatusBar.js';
+export { SettlementView, SettlementBadge } from './SettlementView.js';

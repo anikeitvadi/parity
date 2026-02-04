@@ -14,6 +14,9 @@
 import React from 'react';
 import { Box, Text, Newline } from 'ink';
 import type { ScoredOpportunity } from '../../scoring/types.js';
+import { SettlementView } from './SettlementView.js';
+import { getSettlementComparison } from '../../database/queries.js';
+import type { SettlementComparison } from '../../types/settlement.js';
 
 interface OpportunityDetailProps {
   opportunity: ScoredOpportunity;
@@ -46,10 +49,41 @@ function formatType(type: string): string {
 }
 
 /**
+ * Get settlement comparison for cross-platform opportunities
+ */
+function getSettlementForOpportunity(opportunity: ScoredOpportunity): SettlementComparison | null {
+  if (opportunity.type !== 'cross_platform') {
+    return null;
+  }
+
+  // Extract market IDs from raw detector output
+  const raw = opportunity.raw as {
+    polymarket_id?: string;
+    kalshi_ticker?: string;
+    polymarketId?: string;
+    kalshiTicker?: string;
+  } | null;
+
+  if (!raw) {
+    return null;
+  }
+
+  const polyId = raw.polymarket_id || raw.polymarketId;
+  const kalshiId = raw.kalshi_ticker || raw.kalshiTicker;
+
+  if (!polyId || !kalshiId) {
+    return null;
+  }
+
+  return getSettlementComparison(polyId, kalshiId);
+}
+
+/**
  * Detailed view of a single opportunity
  */
 export function OpportunityDetail({ opportunity, onBack }: OpportunityDetailProps) {
   const breakdown = opportunity.scoreBreakdown;
+  const settlementComparison = getSettlementForOpportunity(opportunity);
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
@@ -143,6 +177,13 @@ export function OpportunityDetail({ opportunity, onBack }: OpportunityDetailProp
           )}
         </Box>
       </Box>
+
+      {/* Settlement Comparison (Cross-Platform only) */}
+      {opportunity.type === 'cross_platform' && settlementComparison && (
+        <Box marginBottom={1}>
+          <SettlementView comparison={settlementComparison} />
+        </Box>
+      )}
 
       {/* Position Sizing */}
       <Box flexDirection="column" marginBottom={1}>
