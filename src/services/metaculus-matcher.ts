@@ -46,15 +46,31 @@ interface ManualMatch {
   verified: boolean;
 }
 
-// Constants
+// Matching thresholds
+/** Default minimum confidence threshold for accepting a match */
 const DEFAULT_MIN_CONFIDENCE = 0.8;
+
+/** Timing decay window in days (matches >14 days apart are rejected) */
 const TIMING_DECAY_DAYS = 14;
+
+/** Default similarity score for missing/unavailable descriptions */
 const DEFAULT_DESCRIPTION_SIMILARITY = 0.5;
 
-// Similarity weights
+/** Title similarity threshold for considering a match "exact" */
+const EXACT_MATCH_THRESHOLD = 0.95;
+
+// Similarity weights (must sum to 1.0)
+/** Weight for title similarity in overall confidence calculation */
 const WEIGHT_TITLE = 0.5;
+
+/** Weight for description similarity in overall confidence calculation */
 const WEIGHT_DESCRIPTION = 0.3;
+
+/** Weight for timing similarity in overall confidence calculation */
 const WEIGHT_TIMING = 0.2;
+
+// Milliseconds per day for timing calculations
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 /**
  * MetaculusMatcher identifies equivalent events between Metaculus and prediction markets.
@@ -70,6 +86,24 @@ export class MetaculusMatcher {
   private manualMatches: ManualMatch[] = [];
   private minConfidence: number;
 
+  /**
+   * Create a new MetaculusMatcher
+   *
+   * @param manualMatchesPath - Path to manual matches JSON file (optional)
+   * @param minConfidence - Minimum confidence threshold for matches (default: 0.8)
+   *
+   * @example
+   * ```typescript
+   * // Use default settings
+   * const matcher = new MetaculusMatcher();
+   *
+   * // Custom manual matches file
+   * const matcher = new MetaculusMatcher('data/custom-matches.json');
+   *
+   * // Stricter confidence threshold
+   * const matcher = new MetaculusMatcher(undefined, 0.9);
+   * ```
+   */
   constructor(manualMatchesPath?: string, minConfidence: number = DEFAULT_MIN_CONFIDENCE) {
     this.minConfidence = minConfidence;
     const matchPath = manualMatchesPath || 'src/data/metaculus-matches.json';
@@ -94,9 +128,26 @@ export class MetaculusMatcher {
   /**
    * Match Metaculus questions to markets
    *
+   * Filters to binary questions only and uses multi-level similarity scoring.
+   * Manual matches (from JSON file) take precedence over algorithmic matches.
+   * Each question is matched to at most one market (best match above threshold).
+   *
    * @param questions - Metaculus questions to match
    * @param markets - Markets from Polymarket/Kalshi
    * @returns Array of matched pairs with confidence scores
+   *
+   * @example
+   * ```typescript
+   * const matcher = new MetaculusMatcher();
+   * const questions = await metaculusClient.searchQuestions({ status: 'open' });
+   * const markets = await polymarketClient.getActiveMarkets();
+   * const matches = matcher.matchToMarkets(questions, markets);
+   *
+   * matches.forEach(match => {
+   *   console.log(`${match.metaculusQuestion.title} -> ${match.market.question}`);
+   *   console.log(`Confidence: ${(match.confidence * 100).toFixed(0)}%`);
+   * });
+   * ```
    */
   matchToMarkets(questions: MetaculusQuestion[], markets: Market[]): MetaculusMatchResult[] {
     const matches: MetaculusMatchResult[] = [];
@@ -151,7 +202,7 @@ export class MetaculusMatcher {
         if (similarity.overall >= this.minConfidence && similarity.overall > bestConfidence) {
           bestConfidence = similarity.overall;
 
-          const method = similarity.title > 0.95 ? 'exact_match' : 'high_similarity';
+          const method = similarity.title > EXACT_MATCH_THRESHOLD ? 'exact_match' : 'high_similarity';
 
           bestMatch = {
             metaculusQuestion: question,
@@ -267,7 +318,7 @@ export class MetaculusMatcher {
       return 0.0;
     }
 
-    const daysDiff = Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
+    const daysDiff = Math.abs(date1.getTime() - date2.getTime()) / MS_PER_DAY;
 
     if (daysDiff >= TIMING_DECAY_DAYS) {
       return 0.0;
