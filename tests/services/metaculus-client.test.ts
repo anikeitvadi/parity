@@ -2,11 +2,11 @@
  * Metaculus Client Service Tests
  *
  * Unit tests for Metaculus API client (mocked - no real API calls)
+ * Updated for Metaculus API v2 (/posts/ endpoint)
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MetaculusClient } from '../../src/services/metaculus-client.js';
-import type { MetaculusQuestion } from '../../src/types/metaculus.js';
 import axios from 'axios';
 
 // Mock axios
@@ -16,22 +16,55 @@ describe('MetaculusClient', () => {
   let client: MetaculusClient;
   const mockToken = 'test-token-12345';
 
-  // Sample mock question data
-  const mockQuestion: MetaculusQuestion = {
+  // Sample mock post data (new API format)
+  const mockPost = {
     id: 12345,
     title: 'Will Bitcoin reach $100k by end of 2026?',
-    description: 'Question resolves YES if Bitcoin closes above $100,000 on December 31, 2026.',
-    type: 'binary',
-    created_time: '2024-01-01T00:00:00Z',
-    resolve_time: '2026-12-31T23:59:59Z',
+    created_at: '2024-01-01T00:00:00Z',
     status: 'open',
-    community_prediction: {
-      q2: 0.65,
-      timestamp: '2024-06-01T12:00:00Z',
+    nr_forecasters: 50,
+    question: {
+      id: 12300,
+      title: 'Will Bitcoin reach $100k by end of 2026?',
+      type: 'binary',
+      status: 'open',
+      scheduled_resolve_time: '2026-12-31T23:59:59Z',
+      scheduled_close_time: '2026-12-31T23:59:59Z',
+      description: 'Question resolves YES if Bitcoin closes above $100,000.',
+      resolution_criteria: 'Resolves YES if Bitcoin > $100k',
+      aggregations: {
+        recency_weighted: {
+          history: [],
+          latest: {
+            centers: [0.65],
+            forecaster_count: 50,
+            end_time: 1717243200, // Unix timestamp
+          },
+        },
+      },
     },
-    pro_prediction: {
-      q2: 0.72,
-      timestamp: '2024-06-01T12:00:00Z',
+  };
+
+  // Mock post without forecasts
+  const mockPostNoForecasts = {
+    id: 99999,
+    title: 'New question without forecasts',
+    created_at: '2024-06-01T00:00:00Z',
+    status: 'open',
+    nr_forecasters: 0,
+    question: {
+      id: 99900,
+      title: 'New question without forecasts',
+      type: 'binary',
+      status: 'open',
+      scheduled_resolve_time: '2026-12-31T23:59:59Z',
+      description: 'A new question',
+      aggregations: {
+        recency_weighted: {
+          history: [],
+          latest: null,
+        },
+      },
     },
   };
 
@@ -109,32 +142,33 @@ describe('MetaculusClient', () => {
   describe('getQuestionByUrl', () => {
     it('should extract ID correctly from valid URL', async () => {
       const url = 'https://www.metaculus.com/questions/12345/';
-      const mockGet = vi.fn().mockResolvedValue({ data: mockQuestion });
+      const mockGet = vi.fn().mockResolvedValue({ data: mockPost });
       (client as any).client.get = mockGet;
 
       await client.getQuestionByUrl(url);
 
-      expect(mockGet).toHaveBeenCalledWith('/questions/12345/');
+      // Now uses /posts/ endpoint
+      expect(mockGet).toHaveBeenCalledWith('/posts/12345/');
     });
 
     it('should extract ID from URL without trailing slash', async () => {
       const url = 'https://www.metaculus.com/questions/67890';
-      const mockGet = vi.fn().mockResolvedValue({ data: mockQuestion });
+      const mockGet = vi.fn().mockResolvedValue({ data: { ...mockPost, id: 67890 } });
       (client as any).client.get = mockGet;
 
       await client.getQuestionByUrl(url);
 
-      expect(mockGet).toHaveBeenCalledWith('/questions/67890/');
+      expect(mockGet).toHaveBeenCalledWith('/posts/67890/');
     });
 
     it('should extract ID from URL with additional path segments', async () => {
       const url = 'https://www.metaculus.com/questions/12345/bitcoin-price';
-      const mockGet = vi.fn().mockResolvedValue({ data: mockQuestion });
+      const mockGet = vi.fn().mockResolvedValue({ data: mockPost });
       (client as any).client.get = mockGet;
 
       await client.getQuestionByUrl(url);
 
-      expect(mockGet).toHaveBeenCalledWith('/questions/12345/');
+      expect(mockGet).toHaveBeenCalledWith('/posts/12345/');
     });
 
     it('should throw on invalid URL format', async () => {
@@ -158,7 +192,7 @@ describe('MetaculusClient', () => {
     it('should return parsed questions from API response', async () => {
       const mockResponse = {
         data: {
-          results: [mockQuestion],
+          results: [mockPost],
           count: 1,
         },
       };
@@ -168,15 +202,21 @@ describe('MetaculusClient', () => {
 
       const result = await client.searchQuestions();
 
-      expect(result).toEqual([mockQuestion]);
+      // Should transform post to MetaculusQuestion format
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(mockPost.question.id);
+      expect(result[0].title).toBe(mockPost.question.title);
+      expect(result[0].type).toBe('binary');
+
+      // Now uses /posts/ endpoint
       expect(mockGet).toHaveBeenCalledWith(
-        '/questions/',
+        '/posts/',
         expect.objectContaining({
           params: expect.objectContaining({
             limit: 100,
             offset: 0,
             status: 'open',
-            order_by: '-created_time',
+            order_by: '-activity',
           }),
         })
       );
@@ -185,7 +225,7 @@ describe('MetaculusClient', () => {
     it('should use custom search parameters', async () => {
       const mockResponse = {
         data: {
-          results: [mockQuestion],
+          results: [mockPost],
           count: 1,
         },
       };
@@ -202,7 +242,7 @@ describe('MetaculusClient', () => {
       });
 
       expect(mockGet).toHaveBeenCalledWith(
-        '/questions/',
+        '/posts/',
         expect.objectContaining({
           params: {
             limit: 50,
@@ -231,31 +271,64 @@ describe('MetaculusClient', () => {
       expect(result).toEqual([]);
     });
 
-    it('should throw error on invalid response schema', async () => {
-      const invalidResponse = {
+    it('should skip posts without questions (e.g., notebooks)', async () => {
+      const notebookPost = {
+        id: 111,
+        title: 'Notebook',
+        created_at: '2024-01-01T00:00:00Z',
+        status: 'open',
+        nr_forecasters: 0,
+        question: null, // No question - this is a notebook
+      };
+
+      const mockResponse = {
         data: {
-          results: [
-            {
-              // Missing required fields
-              id: 123,
-            },
-          ],
+          results: [mockPost, notebookPost],
+          count: 2,
         },
       };
 
-      const mockGet = vi.fn().mockResolvedValue(invalidResponse);
+      const mockGet = vi.fn().mockResolvedValue(mockResponse);
       (client as any).client.get = mockGet;
 
-      await expect(client.searchQuestions()).rejects.toThrow(
-        /Invalid Metaculus API response schema/
-      );
+      const result = await client.searchQuestions();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toBe(mockPost.question.title);
+    });
+
+    it('should skip unsupported question types', async () => {
+      const conditionalPost = {
+        ...mockPost,
+        id: 222,
+        question: {
+          ...mockPost.question,
+          id: 220,
+          type: 'conditional', // Unsupported type
+        },
+      };
+
+      const mockResponse = {
+        data: {
+          results: [mockPost, conditionalPost],
+          count: 2,
+        },
+      };
+
+      const mockGet = vi.fn().mockResolvedValue(mockResponse);
+      (client as any).client.get = mockGet;
+
+      const result = await client.searchQuestions();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(mockPost.question.id);
     });
   });
 
   describe('getQuestion', () => {
-    it('should return single question from API', async () => {
+    it('should return question with community prediction from post API', async () => {
       const mockResponse = {
-        data: mockQuestion,
+        data: mockPost,
       };
 
       const mockGet = vi.fn().mockResolvedValue(mockResponse);
@@ -263,11 +336,48 @@ describe('MetaculusClient', () => {
 
       const result = await client.getQuestion(12345);
 
-      expect(result).toEqual(mockQuestion);
-      expect(mockGet).toHaveBeenCalledWith('/questions/12345/');
+      expect(result.id).toBe(mockPost.question.id);
+      expect(result.title).toBe(mockPost.question.title);
+      expect(result.type).toBe('binary');
+      expect(result.community_prediction).toBeDefined();
+      expect(result.community_prediction?.q2).toBe(0.65);
+      expect(mockGet).toHaveBeenCalledWith('/posts/12345/');
     });
 
-    it('should throw error on invalid question response', async () => {
+    it('should return question without prediction when none available', async () => {
+      const mockResponse = {
+        data: mockPostNoForecasts,
+      };
+
+      const mockGet = vi.fn().mockResolvedValue(mockResponse);
+      (client as any).client.get = mockGet;
+
+      const result = await client.getQuestion(99999);
+
+      expect(result.id).toBe(mockPostNoForecasts.question.id);
+      expect(result.community_prediction).toBeUndefined();
+    });
+
+    it('should throw error when post has no question', async () => {
+      const mockResponse = {
+        data: {
+          id: 123,
+          title: 'A notebook',
+          created_at: '2024-01-01T00:00:00Z',
+          status: 'open',
+          question: null,
+        },
+      };
+
+      const mockGet = vi.fn().mockResolvedValue(mockResponse);
+      (client as any).client.get = mockGet;
+
+      await expect(client.getQuestion(123)).rejects.toThrow(
+        /does not contain a question/
+      );
+    });
+
+    it('should throw error on invalid response schema', async () => {
       const invalidResponse = {
         data: {
           id: 123,
@@ -282,98 +392,96 @@ describe('MetaculusClient', () => {
         /Invalid Metaculus question response schema/
       );
     });
-
-    it('should validate response against schema', async () => {
-      const validQuestion: MetaculusQuestion = {
-        id: 999,
-        title: 'Test Question',
-        description: 'Test description',
-        type: 'binary',
-        created_time: '2024-01-01T00:00:00Z',
-        resolve_time: '2024-12-31T23:59:59Z',
-        status: 'open',
-        community_prediction: {
-          q2: 0.5,
-          timestamp: '2024-06-01T00:00:00Z',
-        },
-      };
-
-      const mockResponse = { data: validQuestion };
-      const mockGet = vi.fn().mockResolvedValue(mockResponse);
-      (client as any).client.get = mockGet;
-
-      const result = await client.getQuestion(999);
-
-      expect(result).toEqual(validQuestion);
-    });
   });
 
   describe('Response Validation', () => {
     it('should accept questions without predictions', async () => {
-      const questionWithoutPredictions: MetaculusQuestion = {
-        id: 111,
-        title: 'New Question',
-        description: 'Just created',
-        type: 'binary',
-        created_time: '2024-01-01T00:00:00Z',
-        resolve_time: '2024-12-31T23:59:59Z',
-        status: 'open',
-        // No predictions yet
-      };
-
-      const mockResponse = { data: questionWithoutPredictions };
+      const mockResponse = { data: mockPostNoForecasts };
       const mockGet = vi.fn().mockResolvedValue(mockResponse);
       (client as any).client.get = mockGet;
 
-      const result = await client.getQuestion(111);
+      const result = await client.getQuestion(99999);
 
-      expect(result).toEqual(questionWithoutPredictions);
       expect(result.community_prediction).toBeUndefined();
-      expect(result.pro_prediction).toBeUndefined();
     });
 
     it('should accept different question types', async () => {
-      const numericQuestion: MetaculusQuestion = {
-        id: 222,
-        title: 'What will be the temperature?',
-        description: 'Numeric forecast',
-        type: 'numeric',
-        created_time: '2024-01-01T00:00:00Z',
-        resolve_time: '2024-12-31T23:59:59Z',
-        status: 'open',
+      const numericPost = {
+        ...mockPost,
+        question: {
+          ...mockPost.question,
+          type: 'numeric',
+        },
       };
 
-      const mockResponse = { data: numericQuestion };
+      const mockResponse = { data: numericPost };
       const mockGet = vi.fn().mockResolvedValue(mockResponse);
       (client as any).client.get = mockGet;
 
-      const result = await client.getQuestion(222);
+      const result = await client.getQuestion(12345);
 
       expect(result.type).toBe('numeric');
     });
 
-    it('should enforce prediction value bounds (0-1)', async () => {
-      const invalidPrediction = {
-        id: 333,
-        title: 'Test',
-        description: 'Test',
-        type: 'binary',
-        created_time: '2024-01-01T00:00:00Z',
-        resolve_time: '2024-12-31T23:59:59Z',
-        status: 'open',
-        community_prediction: {
-          q2: 1.5, // Invalid: greater than 1
-          timestamp: '2024-06-01T00:00:00Z',
-        },
-      };
-
-      const mockResponse = { data: invalidPrediction };
+    it('should extract prediction timestamp correctly', async () => {
+      const mockResponse = { data: mockPost };
       const mockGet = vi.fn().mockResolvedValue(mockResponse);
       (client as any).client.get = mockGet;
 
-      await expect(client.getQuestion(333)).rejects.toThrow(
-        /Invalid Metaculus question response schema/
-      );
+      const result = await client.getQuestion(12345);
+
+      expect(result.community_prediction).toBeDefined();
+      expect(result.community_prediction?.timestamp).toBeDefined();
+      // Timestamp should be ISO string
+      expect(new Date(result.community_prediction!.timestamp).getTime()).toBeGreaterThan(0);
+    });
+  });
+
+  describe('searchQuestionsWithForecasts', () => {
+    it('should fetch individual questions to get forecast data', async () => {
+      const searchResponse = {
+        data: {
+          results: [mockPost, mockPostNoForecasts],
+          count: 2,
+        },
+      };
+
+      const mockGet = vi.fn()
+        .mockResolvedValueOnce(searchResponse) // First call: search
+        .mockResolvedValueOnce({ data: mockPost }) // Second call: fetch post 12345
+        .mockResolvedValueOnce({ data: mockPostNoForecasts }); // Third call: fetch post 99999
+
+      (client as any).client.get = mockGet;
+
+      const result = await client.searchQuestionsWithForecasts({ limit: 10 }, 2);
+
+      expect(result).toHaveLength(2);
+      // First question should have forecast
+      expect(result[0].community_prediction).toBeDefined();
+      expect(result[0].community_prediction?.q2).toBe(0.65);
+      // Second question should not have forecast
+      expect(result[1].community_prediction).toBeUndefined();
+    });
+
+    it('should respect maxToFetch limit', async () => {
+      const searchResponse = {
+        data: {
+          results: [mockPost, mockPostNoForecasts, { ...mockPost, id: 333 }],
+          count: 3,
+        },
+      };
+
+      const mockGet = vi.fn()
+        .mockResolvedValueOnce(searchResponse)
+        .mockResolvedValueOnce({ data: mockPost });
+
+      (client as any).client.get = mockGet;
+
+      const result = await client.searchQuestionsWithForecasts({ limit: 10 }, 1);
+
+      expect(result).toHaveLength(1);
+      // Should only make 2 calls: 1 search + 1 individual fetch
+      expect(mockGet).toHaveBeenCalledTimes(2);
     });
   });
 });

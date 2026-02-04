@@ -12,6 +12,7 @@ import { MetaculusQuestionSchema, type MetaculusQuestion } from '../types/metacu
 
 /**
  * Metaculus API base URL
+ * Note: Metaculus API uses /posts/ endpoint for questions (as of 2025+)
  */
 const METACULUS_API_BASE = 'https://www.metaculus.com/api';
 
@@ -32,10 +33,46 @@ export interface MetaculusSearchParams {
 }
 
 /**
- * Zod schema for Metaculus API search response
+ * Zod schema for nested question in post response
+ */
+const MetaculusPostQuestionSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  type: z.enum(['binary', 'numeric', 'multiple_choice', 'date', 'group', 'conditional', 'notebook']),
+  status: z.enum(['open', 'closed', 'resolved', 'pending', 'upcoming']),
+  scheduled_resolve_time: z.string().nullable().optional(),
+  scheduled_close_time: z.string().nullable().optional(),
+  description: z.string().optional(),
+  resolution_criteria: z.string().optional(),
+  aggregations: z.object({
+    recency_weighted: z.object({
+      history: z.array(z.any()).optional(),
+      latest: z.object({
+        centers: z.array(z.number()),
+        forecaster_count: z.number().optional(),
+        end_time: z.number().optional(),
+      }).nullable().optional(),
+    }).optional(),
+  }).optional(),
+});
+
+/**
+ * Zod schema for Metaculus post (contains nested question)
+ */
+const MetaculusPostSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  created_at: z.string(),
+  status: z.enum(['open', 'closed', 'resolved', 'pending', 'upcoming', 'approved', 'draft']),
+  nr_forecasters: z.number().optional(),
+  question: MetaculusPostQuestionSchema.nullable().optional(),
+});
+
+/**
+ * Zod schema for Metaculus API search response (posts endpoint)
  */
 const MetaculusSearchResponseSchema = z.object({
-  results: z.array(MetaculusQuestionSchema),
+  results: z.array(MetaculusPostSchema),
   count: z.number().optional(),
   next: z.string().nullable().optional(),
   previous: z.string().nullable().optional(),
@@ -115,6 +152,10 @@ export class MetaculusClient {
   /**
    * Search for Metaculus questions
    *
+   * Uses the /posts/ endpoint and transforms results to MetaculusQuestion format.
+   * Note: The list endpoint doesn't include full aggregation data. Use getQuestion()
+   * for individual questions when you need forecast data.
+   *
    * @param params - Search parameters (limit, offset, status, etc.)
    * @returns Array of Metaculus questions matching search criteria
    */
@@ -124,13 +165,14 @@ export class MetaculusClient {
       offset: params?.offset ?? 0,
       status: params?.status ?? 'open',
       ...(params?.forecast_type && { forecast_type: params.forecast_type }),
-      order_by: params?.order_by ?? '-created_time',
+      order_by: params?.order_by ?? '-activity',
     };
 
     try {
       this.log.debug({ params: searchParams }, 'Searching Metaculus questions');
 
-      const response = await this.client.get('/questions/', {
+      // Use /posts/ endpoint (Metaculus API v2)
+      const response = await this.client.get('/posts/', {
         params: searchParams,
       });
 
@@ -145,7 +187,29 @@ export class MetaculusClient {
         throw new Error('Invalid Metaculus API response schema');
       }
 
-      const questions = parseResult.data.results || [];
+      // Transform posts to MetaculusQuestion format
+      const questions: MetaculusQuestion[] = [];
+      for (const post of parseResult.data.results) {
+        // Skip posts without questions (e.g., notebooks)
+        if (!post.question) continue;
+
+        // Filter to supported question types
+        if (!['binary', 'numeric', 'multiple_choice', 'date'].includes(post.question.type)) {
+          continue;
+        }
+
+        questions.push({
+          id: post.question.id,
+          title: post.question.title,
+          description: post.question.description || '',
+          type: post.question.type as 'binary' | 'numeric' | 'multiple_choice' | 'date',
+          created_time: post.created_at,
+          resolve_time: post.question.scheduled_resolve_time || '',
+          status: post.question.status as 'open' | 'closed' | 'resolved',
+          // Note: community_prediction not available in list response
+          // Use getQuestion() for individual posts to get forecast data
+        });
+      }
 
       this.log.info(
         { count: questions.length, params: searchParams },
@@ -168,38 +232,71 @@ export class MetaculusClient {
   }
 
   /**
-   * Get a specific Metaculus question by ID
+   * Get a specific Metaculus question by post ID
    *
-   * @param id - Question ID
-   * @returns Metaculus question data
+   * This method fetches the full post data including aggregations/forecasts.
+   *
+   * @param id - Post ID (note: this is the post ID, not the nested question ID)
+   * @returns Metaculus question data with community prediction
    */
   async getQuestion(id: number): Promise<MetaculusQuestion> {
     try {
-      this.log.debug({ questionId: id }, 'Fetching Metaculus question');
+      this.log.debug({ postId: id }, 'Fetching Metaculus question');
 
-      const response = await this.client.get(`/questions/${id}/`);
+      // Use /posts/{id}/ endpoint to get full data including aggregations
+      const response = await this.client.get(`/posts/${id}/`);
 
       // Validate response with Zod
-      const parseResult = MetaculusQuestionSchema.safeParse(response.data);
+      const parseResult = MetaculusPostSchema.safeParse(response.data);
 
       if (!parseResult.success) {
         this.log.error(
-          { questionId: id, error: parseResult.error.message },
+          { postId: id, error: parseResult.error.message },
           'Invalid Metaculus question response'
         );
         throw new Error('Invalid Metaculus question response schema');
       }
 
-      this.log.debug({ questionId: id }, 'Successfully fetched Metaculus question');
+      const post = parseResult.data;
+      if (!post.question) {
+        throw new Error(`Post ${id} does not contain a question`);
+      }
 
-      return parseResult.data;
+      // Extract community prediction from aggregations
+      const latest = post.question.aggregations?.recency_weighted?.latest;
+      const communityPrediction = latest?.centers?.[0];
+
+      const question: MetaculusQuestion = {
+        id: post.question.id,
+        title: post.question.title,
+        description: post.question.description || '',
+        type: post.question.type as 'binary' | 'numeric' | 'multiple_choice' | 'date',
+        created_time: post.created_at,
+        resolve_time: post.question.scheduled_resolve_time || '',
+        status: post.question.status as 'open' | 'closed' | 'resolved',
+        ...(communityPrediction !== undefined && {
+          community_prediction: {
+            q2: communityPrediction,
+            timestamp: latest?.end_time
+              ? new Date(latest.end_time * 1000).toISOString()
+              : post.created_at,
+          },
+        }),
+      };
+
+      this.log.debug(
+        { postId: id, hasForecasts: communityPrediction !== undefined },
+        'Successfully fetched Metaculus question'
+      );
+
+      return question;
     } catch (error) {
       this.log.error(
         {
           error: isAxiosError(error)
             ? { message: error.message, status: error.response?.status }
             : error,
-          questionId: id,
+          postId: id,
         },
         'Failed to fetch Metaculus question'
       );
@@ -210,7 +307,8 @@ export class MetaculusClient {
   /**
    * Get a Metaculus question by URL
    *
-   * Extracts the question ID from the URL and fetches the question.
+   * Extracts the post ID from the URL and fetches the question.
+   * Note: Metaculus URLs use the post ID, not the nested question ID.
    *
    * @param url - Metaculus question URL (e.g., https://www.metaculus.com/questions/12345/)
    * @returns Metaculus question data
@@ -218,6 +316,7 @@ export class MetaculusClient {
    */
   async getQuestionByUrl(url: string): Promise<MetaculusQuestion> {
     // Extract ID from URL pattern: /questions/(\d+)/
+    // Note: Despite the URL path being /questions/, the ID is actually the post ID
     const match = url.match(/\/questions\/(\d+)\/?/);
 
     if (!match || !match[1]) {
@@ -226,10 +325,95 @@ export class MetaculusClient {
       );
     }
 
-    const questionId = parseInt(match[1], 10);
+    const postId = parseInt(match[1], 10);
 
-    this.log.debug({ url, questionId }, 'Extracted question ID from URL');
+    this.log.debug({ url, postId }, 'Extracted post ID from URL');
 
-    return this.getQuestion(questionId);
+    return this.getQuestion(postId);
+  }
+
+  /**
+   * Search for questions and fetch full data including forecasts
+   *
+   * This method first searches for questions matching the criteria, then
+   * fetches each question individually to get the forecast data.
+   *
+   * Note: This makes N+1 API calls (1 search + N individual fetches).
+   * Use sparingly and consider caching results.
+   *
+   * @param params - Search parameters
+   * @param maxToFetch - Maximum number of questions to fetch full data for (default: 50)
+   * @returns Array of questions with forecast data
+   */
+  async searchQuestionsWithForecasts(
+    params?: MetaculusSearchParams,
+    maxToFetch = 50
+  ): Promise<MetaculusQuestion[]> {
+    // First, search for matching posts
+    const searchParams = {
+      limit: params?.limit ?? 100,
+      offset: params?.offset ?? 0,
+      status: params?.status ?? 'open',
+      ...(params?.forecast_type && { forecast_type: params.forecast_type }),
+      order_by: params?.order_by ?? '-activity',
+    };
+
+    try {
+      this.log.debug({ params: searchParams }, 'Searching Metaculus questions with forecasts');
+
+      const response = await this.client.get('/posts/', {
+        params: searchParams,
+      });
+
+      const parseResult = MetaculusSearchResponseSchema.safeParse(response.data);
+      if (!parseResult.success) {
+        throw new Error('Invalid Metaculus API response schema');
+      }
+
+      // Filter to valid questions and limit
+      const postsToFetch = parseResult.data.results
+        .filter(
+          (p) =>
+            p.question &&
+            ['binary', 'numeric', 'multiple_choice', 'date'].includes(p.question.type)
+        )
+        .slice(0, maxToFetch);
+
+      this.log.info(
+        { searchResults: parseResult.data.results.length, fetching: postsToFetch.length },
+        'Fetching individual questions for forecast data'
+      );
+
+      // Fetch each question individually to get forecast data
+      const questions: MetaculusQuestion[] = [];
+      for (const post of postsToFetch) {
+        try {
+          const question = await this.getQuestion(post.id);
+          questions.push(question);
+        } catch (err) {
+          this.log.warn(
+            { postId: post.id, error: err instanceof Error ? err.message : String(err) },
+            'Failed to fetch individual question, skipping'
+          );
+        }
+      }
+
+      this.log.info(
+        { count: questions.length, withForecasts: questions.filter((q) => q.community_prediction).length },
+        'Successfully fetched Metaculus questions with forecasts'
+      );
+
+      return questions;
+    } catch (error) {
+      this.log.error(
+        {
+          error: isAxiosError(error)
+            ? { message: error.message, status: error.response?.status }
+            : error,
+        },
+        'Failed to search Metaculus questions with forecasts'
+      );
+      throw error;
+    }
   }
 }
