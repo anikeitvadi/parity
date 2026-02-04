@@ -74,7 +74,7 @@ export function MetaculusView({
   isFresh,
   stalenessWarning,
   matchConfidence,
-}: MetaculusViewProps): React.JSX.Element {
+}: MetaculusViewProps) {
   const stalenessColor = getStalenessColor(isFresh, forecastAge);
 
   return (

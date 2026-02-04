@@ -15,8 +15,10 @@ import React from 'react';
 import { Box, Text, Newline } from 'ink';
 import type { ScoredOpportunity } from '../../scoring/types.js';
 import { SettlementView } from './SettlementView.js';
+import { MetaculusView } from './MetaculusView.js';
 import { getSettlementComparison } from '../../database/queries.js';
 import type { SettlementComparison } from '../../types/settlement.js';
+import type { MetaculusDivergenceOpportunity } from '../../types/metaculus.js';
 
 interface OpportunityDetailProps {
   opportunity: ScoredOpportunity;
@@ -44,8 +46,19 @@ function formatType(type: string): string {
     multi_outcome: 'Multi-Outcome Mispricing',
     correlated: 'Correlated Market Discrepancy',
     cross_platform: 'Cross-Platform Arbitrage',
+    metaculus_divergence: 'Metaculus Divergence',
   };
   return typeMap[type] || type;
+}
+
+/**
+ * Get Metaculus raw data for metaculus_divergence opportunities
+ */
+function getMetaculusRaw(opportunity: ScoredOpportunity): MetaculusDivergenceOpportunity | null {
+  if (opportunity.type !== 'metaculus_divergence' || !opportunity.raw) {
+    return null;
+  }
+  return opportunity.raw as MetaculusDivergenceOpportunity;
 }
 
 /**
@@ -84,6 +97,7 @@ function getSettlementForOpportunity(opportunity: ScoredOpportunity): Settlement
 export function OpportunityDetail({ opportunity, onBack }: OpportunityDetailProps) {
   const breakdown = opportunity.scoreBreakdown;
   const settlementComparison = getSettlementForOpportunity(opportunity);
+  const metaculusRaw = getMetaculusRaw(opportunity);
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
@@ -182,6 +196,24 @@ export function OpportunityDetail({ opportunity, onBack }: OpportunityDetailProp
       {opportunity.type === 'cross_platform' && settlementComparison && (
         <Box marginBottom={1}>
           <SettlementView comparison={settlementComparison} />
+        </Box>
+      )}
+
+      {/* Metaculus Divergence View */}
+      {metaculusRaw && (
+        <Box marginBottom={1}>
+          <MetaculusView
+            metaculusId={metaculusRaw.metaculusId}
+            metaculusTitle={metaculusRaw.metaculusTitle}
+            metaculusPrediction={metaculusRaw.metaculusPrediction}
+            marketPrice={metaculusRaw.marketPrice}
+            divergencePercent={metaculusRaw.divergencePercent}
+            forecastTimestamp={metaculusRaw.forecastTimestamp}
+            forecastAge={metaculusRaw.forecastAge}
+            isFresh={metaculusRaw.isFresh}
+            stalenessWarning={metaculusRaw.stalenessWarning}
+            matchConfidence={metaculusRaw.matchConfidence}
+          />
         </Box>
       )}
 
