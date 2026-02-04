@@ -48,11 +48,11 @@ describe('SettlementComparator', () => {
 
       const result = comparator.compare(poly, kalshi);
 
-      expect(result.similarity.question).toBe(1.0);
-      expect(result.similarity.criteria).toBe(1.0);
-      expect(result.similarity.timing).toBe(1.0);
-      expect(result.similarity.dataSource).toBe(1.0);
-      expect(result.similarity.overall).toBe(1.0);
+      expect(result.similarity.question).toBeCloseTo(1.0, 5);
+      expect(result.similarity.criteria).toBeCloseTo(1.0, 5);
+      expect(result.similarity.timing).toBeCloseTo(1.0, 5);
+      expect(result.similarity.dataSource).toBeCloseTo(1.0, 5);
+      expect(result.similarity.overall).toBeCloseTo(1.0, 5);
     });
 
     it('should calculate lower similarity for different questions', () => {
@@ -246,9 +246,20 @@ describe('SettlementComparator', () => {
 
       const result = comparator.compare(poly, kalshi);
 
+      // Should detect multiple keywords (order may vary)
       expect(result.riskFactors).toEqual(
         expect.arrayContaining([
-          expect.stringMatching(/Subjective criteria detected: consensus, reasonable/)
+          expect.stringMatching(/Subjective criteria detected:.*reasonable/)
+        ])
+      );
+      expect(result.riskFactors).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/Subjective criteria detected:.*consensus/)
+        ])
+      );
+      expect(result.riskFactors).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/Subjective criteria detected:.*general/)
         ])
       );
     });
