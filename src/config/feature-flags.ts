@@ -16,12 +16,11 @@
 export const featureFlags = {
   /**
    * Cross-platform arbitrage detection.
-   * DISABLED until Phase 3 settlement verification is complete.
+   * ENABLED in Phase 3 after settlement verification implementation.
    *
-   * Risk: Settlement divergence causes DOUBLE LOSSES (lose on both platforms).
-   * Requires: EDGE-07 (settlement rule parser) operational.
+   * Uses settlement rule comparison to verify safety before flagging.
    */
-  crossPlatformArb: false,
+  crossPlatformArb: true,
 
   /**
    * Metaculus divergence detection.
