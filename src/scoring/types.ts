@@ -13,7 +13,7 @@
 /**
  * Opportunity types detected by the system
  */
-export type OpportunityType = 'multi_outcome' | 'correlated' | 'cross_platform';
+export type OpportunityType = 'multi_outcome' | 'correlated' | 'cross_platform' | 'metaculus_divergence';
 
 /**
  * Supported platforms

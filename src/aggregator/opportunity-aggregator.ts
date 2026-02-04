@@ -12,6 +12,8 @@ import { UnifiedOpportunity, Platform, OpportunityType } from '../scoring/types.
 import { MultiOutcomeArbDetector, ArbOpportunity } from '../detectors/multi-outcome-arb.js';
 import { CorrelatedMarketsDetector, CorrelatedOpportunity } from '../detectors/correlated-markets.js';
 import { CrossPlatformArbDetector, CrossPlatformOpportunity } from '../detectors/cross-platform-arb.js';
+import { MetaculusDivergenceDetector } from '../detectors/metaculus-divergence.js';
+import type { MetaculusDivergenceOpportunity } from '../types/metaculus.js';
 import { featureFlags } from '../config/feature-flags.js';
 import { logger } from '../utils/logger.js';
 
@@ -53,6 +55,7 @@ export interface AggregationStats {
     multiOutcomeKalshi: number;
     correlatedMarkets: number;
     crossPlatform: number;
+    metaculusDivergence: number;
   };
   /** Total opportunities before any deduplication */
   totalRaw: number;
@@ -79,6 +82,11 @@ export interface AggregatorConfig {
   crossPlatform?: {
     minNetEdge?: number;
     minLiquidity?: number;
+  };
+  /** Metaculus divergence detector config */
+  metaculus?: {
+    minDivergence?: number;
+    matcherConfidence?: number;
   };
 }
 
@@ -115,6 +123,7 @@ export class OpportunityAggregator {
   private multiOutcomeDetector: MultiOutcomeArbDetector;
   private correlatedDetector: CorrelatedMarketsDetector;
   private crossPlatformDetector: CrossPlatformArbDetector;
+  private metaculusDetector: MetaculusDivergenceDetector;
 
   /**
    * Create a new aggregator with optional detector configuration
@@ -136,6 +145,12 @@ export class OpportunityAggregator {
     this.crossPlatformDetector = new CrossPlatformArbDetector(
       config.crossPlatform?.minNetEdge,
       config.crossPlatform?.minLiquidity
+    );
+
+    this.metaculusDetector = new MetaculusDivergenceDetector(
+      process.env.METACULUS_TOKEN,
+      config.metaculus?.minDivergence,
+      config.metaculus?.matcherConfidence
     );
   }
 
@@ -163,6 +178,7 @@ export class OpportunityAggregator {
         multiOutcomeKalshi: 0,
         correlatedMarkets: 0,
         crossPlatform: 0,
+        metaculusDivergence: 0,
       },
       totalRaw: 0,
       skipped: [],
@@ -260,6 +276,37 @@ export class OpportunityAggregator {
           timestamp,
         });
         aggregatorLogger.error({ error }, 'Cross-platform detector failed');
+      }
+    }
+
+    // 5. Metaculus divergence detector
+    // CRITICAL: Double-check feature flag before calling
+    if (!featureFlags.metaculusDivergence) {
+      skipped.push({
+        detector: 'metaculus-divergence',
+        reason: 'Feature flag metaculusDivergence is disabled (requires Phase 4)',
+      });
+      aggregatorLogger.debug('Metaculus divergence detector skipped (feature flag disabled)');
+    } else {
+      try {
+        const allMarkets = [...polymarketMarkets, ...kalshiMarkets];
+        const metaculusOpps = await this.metaculusDetector.detect(allMarkets);
+        const normalized = metaculusOpps.map((opp) =>
+          this.normalizeMetaculusDivergence(opp)
+        );
+        opportunities.push(...normalized);
+        stats.detectorCounts.metaculusDivergence = normalized.length;
+        aggregatorLogger.debug(
+          { count: normalized.length },
+          'Metaculus divergence detector complete'
+        );
+      } catch (error) {
+        errors.push({
+          detector: 'metaculus-divergence',
+          message: error instanceof Error ? error.message : String(error),
+          timestamp,
+        });
+        aggregatorLogger.error({ error }, 'Metaculus divergence detector failed');
       }
     }
 
@@ -388,6 +435,30 @@ export class OpportunityAggregator {
       matchConfidence: opp.matchConfidence,
       minLiquidity,
       liquidityDepth: 2, // Two platforms
+      detectedAt: opp.detectedAt,
+      raw: opp,
+    };
+  }
+
+  /**
+   * Normalize Metaculus divergence detector output to UnifiedOpportunity
+   *
+   * @param opp - Metaculus divergence opportunity
+   * @returns Normalized UnifiedOpportunity
+   */
+  private normalizeMetaculusDivergence(opp: MetaculusDivergenceOpportunity): UnifiedOpportunity {
+    return {
+      id: this.generateId('metaculus_divergence', opp.marketPlatform, opp.marketId),
+      type: 'metaculus_divergence',
+      platform: opp.marketPlatform,
+      marketId: opp.marketId,
+      marketQuestion: opp.marketQuestion,
+      grossEdge: opp.divergencePercent / 100,
+      netEdge: opp.divergencePercent / 100, // No fees for divergence signal
+      detectorConfidence: opp.isFresh ? 0.9 : 0.6, // Lower confidence for stale forecasts
+      matchConfidence: opp.matchConfidence,
+      minLiquidity: 0, // Not applicable for divergence
+      liquidityDepth: 1,
       detectedAt: opp.detectedAt,
       raw: opp,
     };

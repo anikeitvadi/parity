@@ -42,14 +42,21 @@ const MAX_QUESTIONS_LIMIT = 100;
  * - Forecast staleness detection (>7 days triggers warning)
  * - Feature flag gating for safe rollout
  * - Multi-dimensional matching via MetaculusMatcher
+ * - Lazy initialization (only creates client when detect() called with valid token)
  */
 export class MetaculusDivergenceDetector {
-  private client: MetaculusClient;
-  private matcher: MetaculusMatcher;
+  private client: MetaculusClient | null = null;
+  private matcher: MetaculusMatcher | null = null;
+  private token?: string;
   private minDivergence: number;
+  private matcherConfidence: number;
 
   /**
    * Create a new Metaculus divergence detector.
+   *
+   * Uses lazy initialization - the API client is only created when detect() is called.
+   * This allows the aggregator to instantiate the detector without a token, and the
+   * detector will gracefully return empty results if the token is missing.
    *
    * @param token - Metaculus API token (defaults to METACULUS_TOKEN env var)
    * @param minDivergence - Minimum divergence percentage to flag (default: 5)
@@ -69,9 +76,37 @@ export class MetaculusDivergenceDetector {
     minDivergence: number = DEFAULT_MIN_DIVERGENCE,
     matcherConfidence: number = DEFAULT_MATCHER_CONFIDENCE
   ) {
-    this.client = new MetaculusClient(token);
-    this.matcher = new MetaculusMatcher(undefined, matcherConfidence);
+    // Store config for lazy initialization
+    this.token = token;
     this.minDivergence = minDivergence;
+    this.matcherConfidence = matcherConfidence;
+  }
+
+  /**
+   * Initialize the client and matcher lazily.
+   *
+   * @returns true if initialization succeeded, false if no token available
+   */
+  private initializeIfNeeded(): boolean {
+    if (this.client && this.matcher) {
+      return true;
+    }
+
+    const apiToken = this.token || process.env.METACULUS_TOKEN;
+
+    if (!apiToken) {
+      detectorLogger.warn('Metaculus API token not available, detector will return empty results');
+      return false;
+    }
+
+    try {
+      this.client = new MetaculusClient(apiToken);
+      this.matcher = new MetaculusMatcher(undefined, this.matcherConfidence);
+      return true;
+    } catch (error) {
+      detectorLogger.error({ error }, 'Failed to initialize Metaculus client');
+      return false;
+    }
   }
 
   /**
@@ -87,9 +122,15 @@ export class MetaculusDivergenceDetector {
       return [];
     }
 
+    // Lazy initialization - only create client when detect() is called
+    if (!this.initializeIfNeeded()) {
+      detectorLogger.warn('Metaculus client not initialized (missing token)');
+      return [];
+    }
+
     try {
       // Fetch open binary questions from Metaculus
-      const questions = await this.client.searchQuestions({
+      const questions = await this.client!.searchQuestions({
         status: 'open',
         forecast_type: 'binary',
         limit: MAX_QUESTIONS_LIMIT,
@@ -101,7 +142,7 @@ export class MetaculusDivergenceDetector {
       }
 
       // Match questions to markets
-      const matches = this.matcher.matchToMarkets(questions, markets);
+      const matches = this.matcher!.matchToMarkets(questions, markets);
 
       if (matches.length === 0) {
         detectorLogger.debug('No matches found between Metaculus questions and markets');
