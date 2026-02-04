@@ -24,11 +24,11 @@ export const featureFlags = {
 
   /**
    * Metaculus divergence detection.
-   * DISABLED until Phase 4 Metaculus API integration complete.
+   * ENABLED in Phase 4 for Metaculus API integration.
    *
    * Requires: METACULUS_TOKEN env var.
    */
-  metaculusDivergence: false,
+  metaculusDivergence: true,
 
   /**
    * Whale tracking for follow-the-money signals.
