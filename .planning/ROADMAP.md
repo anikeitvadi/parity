@@ -115,11 +115,11 @@ Plans:
 5. Settlement divergence database tracks historical mismatches to improve matching accuracy
 
 Plans:
-- [ ] 03-01-PLAN.md - Settlement types, database schema, and dependencies
-- [ ] 03-02-PLAN.md - Polymarket and Kalshi settlement parsers
-- [ ] 03-03-PLAN.md - Settlement comparator service [TDD]
-- [ ] 03-04-PLAN.md - Cross-platform detector integration and feature flag enablement
-- [ ] 03-05-PLAN.md - Dashboard settlement view and verification checkpoint
+- [x] 03-01-PLAN.md - Settlement types, database schema, and dependencies
+- [x] 03-02-PLAN.md - Polymarket and Kalshi settlement parsers
+- [x] 03-03-PLAN.md - Settlement comparator service [TDD]
+- [x] 03-04-PLAN.md - Cross-platform detector integration and feature flag enablement
+- [x] 03-05-PLAN.md - Dashboard settlement view and verification checkpoint
 
 ---
 
@@ -127,6 +127,8 @@ Plans:
 **Goal:** Detect divergence between superforecaster consensus and market odds for high-confidence opportunities
 
 **Dependencies:** Phase 2 (scoring and alerts), Phase 3 (settlement verification for matching)
+
+**Plans:** 5 plans
 
 **Requirements:**
 - DATA-03: Metaculus API integration (superforecaster consensus)
@@ -138,6 +140,13 @@ Plans:
 3. Alert includes Metaculus forecast timestamp and staleness indicator (warn if >7 days old)
 4. User receives at least 1 high-quality Metaculus divergence alert per week (8+ rating)
 5. False positive rate <30% (verified through manual review of first 20 alerts)
+
+Plans:
+- [ ] 04-01-PLAN.md - Metaculus types, feature flag, and manual matches file
+- [ ] 04-02-PLAN.md - MetaculusClient with rate limiting (axios-retry)
+- [ ] 04-03-PLAN.md - MetaculusMatcher question-to-market matching [TDD]
+- [ ] 04-04-PLAN.md - MetaculusDivergenceDetector [TDD]
+- [ ] 04-05-PLAN.md - Aggregator integration and dashboard MetaculusView
 
 ---
 
@@ -186,12 +195,12 @@ Plans:
 |-------|--------|--------------|------------|
 | 1 - Data Foundation & Infrastructure | Complete | 14 | 100% |
 | 2 - Scoring Engine & CLI Dashboard | Complete | 14 | 100% |
-| 3 - Cross-Platform Arbitrage Enablement | In Progress | 2 | 0% |
-| 4 - Metaculus Integration | Pending | 2 | 0% |
+| 3 - Cross-Platform Arbitrage Enablement | Complete | 2 | 100% |
+| 4 - Metaculus Integration | Planned | 2 | 0% |
 | 5 - Longshot Bias Detection | Pending | 5 | 0% |
 | 6 - Whale Tracking & Production Hardening | Pending | 3 | 0% |
 
-**Overall:** 28/40 requirements complete (70%)
+**Overall:** 30/40 requirements complete (75%)
 
 ---
 
