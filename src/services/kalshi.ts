@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import crypto from 'crypto';
 import { createKalshiLimiter, RateLimiter } from '../utils/rate-limiter.js';
 import { kalshiLogger } from '../utils/logger.js';
 import { env } from '../config/env.js';
@@ -95,6 +96,37 @@ export class KalshiClient {
   }
 
   /**
+   * Generate RSA-PSS signature for Kalshi API authentication
+   *
+   * @param timestamp - Unix timestamp in milliseconds
+   * @param method - HTTP method (GET, POST, etc.)
+   * @param path - API endpoint path (e.g., /trade-api/v2/markets)
+   * @returns Base64-encoded signature
+   */
+  private generateSignature(timestamp: string, method: string, path: string): string {
+    if (!this.apiSecret) {
+      throw new Error('API secret not configured');
+    }
+
+    // Message to sign: timestamp + method + path
+    const message = timestamp + method.toUpperCase() + path;
+
+    // Create signature using RSA-PSS with SHA-256
+    const sign = crypto.createSign('RSA-SHA256');
+    sign.update(message);
+    sign.end();
+
+    // Sign with RSA-PSS padding
+    const signature = sign.sign({
+      key: this.apiSecret,
+      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+      saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,
+    });
+
+    return signature.toString('base64');
+  }
+
+  /**
    * Make an authenticated request to the Kalshi API
    *
    * @param endpoint - API endpoint path
@@ -111,16 +143,25 @@ export class KalshiClient {
 
     const url = `${this.baseUrl}${endpoint}`;
 
-    // Generate timestamp for auth
-    const timestamp = Math.floor(Date.now() / 1000).toString();
+    // Generate timestamp in milliseconds for auth
+    const timestamp = Date.now().toString();
+
+    // Extract the full path for signature (includes /trade-api/v2)
+    const urlObj = new URL(url);
+    const fullPath = urlObj.pathname + urlObj.search;
+
+    // Get HTTP method (default to GET)
+    const method = (options.method || 'GET').toUpperCase();
+
+    // Generate RSA-PSS signature
+    const signature = this.generateSignature(timestamp, method, fullPath);
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      // Kalshi uses API key authentication via headers
       'KALSHI-ACCESS-KEY': this.apiKey,
-      'KALSHI-ACCESS-SECRET': this.apiSecret,
       'KALSHI-ACCESS-TIMESTAMP': timestamp,
+      'KALSHI-ACCESS-SIGNATURE': signature,
       ...((options.headers as Record<string, string>) || {}),
     };
 

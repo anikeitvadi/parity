@@ -65,6 +65,30 @@ const OrderBookResponseSchema = z.object({
 });
 
 /**
+ * Zod schema for CLOB API market response (includes token IDs)
+ */
+const ClobMarketSchema = z.object({
+  condition_id: z.string(),
+  question_id: z.string().optional().nullable(),
+  question: z.string(),
+  market_slug: z.string().optional().nullable(),
+  end_date_iso: z.string().optional().nullable(),
+  active: z.boolean().optional(),
+  closed: z.boolean().optional(),
+  accepting_orders: z.boolean().optional(),
+  tokens: z.array(
+    z.object({
+      token_id: z.string(),
+      outcome: z.string(),
+      price: z.number().optional(),
+      winner: z.boolean().optional(),
+    })
+  ),
+}).passthrough();
+
+type ClobMarketResponse = z.infer<typeof ClobMarketSchema>;
+
+/**
  * Polymarket client for fetching market data and order books.
  * Uses the official @polymarket/clob-client for CLOB operations
  * and the Gamma API for market data.
@@ -134,8 +158,8 @@ export class PolymarketClient {
   }
 
   /**
-   * Fetch active markets from the Gamma API.
-   * Returns normalized Market[] array.
+   * Fetch active markets from Gamma API.
+   * Use getMarketDetails() separately to get token IDs for order book fetching.
    */
   async getActiveMarkets(): Promise<Market[]> {
     const startTime = Date.now();
@@ -169,7 +193,7 @@ export class PolymarketClient {
 
       const duration = Date.now() - startTime;
       logger.info(
-        { marketCount: markets.length, durationMs: duration },
+        { marketCount: markets.length, durationMs: duration, source: 'gamma' },
         'Fetched active markets from Gamma API'
       );
 
@@ -178,6 +202,65 @@ export class PolymarketClient {
       logger.error({ error }, 'Failed to fetch active markets');
       throw error;
     }
+  }
+
+  /**
+   * Fetch market details from CLOB API by condition ID (includes token IDs)
+   */
+  async getMarketDetails(conditionId: string): Promise<ClobMarketResponse | null> {
+    try {
+      const response = await this.rateLimiter.execute(async () => {
+        const res = await fetch(`${CLOB_HOST}/markets/${conditionId}`);
+        if (!res.ok) {
+          if (res.status === 404) return null;
+          throw new Error(`CLOB API error: ${res.status}`);
+        }
+        return res.json();
+      });
+
+      if (!response) return null;
+
+      const parseResult = ClobMarketSchema.safeParse(response);
+      if (!parseResult.success) {
+        logger.debug({ conditionId }, 'CLOB market validation failed');
+        return null;
+      }
+
+      return parseResult.data;
+    } catch (error) {
+      logger.debug({ conditionId, error }, 'Failed to fetch CLOB market details');
+      return null;
+    }
+  }
+
+  /**
+   * Transform CLOB API market to normalized Market format
+   */
+  private transformClobMarket(raw: ClobMarketResponse): Market {
+    const outcomes = raw.tokens.map((t) => t.outcome);
+    const prices: Record<string, number> = {};
+
+    for (const token of raw.tokens) {
+      prices[token.outcome] = token.price ?? 0.5;
+    }
+
+    return {
+      id: raw.condition_id,
+      platform: 'polymarket',
+      question: raw.question,
+      outcomes,
+      prices,
+      closeDate: raw.end_date_iso || '',
+      metadata: {
+        slug: raw.market_slug,
+        tokens: raw.tokens.map((t) => ({
+          token_id: t.token_id,
+          outcome: t.outcome,
+          price: t.price,
+        })),
+        acceptingOrders: raw.accepting_orders,
+      },
+    };
   }
 
   /**
@@ -221,16 +304,20 @@ export class PolymarketClient {
         );
       }
 
-      // Transform to normalized OrderBook format
-      const bids: OrderBookLevel[] = (response.bids || []).map((b: { price: string; size: string }) => ({
-        price: parseFloat(b.price),
-        size: parseFloat(b.size),
-      }));
+      // Transform to normalized OrderBook format and sort for best prices
+      const bids: OrderBookLevel[] = (response.bids || [])
+        .map((b: { price: string; size: string }) => ({
+          price: parseFloat(b.price),
+          size: parseFloat(b.size),
+        }))
+        .sort((a, b) => b.price - a.price); // Highest bid first
 
-      const asks: OrderBookLevel[] = (response.asks || []).map((a: { price: string; size: string }) => ({
-        price: parseFloat(a.price),
-        size: parseFloat(a.size),
-      }));
+      const asks: OrderBookLevel[] = (response.asks || [])
+        .map((a: { price: string; size: string }) => ({
+          price: parseFloat(a.price),
+          size: parseFloat(a.size),
+        }))
+        .sort((a, b) => a.price - b.price); // Lowest ask first
 
       // Calculate depth: sum of first 5 levels on each side
       const bidDepth = bids.slice(0, 5).reduce((sum, b) => sum + b.size * b.price, 0);
@@ -266,8 +353,14 @@ export class PolymarketClient {
     } else if (Array.isArray(raw.outcomes)) {
       outcomes = raw.outcomes;
     } else if (typeof raw.outcomes === 'string') {
-      // Handle comma-separated string format
-      outcomes = raw.outcomes.split(',').map(s => s.trim());
+      // Handle JSON array string or comma-separated format
+      try {
+        const parsed = JSON.parse(raw.outcomes);
+        outcomes = Array.isArray(parsed) ? parsed : [raw.outcomes];
+      } catch {
+        // Fallback to comma-separated
+        outcomes = raw.outcomes.split(',').map(s => s.trim());
+      }
     } else {
       outcomes = ['Yes', 'No'];
     }
