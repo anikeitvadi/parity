@@ -142,12 +142,12 @@ Plans:
 5. False positive rate <30% (verified through manual review of first 20 alerts)
 
 Plans:
-- [ ] 04-01-PLAN.md - Metaculus types, feature flag, and manual matches file
-- [ ] 04-02-PLAN.md - MetaculusClient with rate limiting (axios-retry)
-- [ ] 04-03-PLAN.md - MetaculusMatcher question-to-market matching [TDD]
-- [ ] 04-04-PLAN.md - MetaculusDivergenceDetector [TDD]
-- [ ] 04-05-PLAN.md - Aggregator/scoring integration and feature flag enablement
-- [ ] 04-06-PLAN.md - Dashboard MetaculusView and FP rate verification checkpoint
+- [x] 04-01-PLAN.md - Metaculus types, feature flag, and manual matches file
+- [x] 04-02-PLAN.md - MetaculusClient with rate limiting (axios-retry)
+- [x] 04-03-PLAN.md - MetaculusMatcher question-to-market matching [TDD]
+- [x] 04-04-PLAN.md - MetaculusDivergenceDetector [TDD]
+- [x] 04-05-PLAN.md - Aggregator/scoring integration and feature flag enablement
+- [x] 04-06-PLAN.md - Dashboard MetaculusView and FP rate verification checkpoint
 
 ---
 
@@ -197,11 +197,11 @@ Plans:
 | 1 - Data Foundation & Infrastructure | Complete | 14 | 100% |
 | 2 - Scoring Engine & CLI Dashboard | Complete | 14 | 100% |
 | 3 - Cross-Platform Arbitrage Enablement | Complete | 2 | 100% |
-| 4 - Metaculus Integration | Planned | 2 | 0% |
+| 4 - Metaculus Integration | Complete | 2 | 100% |
 | 5 - Longshot Bias Detection | Pending | 5 | 0% |
 | 6 - Whale Tracking & Production Hardening | Pending | 3 | 0% |
 
-**Overall:** 30/40 requirements complete (75%)
+**Overall:** 32/40 requirements complete (80%)
 
 ---
 
