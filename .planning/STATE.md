@@ -1,13 +1,13 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-04T17:30:00Z
+**Last Updated:** 2026-02-04T18:32:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
 
 **Core Value:** Surface high-confidence mispricings where analysis shows the market is wrong, filtered so only quality opportunities reach the user.
 
-**Current Focus:** Phase 3 Complete - Ready for Phase 4
+**Current Focus:** Phase 4 In Progress - Metaculus Integration
 
 **Tech Stack:**
 - Node.js 20+ & TypeScript 5.5+
@@ -20,10 +20,10 @@
 
 ## Current Position
 
-**Phase:** 3 of 6 (Cross-Platform Arbitrage Enablement) - COMPLETE
-**Plan:** 5 of 5 complete
-**Status:** Phase 3 complete, ready for Phase 4
-**Last activity:** 2026-02-04 - Completed 03-05-PLAN.md (Dashboard Settlement View)
+**Phase:** 4 of 6 (Advanced Edge Detection)
+**Plan:** 1 of 5 complete
+**Status:** In progress
+**Last activity:** 2026-02-04 - Completed 04-01-PLAN.md (Metaculus Foundation Types)
 
 **Progress Bar:**
 ```
@@ -36,12 +36,18 @@ Phase 2: Scoring & Alert Foundation
 Phase 3: Cross-Platform Arbitrage Enablement
 [████████████████████] 100% (5/5 plans)
 
+Phase 4: Advanced Edge Detection
+[████░░░░░░░░░░░░░░░░] 20% (1/5 plans)
+
 Overall Roadmap:
-[██████████████░░░░░░] 50% (20/40 requirements)
+[████████████████░░░░] 52% (21/40 requirements)
 ```
 
 **What's Next:**
-- Phase 4: Advanced Edge Detection (Metaculus divergence, longshot bias)
+- 04-02: Metaculus API client with rate limiting
+- 04-03: Question-to-market matcher
+- 04-04: Metaculus divergence detector
+- 04-05: Dashboard integration
 
 ## Performance Metrics
 
@@ -122,6 +128,9 @@ Overall Roadmap:
 | Flag subjective keywords as risk factors | 'reasonable', 'consensus', 'mainstream' indicate resolution ambiguity | 2026-02-04 |
 | Date difference > 7 days flagged as risk | Markets resolving >1 week apart likely measure different things | 2026-02-04 |
 | Data source similarity < 0.8 flagged as risk | Different data sources can resolve differently for same question | 2026-02-04 |
+| Use Zod validation for Metaculus API types | Matches existing pattern in market.ts and settlement.ts | 2026-02-04 |
+| Create separate manual matches file for Metaculus | Follows same pattern as MarketMatcher's manual-matches.json | 2026-02-04 |
+| Keep metaculusDivergence flag disabled | Wait until Phase 4 complete and API integration tested | 2026-02-04 |
 
 ### Active Constraints
 
@@ -187,17 +196,12 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T17:30:00Z
-- Completed 03-04-PLAN.md (Detector Integration & Feature Flag)
-  - Settlement comparator integrated into CrossPlatformArbDetector
-  - Feature flag `crossPlatformArb: true` enabled
-  - Score penalties for MEDIUM risk (2-3 points), HIGH risk skipped
-- Completed 03-05-PLAN.md (Dashboard Settlement View)
-  - Created SettlementView component with similarity scores
-  - Integrated into OpportunityDetail for cross-platform opportunities
-  - Color-coded display (green/yellow/red)
-- Fixed Kalshi API authentication (RSA-PSS signatures)
-- 331 total tests passing
+**Last Session:** 2026-02-04T18:32:00Z
+- Completed 04-01-PLAN.md (Metaculus Foundation Types)
+  - Created `src/types/metaculus.ts` with Zod validation
+  - Updated `metaculusDivergence` feature flag documentation
+  - Created `src/data/metaculus-matches.json` for manual curation
+  - 331 total tests passing
 
 **Phase 3 Complete:**
 - 03-01: Settlement types + database schema
@@ -206,10 +210,14 @@ Overall Roadmap:
 - 03-04: Detector integration + feature flag enablement
 - 03-05: Dashboard settlement view
 
-**Resume Point:** Phase 4 ready to begin
+**Phase 4 In Progress:**
+- 04-01: ✅ Metaculus foundation types
+
+**Resume Point:** Ready for 04-02 (Metaculus API Client)
 
 **Next Session Should:**
-- Begin Phase 4: Advanced Edge Detection (Metaculus divergence, longshot bias)
+- Build Metaculus API client with rate limiting
+- Implement question fetching and caching
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
