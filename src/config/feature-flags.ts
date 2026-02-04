@@ -24,9 +24,9 @@ export const featureFlags = {
 
   /**
    * Metaculus divergence detection.
-   * DISABLED until Phase 4 Metaculus API integration.
+   * DISABLED until Phase 4 Metaculus API integration complete.
    *
-   * Requires: Superforecaster prediction data access.
+   * Requires: METACULUS_TOKEN env var.
    */
   metaculusDivergence: false,
 
