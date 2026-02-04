@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-04T18:32:00Z
+**Last Updated:** 2026-02-04T18:36:00Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -14,6 +14,7 @@
 - SQLite (better-sqlite3) for market snapshots
 - Polymarket CLOB client (official package)
 - Kalshi REST API
+- Metaculus API (axios + axios-retry)
 - Ink + @inkjs/ui for CLI dashboard
 - Bree scheduler, Pino logger, Zod validation
 - string-similarity, chrono-node for settlement verification
@@ -21,9 +22,9 @@
 ## Current Position
 
 **Phase:** 4 of 6 (Advanced Edge Detection)
-**Plan:** 1 of 5 complete
+**Plan:** 2 of 5 complete
 **Status:** In progress
-**Last activity:** 2026-02-04 - Completed 04-01-PLAN.md (Metaculus Foundation Types)
+**Last activity:** 2026-02-04 - Completed 04-02-PLAN.md (Metaculus API Client)
 
 **Progress Bar:**
 ```
@@ -37,14 +38,13 @@ Phase 3: Cross-Platform Arbitrage Enablement
 [████████████████████] 100% (5/5 plans)
 
 Phase 4: Advanced Edge Detection
-[████░░░░░░░░░░░░░░░░] 20% (1/5 plans)
+[████████░░░░░░░░░░░░] 40% (2/5 plans)
 
 Overall Roadmap:
-[████████████████░░░░] 52% (21/40 requirements)
+[████████████████░░░░] 55% (22/40 requirements)
 ```
 
 **What's Next:**
-- 04-02: Metaculus API client with rate limiting
 - 04-03: Question-to-market matcher
 - 04-04: Metaculus divergence detector
 - 04-05: Dashboard integration
@@ -131,6 +131,9 @@ Overall Roadmap:
 | Use Zod validation for Metaculus API types | Matches existing pattern in market.ts and settlement.ts | 2026-02-04 |
 | Create separate manual matches file for Metaculus | Follows same pattern as MarketMatcher's manual-matches.json | 2026-02-04 |
 | Keep metaculusDivergence flag disabled | Wait until Phase 4 complete and API integration tested | 2026-02-04 |
+| axios-retry with exponentialDelay for Metaculus | Built-in jitter prevents thundering herd on retries | 2026-02-04 |
+| 5 retries on 429 and network errors | Aggressive retry balances API reliability with eventual failure | 2026-02-04 |
+| 30-second timeout for Metaculus API | Longer than typical clients; Metaculus can be slow on search | 2026-02-04 |
 
 ### Active Constraints
 
@@ -196,12 +199,12 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T18:32:00Z
-- Completed 04-01-PLAN.md (Metaculus Foundation Types)
-  - Created `src/types/metaculus.ts` with Zod validation
-  - Updated `metaculusDivergence` feature flag documentation
-  - Created `src/data/metaculus-matches.json` for manual curation
-  - 331 total tests passing
+**Last Session:** 2026-02-04T18:36:00Z
+- Completed 04-02-PLAN.md (Metaculus API Client)
+  - Created `src/services/metaculus-client.ts` with axios-retry
+  - 5-retry exponential backoff for rate limiting
+  - searchQuestions() and getQuestion() methods
+  - 19 new tests added (350 total tests passing)
 
 **Phase 3 Complete:**
 - 03-01: Settlement types + database schema
@@ -212,12 +215,13 @@ Overall Roadmap:
 
 **Phase 4 In Progress:**
 - 04-01: ✅ Metaculus foundation types
+- 04-02: ✅ Metaculus API client
 
-**Resume Point:** Ready for 04-02 (Metaculus API Client)
+**Resume Point:** Ready for 04-03 (Question-to-market matcher)
 
 **Next Session Should:**
-- Build Metaculus API client with rate limiting
-- Implement question fetching and caching
+- Build matcher to pair Metaculus questions with market data
+- Implement similarity scoring for question-to-market matching
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
