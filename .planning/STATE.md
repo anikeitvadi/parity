@@ -1,6 +1,6 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-04T19:00:51Z
+**Last Updated:** 2026-02-04T22:26:14Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
@@ -22,9 +22,9 @@
 ## Current Position
 
 **Phase:** 4 of 6 (Advanced Edge Detection)
-**Plan:** 5 of 5 complete
+**Plan:** 6 of 6 complete
 **Status:** Phase complete
-**Last activity:** 2026-02-04 - Completed 04-05-PLAN.md (Aggregator/Scoring Integration)
+**Last activity:** 2026-02-04 - Completed 04-06-PLAN.md (Dashboard MetaculusView)
 
 **Progress Bar:**
 ```
@@ -38,10 +38,10 @@ Phase 3: Cross-Platform Arbitrage Enablement
 [████████████████████] 100% (5/5 plans)
 
 Phase 4: Advanced Edge Detection
-[████████████████████] 100% (5/5 plans)
+[████████████████████] 100% (6/6 plans)
 
 Overall Roadmap:
-[█████████████████░░░] 62.5% (25/40 requirements)
+[██████████████████░░] 65% (26/40 requirements)
 ```
 
 **What's Next:**
@@ -145,6 +145,8 @@ Overall Roadmap:
 | Lazy initialization for MetaculusDivergenceDetector | Avoid token requirement during aggregator construction; allows tests to run | 2026-02-04 |
 | Fresh forecasts get 0.9 confidence, stale 0.6 | Staleness affects scoring weight via detector confidence | 2026-02-04 |
 | metaculusDivergence feature flag enabled | Phase 4 complete, full Metaculus integration active | 2026-02-04 |
+| Helper function pattern for type-safe unknown extraction | getMetaculusRaw() pattern avoids TypeScript unknown-in-JSX errors | 2026-02-04 |
+| Staleness thresholds: <7d green, 7-14d yellow, >14d red | Visual indicator for forecast freshness in dashboard | 2026-02-04 |
 
 ### Active Constraints
 
@@ -156,7 +158,7 @@ Overall Roadmap:
 - Polymarket CLOB: 60 orders/min, 3,500/10s burst
 - Polymarket Data: 200 requests/10s
 - Kalshi rate limits: TBD (test in Phase 1)
-- Metaculus API access: TBD (verify superforecaster endpoint exists)
+- Metaculus API: Verified working with METACULUS_TOKEN
 
 **Safety Gates:**
 - EDGE-02 (cross-platform arb) stays disabled until EDGE-07 (settlement parser) operational
@@ -167,18 +169,19 @@ Overall Roadmap:
 **Immediate Todos:**
 - [x] Plan Phase 1 execution
 - [x] Plan Phase 2 execution
+- [x] Test Metaculus API integration
 - [ ] Verify Polymarket API key access
 - [ ] Verify Kalshi API key access
 - [ ] Set up VPS environment (Hetzner 2 vCPU / 8GB RAM) - BLOCKING 01-09 Tasks 2-3
 - [ ] Create hot wallet for CLOB auth ($1-5 gas only) - BLOCKING 01-09 Tasks 2-3
-- [ ] Test dashboard: npm run dashboard
+- [x] Test dashboard: npm run dashboard
 
 **Known Blockers:**
 - 01-09 Tasks 2-3 blocked on VPS provisioning and hot wallet creation
 
 **Research Needed During Planning:**
 - Phase 3: Settlement rule extraction methodology (Polymarket UMA oracle vs Kalshi resolution)
-- Phase 4: Metaculus superforecaster API endpoint verification
+- Phase 4: Metaculus superforecaster API endpoint verification - VERIFIED WORKING
 
 ### Patterns & Anti-Patterns
 
@@ -187,6 +190,7 @@ Overall Roadmap:
 - Explicit safety gates (disabled features until dependencies met)
 - Observable success criteria (no implementation tasks, only user behaviors)
 - Graceful error handling (one detector failure doesn't crash aggregation)
+- Helper function pattern for type-safe raw extraction (getMetaculusRaw, getSettlementForOpportunity)
 
 **Watch Out For:**
 - API rate limiting (implement shared limiter in Phase 1)
@@ -210,13 +214,12 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T19:00:51Z
-- Completed 04-05-PLAN.md (Aggregator/Scoring Integration)
-  - Integrated MetaculusDivergenceDetector into OpportunityAggregator
-  - Added 'metaculus_divergence' to OpportunityType union
-  - Implemented lazy initialization for detector (Rule 3 - Blocking fix)
-  - Created 7 scoring tests (401 total tests passing, up from 394)
-  - Enabled metaculusDivergence feature flag
+**Last Session:** 2026-02-04T22:26:14Z
+- Completed 04-06-PLAN.md (Dashboard MetaculusView)
+  - Created MetaculusView component with staleness color coding
+  - Integrated into OpportunityDetail with type-safe helper
+  - Verified API integration working with live Metaculus data
+  - 401 total tests passing
 
 **Phase 3 Complete:**
 - 03-01: Settlement types + database schema
@@ -231,13 +234,14 @@ Overall Roadmap:
 - 04-03: ✅ Question-to-market matcher
 - 04-04: ✅ Metaculus divergence detector
 - 04-05: ✅ Aggregator/Scoring integration
+- 04-06: ✅ Dashboard MetaculusView
 
 **Resume Point:** Ready for Phase 5 (Longshot bias detection)
 
 **Next Session Should:**
 - Plan Phase 5 if continuing
-- Test Metaculus integration with live API (requires METACULUS_TOKEN)
-- Dashboard visualization for Metaculus divergence opportunities
+- Monitor Metaculus divergence opportunities for FP rate assessment
+- Consider periodic review of match quality once sufficient data accumulated
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
