@@ -1,13 +1,13 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-04T18:36:00Z
+**Last Updated:** 2026-02-04T19:00:51Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
 
 **Core Value:** Surface high-confidence mispricings where analysis shows the market is wrong, filtered so only quality opportunities reach the user.
 
-**Current Focus:** Phase 4 In Progress - Metaculus Integration
+**Current Focus:** Phase 4 Complete - Ready for Phase 5
 
 **Tech Stack:**
 - Node.js 20+ & TypeScript 5.5+
@@ -22,9 +22,9 @@
 ## Current Position
 
 **Phase:** 4 of 6 (Advanced Edge Detection)
-**Plan:** 4 of 5 complete
-**Status:** In progress
-**Last activity:** 2026-02-04 - Completed 04-04-PLAN.md (Metaculus Divergence Detector)
+**Plan:** 5 of 5 complete
+**Status:** Phase complete
+**Last activity:** 2026-02-04 - Completed 04-05-PLAN.md (Aggregator/Scoring Integration)
 
 **Progress Bar:**
 ```
@@ -38,14 +38,13 @@ Phase 3: Cross-Platform Arbitrage Enablement
 [████████████████████] 100% (5/5 plans)
 
 Phase 4: Advanced Edge Detection
-[████████████████░░░░] 80% (4/5 plans)
+[████████████████████] 100% (5/5 plans)
 
 Overall Roadmap:
-[████████████████░░░░] 60% (24/40 requirements)
+[█████████████████░░░] 62.5% (25/40 requirements)
 ```
 
 **What's Next:**
-- 04-05: Dashboard integration for Metaculus divergence
 - Phase 5: Longshot bias detection
 
 ## Performance Metrics
@@ -129,7 +128,7 @@ Overall Roadmap:
 | Data source similarity < 0.8 flagged as risk | Different data sources can resolve differently for same question | 2026-02-04 |
 | Use Zod validation for Metaculus API types | Matches existing pattern in market.ts and settlement.ts | 2026-02-04 |
 | Create separate manual matches file for Metaculus | Follows same pattern as MarketMatcher's manual-matches.json | 2026-02-04 |
-| Keep metaculusDivergence flag disabled | Wait until Phase 4 complete and API integration tested | 2026-02-04 |
+| Keep metaculusDivergence flag disabled until Phase 4 complete | Wait until all Metaculus plans executed and tested | 2026-02-04 |
 | axios-retry with exponentialDelay for Metaculus | Built-in jitter prevents thundering herd on retries | 2026-02-04 |
 | 5 retries on 429 and network errors | Aggressive retry balances API reliability with eventual failure | 2026-02-04 |
 | 30-second timeout for Metaculus API | Longer than typical clients; Metaculus can be slow on search | 2026-02-04 |
@@ -143,6 +142,9 @@ Overall Roadmap:
 | 7-day freshness threshold for Metaculus forecasts | Predictions >7 days old trigger staleness warnings | 2026-02-04 |
 | Manual day calculation without date-fns | Avoid adding dependency for simple date arithmetic | 2026-02-04 |
 | Sort divergence opportunities by percent descending | Highest divergences = highest priority for user review | 2026-02-04 |
+| Lazy initialization for MetaculusDivergenceDetector | Avoid token requirement during aggregator construction; allows tests to run | 2026-02-04 |
+| Fresh forecasts get 0.9 confidence, stale 0.6 | Staleness affects scoring weight via detector confidence | 2026-02-04 |
+| metaculusDivergence feature flag enabled | Phase 4 complete, full Metaculus integration active | 2026-02-04 |
 
 ### Active Constraints
 
@@ -208,13 +210,13 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T18:50:52Z
-- Completed 04-04-PLAN.md (Metaculus Divergence Detector)
-  - TDD cycle: RED → GREEN → REFACTOR (5 minutes)
-  - Created `src/detectors/metaculus-divergence.ts` implementing detector pattern
-  - Divergence detection with 5% threshold, staleness tracking with 7-day threshold
-  - Feature flag gating (metaculusDivergence) as first check
-  - 19 new unit tests (394 total tests passing, up from 375)
+**Last Session:** 2026-02-04T19:00:51Z
+- Completed 04-05-PLAN.md (Aggregator/Scoring Integration)
+  - Integrated MetaculusDivergenceDetector into OpportunityAggregator
+  - Added 'metaculus_divergence' to OpportunityType union
+  - Implemented lazy initialization for detector (Rule 3 - Blocking fix)
+  - Created 7 scoring tests (401 total tests passing, up from 394)
+  - Enabled metaculusDivergence feature flag
 
 **Phase 3 Complete:**
 - 03-01: Settlement types + database schema
@@ -223,18 +225,19 @@ Overall Roadmap:
 - 03-04: Detector integration + feature flag enablement
 - 03-05: Dashboard settlement view
 
-**Phase 4 In Progress:**
+**Phase 4 Complete:**
 - 04-01: ✅ Metaculus foundation types
 - 04-02: ✅ Metaculus API client
 - 04-03: ✅ Question-to-market matcher
 - 04-04: ✅ Metaculus divergence detector
+- 04-05: ✅ Aggregator/Scoring integration
 
-**Resume Point:** Ready for 04-05 (Dashboard integration)
+**Resume Point:** Ready for Phase 5 (Longshot bias detection)
 
 **Next Session Should:**
-- Integrate MetaculusDivergenceDetector into dashboard display
-- Add Metaculus divergence section to CLI dashboard
-- Test with live Metaculus API once credentials configured
+- Plan Phase 5 if continuing
+- Test Metaculus integration with live API (requires METACULUS_TOKEN)
+- Dashboard visualization for Metaculus divergence opportunities
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
