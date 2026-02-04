@@ -81,6 +81,34 @@ export function initDatabase(dbPath: string = 'markets.db'): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_opportunities_type
     ON opportunities(type);
+
+    CREATE TABLE IF NOT EXISTS settlement_comparisons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      polymarket_id TEXT NOT NULL,
+      kalshi_ticker TEXT NOT NULL,
+      question_similarity REAL NOT NULL,
+      criteria_similarity REAL NOT NULL,
+      timing_similarity REAL NOT NULL,
+      data_source_similarity REAL NOT NULL,
+      overall_confidence REAL NOT NULL,
+      safe_for_arbitrage INTEGER NOT NULL DEFAULT 0,
+      risk_factors TEXT NOT NULL DEFAULT '[]',
+      manual_override TEXT,
+      settlement_outcome TEXT,
+      notes TEXT,
+      compared_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+      UNIQUE(polymarket_id, kalshi_ticker)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_settlement_comparisons_markets
+      ON settlement_comparisons(polymarket_id, kalshi_ticker);
+
+    CREATE INDEX IF NOT EXISTS idx_settlement_comparisons_confidence
+      ON settlement_comparisons(overall_confidence DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_settlement_comparisons_safe
+      ON settlement_comparisons(safe_for_arbitrage);
   `);
 
   return db;

@@ -1,5 +1,6 @@
 import { getDatabase } from './schema.js';
 import type { ScoredOpportunity } from '../scoring/types.js';
+import type { SettlementComparison, SettlementComparisonRow } from '../types/settlement.js';
 
 /**
  * Market snapshot data structure
@@ -317,5 +318,172 @@ export function getOpportunityStats(): {
     total: total.count,
     byType: Object.fromEntries(byType.map(r => [r.type, r.count])),
     avgScore: avgScore.avg ?? 0,
+  };
+}
+
+// =============================================================================
+// Settlement Comparison Queries
+// =============================================================================
+
+/**
+ * Save or update a settlement comparison.
+ * Uses INSERT OR REPLACE to upsert based on unique constraint.
+ */
+export function saveSettlementComparison(comparison: SettlementComparison): void {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settlement_comparisons (
+      polymarket_id, kalshi_ticker,
+      question_similarity, criteria_similarity,
+      timing_similarity, data_source_similarity,
+      overall_confidence, safe_for_arbitrage,
+      risk_factors, manual_override, settlement_outcome,
+      notes, compared_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    comparison.polymarketId,
+    comparison.kalshiTicker,
+    comparison.similarity.question,
+    comparison.similarity.criteria,
+    comparison.similarity.timing,
+    comparison.similarity.dataSource,
+    comparison.similarity.overall,
+    comparison.safeForArbitrage ? 1 : 0,
+    JSON.stringify(comparison.riskFactors),
+    comparison.manualOverride || null,
+    comparison.settlementOutcome || null,
+    comparison.notes || null,
+    comparison.comparedAt.getTime()
+  );
+}
+
+/**
+ * Get settlement comparison for a market pair.
+ * Returns null if no comparison exists.
+ */
+export function getSettlementComparison(
+  polymarketId: string,
+  kalshiTicker: string
+): SettlementComparison | null {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT * FROM settlement_comparisons
+    WHERE polymarket_id = ? AND kalshi_ticker = ?
+  `);
+
+  const row = stmt.get(polymarketId, kalshiTicker) as SettlementComparisonRow | undefined;
+
+  if (!row) return null;
+
+  return {
+    polymarketId: row.polymarket_id,
+    kalshiTicker: row.kalshi_ticker,
+    similarity: {
+      question: row.question_similarity,
+      criteria: row.criteria_similarity,
+      timing: row.timing_similarity,
+      dataSource: row.data_source_similarity,
+      overall: row.overall_confidence,
+    },
+    safeForArbitrage: row.safe_for_arbitrage === 1,
+    riskFactors: JSON.parse(row.risk_factors),
+    manualOverride: row.manual_override as 'safe' | 'unsafe' | undefined,
+    settlementOutcome: row.settlement_outcome as 'matched' | 'diverged' | undefined,
+    notes: row.notes || undefined,
+    comparedAt: new Date(row.compared_at),
+  };
+}
+
+/**
+ * Set manual override for a settlement comparison.
+ * Creates comparison record if it doesn't exist.
+ */
+export function setSettlementOverride(
+  polymarketId: string,
+  kalshiTicker: string,
+  override: 'safe' | 'unsafe',
+  notes?: string
+): void {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    UPDATE settlement_comparisons
+    SET manual_override = ?, notes = COALESCE(?, notes)
+    WHERE polymarket_id = ? AND kalshi_ticker = ?
+  `);
+
+  stmt.run(override, notes || null, polymarketId, kalshiTicker);
+}
+
+/**
+ * Record actual settlement outcome for tracking divergence.
+ */
+export function recordSettlementOutcome(
+  polymarketId: string,
+  kalshiTicker: string,
+  outcome: 'matched' | 'diverged'
+): void {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    UPDATE settlement_comparisons
+    SET settlement_outcome = ?
+    WHERE polymarket_id = ? AND kalshi_ticker = ?
+  `);
+
+  stmt.run(outcome, polymarketId, kalshiTicker);
+}
+
+/**
+ * Get all comparisons marked as safe for arbitrage.
+ */
+export function getSafeComparisons(): SettlementComparison[] {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT * FROM settlement_comparisons
+    WHERE safe_for_arbitrage = 1
+    ORDER BY overall_confidence DESC
+  `);
+
+  const rows = stmt.all() as SettlementComparisonRow[];
+
+  return rows.map(row => ({
+    polymarketId: row.polymarket_id,
+    kalshiTicker: row.kalshi_ticker,
+    similarity: {
+      question: row.question_similarity,
+      criteria: row.criteria_similarity,
+      timing: row.timing_similarity,
+      dataSource: row.data_source_similarity,
+      overall: row.overall_confidence,
+    },
+    safeForArbitrage: true,
+    riskFactors: JSON.parse(row.risk_factors),
+    manualOverride: row.manual_override as 'safe' | 'unsafe' | undefined,
+    settlementOutcome: row.settlement_outcome as 'matched' | 'diverged' | undefined,
+    notes: row.notes || undefined,
+    comparedAt: new Date(row.compared_at),
+  }));
+}
+
+/**
+ * Get historical divergence rate for tuning confidence thresholds.
+ */
+export function getDivergenceStats(): { total: number; diverged: number; rate: number } {
+  const db = getDatabase();
+  const stmt = db.prepare(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN settlement_outcome = 'diverged' THEN 1 ELSE 0 END) as diverged
+    FROM settlement_comparisons
+    WHERE settlement_outcome IS NOT NULL
+  `);
+
+  const result = stmt.get() as { total: number; diverged: number };
+
+  return {
+    total: result.total,
+    diverged: result.diverged || 0,
+    rate: result.total > 0 ? (result.diverged || 0) / result.total : 0,
   };
 }
