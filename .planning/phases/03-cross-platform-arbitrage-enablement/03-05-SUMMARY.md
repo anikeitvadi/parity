@@ -7,7 +7,7 @@
 
 | Hash | Type | Description |
 |------|------|-------------|
-| (pending) | feat | Add SettlementView component and integrate with OpportunityDetail |
+| 51df7e4 | feat | Add SettlementView component and integrate with OpportunityDetail |
 
 ## What Was Built
 
