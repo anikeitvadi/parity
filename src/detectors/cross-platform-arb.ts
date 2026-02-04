@@ -10,8 +10,12 @@
  */
 
 import { featureFlags } from '../config/feature-flags.js';
-import { getRecentMatches, getLatestSnapshot, MarketSnapshot } from '../database/queries.js';
+import { getRecentMatches, getLatestSnapshot, MarketSnapshot, saveSettlementComparison, getSettlementComparison } from '../database/queries.js';
 import { logger } from '../utils/logger.js';
+import { SettlementComparator } from '../services/settlement-comparator.js';
+import { PolymarketSettlementParser, type PolymarketMarketData } from '../parsers/polymarket-parser.js';
+import { KalshiSettlementParser, type KalshiMarketData } from '../parsers/kalshi-parser.js';
+import type { SettlementComparison } from '../types/settlement.js';
 
 const detectorLogger = logger.child({ component: 'cross-platform-arb' });
 
@@ -57,6 +61,12 @@ export interface CrossPlatformOpportunity {
   kalshiLiquidity: number;
   /** When the opportunity was detected */
   detectedAt: number;
+  /** Settlement comparison details (for display) */
+  settlementComparison?: {
+    overall: number;
+    criteria: number;
+    riskFactors: string[];
+  };
 }
 
 /**
@@ -101,6 +111,9 @@ export class CrossPlatformArbDetector {
   private minLiquidity: number;
   private polymarketFee: number;
   private kalshiFee: number;
+  private settlementComparator = new SettlementComparator();
+  private polyParser = new PolymarketSettlementParser();
+  private kalshiParser = new KalshiSettlementParser();
 
   /**
    * Create a new detector instance.
@@ -200,8 +213,36 @@ export class CrossPlatformArbDetector {
           continue;
         }
 
-        // Assess settlement risk (always HIGH in Phase 1)
-        const settlementRisk = this.assessSettlementRisk();
+        // Assess settlement risk using comparator
+        const { risk: settlementRisk, comparison } = await this.assessSettlementRisk(
+          polySnapshot!,
+          kalshiSnapshot!
+        );
+
+        // Skip if settlement verification failed or unsafe
+        if (settlementRisk === 'HIGH') {
+          detectorLogger.debug(
+            {
+              polymarketId: match.polymarket_id,
+              kalshiTicker: match.kalshi_ticker,
+              settlementRisk,
+              riskFactors: comparison?.riskFactors,
+            },
+            'Skipping match - settlement risk too high'
+          );
+          continue;
+        }
+
+        // Apply score penalty for MEDIUM risk (different settlement mechanisms)
+        // Deduct 2-3 points based on severity of mechanism differences
+        let scorePenalty = 0;
+        if (settlementRisk === 'MEDIUM' && comparison) {
+          // 2 points if minor differences, 3 points if mechanism type differs
+          const hasMechanismDifference = comparison.riskFactors.some(
+            rf => rf.includes('mechanism') || rf.includes('UMA') || rf.includes('centralized')
+          );
+          scorePenalty = hasMechanismDifference ? 3 : 2;
+        }
 
         // Calculate opportunity confidence
         const opportunityConfidence = this.calculateOpportunityConfidence(
@@ -224,6 +265,11 @@ export class CrossPlatformArbDetector {
           polymarketLiquidity: this.extractLiquidity(polySnapshot!),
           kalshiLiquidity: this.extractLiquidity(kalshiSnapshot!),
           detectedAt: Date.now(),
+          settlementComparison: comparison ? {
+            overall: comparison.similarity.overall,
+            criteria: comparison.similarity.criteria,
+            riskFactors: comparison.riskFactors,
+          } : undefined,
         };
 
         opportunities.push(opportunity);
@@ -235,6 +281,11 @@ export class CrossPlatformArbDetector {
             grossEdge: (grossEdge * 100).toFixed(2) + '%',
             netEdge: (netEdge * 100).toFixed(2) + '%',
             settlementRisk,
+            scorePenalty,
+            settlementSimilarity: comparison ? {
+              overall: comparison.similarity.overall.toFixed(2),
+              criteria: comparison.similarity.criteria.toFixed(2),
+            } : undefined,
           },
           'Detected cross-platform arbitrage opportunity'
         );
@@ -293,17 +344,113 @@ export class CrossPlatformArbDetector {
   }
 
   /**
-   * Assess settlement risk for cross-platform arbitrage.
+   * Assess settlement risk using settlement comparator.
    *
-   * Phase 1: Always returns HIGH (no settlement parser yet)
-   * Phase 3+: Will use settlement rule comparison
+   * Phase 3+: Uses actual settlement rule comparison.
    *
-   * @returns Settlement risk level
+   * @param polySnapshot - Polymarket market snapshot
+   * @param kalshiSnapshot - Kalshi market snapshot
+   * @returns Settlement risk level and comparison result
    */
-  private assessSettlementRisk(): SettlementRisk {
-    // Phase 1: Always HIGH risk - no settlement parser yet
-    // Phase 3 will implement settlement rule comparison
+  private async assessSettlementRisk(
+    polySnapshot: MarketSnapshot,
+    kalshiSnapshot: MarketSnapshot
+  ): Promise<{ risk: SettlementRisk; comparison: SettlementComparison | null }> {
+    try {
+      // Check for existing comparison first (cached)
+      const existing = getSettlementComparison(
+        polySnapshot.marketId,
+        kalshiSnapshot.marketId
+      );
+
+      if (existing) {
+        // Use cached comparison
+        const risk = this.comparisonToRisk(existing);
+        return { risk, comparison: existing };
+      }
+
+      // Parse market data into settlement criteria
+      const polyData = this.snapshotToPolymarketData(polySnapshot);
+      const kalshiData = this.snapshotToKalshiData(kalshiSnapshot);
+
+      const polyCriteria = this.polyParser.parse(polyData);
+      const kalshiCriteria = this.kalshiParser.parse(kalshiData);
+
+      // Run comparison
+      const comparison = this.settlementComparator.compare(polyCriteria, kalshiCriteria);
+
+      // Cache the comparison
+      saveSettlementComparison(comparison);
+
+      const risk = this.comparisonToRisk(comparison);
+      return { risk, comparison };
+    } catch (error) {
+      detectorLogger.warn(
+        { error, polyId: polySnapshot.marketId, kalshiId: kalshiSnapshot.marketId },
+        'Failed to assess settlement risk, defaulting to HIGH'
+      );
+      return { risk: 'HIGH', comparison: null };
+    }
+  }
+
+  /**
+   * Convert settlement comparison to risk level.
+   *
+   * Score penalties:
+   * - MEDIUM risk (different settlement mechanisms like UMA vs centralized): 2-3 point penalty
+   * - HIGH risk (unsafe for arbitrage): skip entirely
+   */
+  private comparisonToRisk(comparison: SettlementComparison): SettlementRisk {
+    if (comparison.safeForArbitrage) {
+      // Even if safe, check for risk factors
+      if (comparison.riskFactors.length === 0) {
+        return 'LOW';
+      }
+      return 'MEDIUM';
+    }
+
     return 'HIGH';
+  }
+
+  /**
+   * Convert snapshot to Polymarket market data for parsing.
+   *
+   * Note: Uses available fields from MarketSnapshot.data. If settlement-specific
+   * fields (description, resolution_source) are not stored by fetch job, falls back
+   * to question-only parsing with reduced confidence.
+   */
+  private snapshotToPolymarketData(snapshot: MarketSnapshot): PolymarketMarketData {
+    const data = snapshot.data as Record<string, unknown>;
+    return {
+      id: snapshot.marketId,
+      question: data.question as string,
+      // Optional fields - may not be present in current snapshot schema
+      description: (data.description as string | undefined) || undefined,
+      outcomes: data.outcomes as string[],
+      end_date_iso: data.closeDate as string | undefined,
+      resolution_source: (data.resolution_source as string | undefined) || undefined,
+    };
+  }
+
+  /**
+   * Convert snapshot to Kalshi market data for parsing.
+   *
+   * Note: Uses available fields from MarketSnapshot.data. If settlement-specific
+   * fields (rules_primary, rules_secondary, settlement_source_url) are not stored
+   * by fetch job, falls back to question-only parsing with reduced confidence.
+   */
+  private snapshotToKalshiData(snapshot: MarketSnapshot): KalshiMarketData {
+    const data = snapshot.data as Record<string, unknown>;
+    return {
+      ticker: snapshot.marketId,
+      title: data.question as string,
+      // Primary rule: use rules_primary if available, else fall back to question
+      rules_primary: (data.rules_primary as string) || data.question as string,
+      // Optional fields - may not be present in current snapshot schema
+      rules_secondary: (data.rules_secondary as string | undefined) || undefined,
+      expiration_time: data.closeDate as string | undefined,
+      settlement_source_url: (data.settlement_source_url as string | undefined) || undefined,
+    };
   }
 
   /**
