@@ -2,7 +2,10 @@
  * Metaculus Divergence Detector
  *
  * Detects opportunities where superforecaster consensus significantly
- * diverges from prediction market prices.
+ * diverges from prediction market prices, suggesting potential mispricing.
+ *
+ * Uses MetaculusMatcher for intelligent question-to-market pairing based on
+ * title similarity, description, and timing alignment.
  *
  * @module detectors/metaculus-divergence
  */
@@ -22,8 +25,11 @@ const DEFAULT_MIN_DIVERGENCE = 5;
 /** Staleness threshold in days (forecasts older than this are stale) */
 const STALE_THRESHOLD_DAYS = 7;
 
-/** Default matcher confidence threshold */
+/** Default matcher confidence threshold (higher than cross-platform matching) */
 const DEFAULT_MATCHER_CONFIDENCE = 0.8;
+
+/** Maximum questions to fetch from Metaculus API */
+const MAX_QUESTIONS_LIMIT = 100;
 
 /**
  * Metaculus Divergence Detector
@@ -86,7 +92,7 @@ export class MetaculusDivergenceDetector {
       const questions = await this.client.searchQuestions({
         status: 'open',
         forecast_type: 'binary',
-        limit: 100,
+        limit: MAX_QUESTIONS_LIMIT,
       });
 
       if (questions.length === 0) {
