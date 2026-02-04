@@ -26,6 +26,14 @@ const SAFETY_THRESHOLDS = {
   timing: 0.5,
 } as const;
 
+/** Risk detection thresholds */
+const RISK_THRESHOLDS = {
+  /** Maximum date difference in days before flagging as risk */
+  maxDateDiffDays: 7,
+  /** Minimum data source similarity to avoid flagging as different */
+  minDataSourceSimilarity: 0.8,
+} as const;
+
 /** Subjective keywords that indicate resolution ambiguity */
 const SUBJECTIVE_KEYWORDS = [
   'reasonable',
@@ -158,8 +166,15 @@ export class SettlementComparator {
       return 0;
     }
 
-    const daysDiff = Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
+    const daysDiff = this.calculateDaysDifference(date1, date2);
     return Math.max(0, 1 - daysDiff / 14);
+  }
+
+  /**
+   * Calculate absolute difference between two dates in days.
+   */
+  private calculateDaysDifference(date1: Date, date2: Date): number {
+    return Math.abs(date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24);
   }
 
   /**
@@ -187,13 +202,14 @@ export class SettlementComparator {
       risks.push('Missing resolution date');
     }
 
-    // Dates differ by more than 7 days
+    // Dates differ by more than threshold
     if (polymarket.resolutionDate && kalshi.resolutionDate) {
-      const daysDiff = Math.abs(
-        polymarket.resolutionDate.getTime() - kalshi.resolutionDate.getTime()
-      ) / (1000 * 60 * 60 * 24);
+      const daysDiff = this.calculateDaysDifference(
+        polymarket.resolutionDate,
+        kalshi.resolutionDate
+      );
 
-      if (daysDiff > 7) {
+      if (daysDiff > RISK_THRESHOLDS.maxDateDiffDays) {
         risks.push(`Resolution dates differ by ${Math.round(daysDiff)} days`);
       }
     }
@@ -202,7 +218,8 @@ export class SettlementComparator {
     if (
       polymarket.dataSource &&
       kalshi.dataSource &&
-      this.textSimilarity(polymarket.dataSource, kalshi.dataSource) < 0.8
+      this.textSimilarity(polymarket.dataSource, kalshi.dataSource) <
+        RISK_THRESHOLDS.minDataSourceSimilarity
     ) {
       risks.push('Different data sources');
     }
