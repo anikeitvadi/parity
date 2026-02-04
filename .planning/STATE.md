@@ -1,13 +1,13 @@
 # Project State: Prediction Market Edge Scanner
 
-**Last Updated:** 2026-02-02T17:09:00Z
+**Last Updated:** 2026-02-04T16:10:20Z
 **Project Started:** 2026-01-29
 
 ## Project Reference
 
 **Core Value:** Surface high-confidence mispricings where analysis shows the market is wrong, filtered so only quality opportunities reach the user.
 
-**Current Focus:** Phase 2 - Scoring & Alert Foundation
+**Current Focus:** Phase 3 - Cross-Platform Arbitrage Enablement
 
 **Tech Stack:**
 - Node.js 20+ & TypeScript 5.5+
@@ -16,13 +16,14 @@
 - Kalshi REST API
 - Ink + @inkjs/ui for CLI dashboard
 - Bree scheduler, Pino logger, Zod validation
+- string-similarity, chrono-node for settlement verification
 
 ## Current Position
 
-**Phase:** 2 of 6 (Scoring & Alert Foundation)
-**Plan:** 5 of 5 complete (Phase 2 COMPLETE)
-**Status:** Phase complete
-**Last activity:** 2026-02-02 - Completed 02-05-PLAN.md (Scheduled Detection & Persistence)
+**Phase:** 3 of 6 (Cross-Platform Arbitrage Enablement)
+**Plan:** 1 of 3 complete
+**Status:** In progress
+**Last activity:** 2026-02-04 - Completed 03-01-PLAN.md (Settlement Rule Verification Foundation)
 
 **Progress Bar:**
 ```
@@ -32,12 +33,15 @@ Phase 1: Data Foundation & Infrastructure
 Phase 2: Scoring & Alert Foundation
 [████████████████████] 100% (5/5 plans)
 
+Phase 3: Cross-Platform Arbitrage Enablement
+[██████░░░░░░░░░░░░░░] 33% (1/3 plans)
+
 Overall Roadmap:
-[████████████████░░░░] 36% (15/42 requirements)
+[████████████████░░░░] 38% (16/42 requirements)
 ```
 
 **What's Next:**
-- Phase 2 complete - begin Phase 3 (Cross-Platform Safety)
+- Phase 3 Plan 02: Settlement rule parsing implementation
 
 ## Performance Metrics
 
@@ -103,6 +107,10 @@ Overall Roadmap:
 | MIN_SCORE=5 default threshold | Only persist opportunities scoring 5+; reduces database noise | 2026-02-02 |
 | Use standard react-jsx without jsxImportSource | Ink v6 uses React's standard JSX runtime, not a custom one | 2026-02-02 |
 | scoreOpportunity accepts bankroll parameter | Integrated Kelly criterion position sizing into composite scorer | 2026-02-02 |
+| Use string-similarity for settlement text comparison | Deprecated but functional; can migrate if issues arise | 2026-02-04 |
+| Use chrono-node for date extraction | Robust NLP-based date parsing from resolution text | 2026-02-04 |
+| Track settlement outcomes for divergence rate | Historical data enables confidence threshold tuning | 2026-02-04 |
+| Support manual overrides for settlement safety | Human verification can override automated comparison | 2026-02-04 |
 
 ### Active Constraints
 
@@ -168,18 +176,17 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-02T17:05:00Z
-- Completed 02-05-PLAN.md (Scheduled Detection & Persistence)
-- Created: src/jobs/detect-opportunities.ts
-- Modified: src/database/schema.ts, src/database/queries.ts, src/index.ts
-- 10 new opportunity tests, 260 total tests passing
-- Commits: 3848bd3, 68c1550, 0fd9a34
+**Last Session:** 2026-02-04T16:10:20Z
+- Completed 03-01-PLAN.md (Settlement Rule Verification Foundation)
+- Created: src/types/settlement.ts, tests/database/settlement-queries.test.ts
+- Modified: src/database/schema.ts, src/database/queries.ts, package.json
+- 12 new settlement tests, 272 total tests passing
+- Commits: 0f3c23e, 8c6937a, 323ebdf
 
-**Resume Point:** Phase 2 complete - ready for Phase 3
+**Resume Point:** Phase 3 Plan 1 complete - 2 plans remaining
 
 **Next Session Should:**
-- Begin Phase 3 planning (Cross-Platform Safety)
-- Execute 03-01-PLAN.md
+- Execute 03-02-PLAN.md (Settlement rule parsing implementation)
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
