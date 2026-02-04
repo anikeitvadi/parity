@@ -21,9 +21,9 @@
 ## Current Position
 
 **Phase:** 3 of 6 (Cross-Platform Arbitrage Enablement)
-**Plan:** 2 of 3 complete
-**Status:** In progress
-**Last activity:** 2026-02-04 - Completed 03-02-PLAN.md (Settlement Rule Parsing Implementation)
+**Plan:** 3 of 3 complete
+**Status:** Phase complete
+**Last activity:** 2026-02-04 - Completed 03-03-PLAN.md (Settlement Comparator Service)
 
 **Progress Bar:**
 ```
@@ -34,14 +34,14 @@ Phase 2: Scoring & Alert Foundation
 [████████████████████] 100% (5/5 plans)
 
 Phase 3: Cross-Platform Arbitrage Enablement
-[█████████████░░░░░░░] 67% (2/3 plans)
+[████████████████████] 100% (3/3 plans)
 
 Overall Roadmap:
-[████████████████░░░░] 40% (17/42 requirements)
+[████████████████░░░░] 43% (18/42 requirements)
 ```
 
 **What's Next:**
-- Phase 3 Plan 03: Settlement comparison logic implementation
+- Phase 4: Advanced Edge Detection (next phase)
 
 ## Performance Metrics
 
@@ -115,6 +115,13 @@ Overall Roadmap:
 | Prioritize specific data source patterns | "official data from" before "based on" for more precise extraction | 2026-02-04 |
 | Use latest parsed date as resolution date fallback | When structured date field missing, NLP-extracted dates provide fallback | 2026-02-04 |
 | Map Kalshi strike types to scalar settlement type | greater/less/between indicate scalar markets vs binary Yes/No | 2026-02-04 |
+| Weight criteria highest (0.4) in similarity scoring | Research shows rule text most predictive of settlement divergence | 2026-02-04 |
+| Conservative Phase 3.1 thresholds for arbitrage safety | overall >= 0.9, criteria >= 0.7, timing >= 0.5; no risk factors | 2026-02-04 |
+| Linear timing decay over 14 days | 0 days = 1.0, 7 days = 0.5, 14+ days = 0.0 similarity | 2026-02-04 |
+| Check manual override before calculating similarity | Database lookup optimization - skip calculation if override exists | 2026-02-04 |
+| Flag subjective keywords as risk factors | 'reasonable', 'consensus', 'mainstream' indicate resolution ambiguity | 2026-02-04 |
+| Date difference > 7 days flagged as risk | Markets resolving >1 week apart likely measure different things | 2026-02-04 |
+| Data source similarity < 0.8 flagged as risk | Different data sources can resolve differently for same question | 2026-02-04 |
 
 ### Active Constraints
 
@@ -180,17 +187,18 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T16:15:58Z
-- Completed 03-02-PLAN.md (Settlement Rule Parsing Implementation)
-- Created: src/parsers/polymarket-parser.ts, src/parsers/kalshi-parser.ts, tests/parsers/polymarket-parser.test.ts, tests/parsers/kalshi-parser.test.ts
-- 30 new parser tests (15 per platform), 302 total tests passing
-- Commits: 577fbbc, 098b2dd
-- Fixed entity extraction bug (sentence starters), adjusted data source test expectations
+**Last Session:** 2026-02-04T16:21:41Z
+- Completed 03-03-PLAN.md (Settlement Comparator Service)
+- Created: src/services/settlement-comparator.ts, tests/services/settlement-comparator.test.ts
+- TDD cycle: RED (776dd24) → GREEN (d5bc798) → REFACTOR (7a6fdbb)
+- 26 new comparator tests, 328 total tests passing
+- Multi-level similarity scoring, risk factor detection, conservative safety thresholds
+- Phase 3 complete (all 3 plans)
 
-**Resume Point:** Phase 3 Plan 2 complete - 1 plan remaining
+**Resume Point:** Phase 3 complete - Phase 4 ready to begin
 
 **Next Session Should:**
-- Execute 03-03-PLAN.md (Settlement comparison logic implementation)
+- Begin Phase 4: Advanced Edge Detection (Metaculus divergence, longshot bias, etc.)
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
