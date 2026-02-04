@@ -22,9 +22,9 @@
 ## Current Position
 
 **Phase:** 4 of 6 (Advanced Edge Detection)
-**Plan:** 2 of 5 complete
+**Plan:** 3 of 5 complete
 **Status:** In progress
-**Last activity:** 2026-02-04 - Completed 04-02-PLAN.md (Metaculus API Client)
+**Last activity:** 2026-02-04 - Completed 04-03-PLAN.md (Question-to-Market Matcher)
 
 **Progress Bar:**
 ```
@@ -38,14 +38,13 @@ Phase 3: Cross-Platform Arbitrage Enablement
 [████████████████████] 100% (5/5 plans)
 
 Phase 4: Advanced Edge Detection
-[████████░░░░░░░░░░░░] 40% (2/5 plans)
+[████████████░░░░░░░░] 60% (3/5 plans)
 
 Overall Roadmap:
-[████████████████░░░░] 55% (22/40 requirements)
+[████████████████░░░░] 57.5% (23/40 requirements)
 ```
 
 **What's Next:**
-- 04-03: Question-to-market matcher
 - 04-04: Metaculus divergence detector
 - 04-05: Dashboard integration
 
@@ -134,6 +133,12 @@ Overall Roadmap:
 | axios-retry with exponentialDelay for Metaculus | Built-in jitter prevents thundering herd on retries | 2026-02-04 |
 | 5 retries on 429 and network errors | Aggressive retry balances API reliability with eventual failure | 2026-02-04 |
 | 30-second timeout for Metaculus API | Longer than typical clients; Metaculus can be slow on search | 2026-02-04 |
+| 0.8 confidence threshold for Metaculus matching | Higher than cross-platform (0.7) due to technical question specificity | 2026-02-04 |
+| Linear timing decay over 14 days for Metaculus | Questions >2 weeks apart likely measure different events | 2026-02-04 |
+| Weighted similarity: title 50%, description 30%, timing 20% | Title most reliable signal, timing prevents temporal mismatches | 2026-02-04 |
+| Default 0.5 description similarity for Metaculus | Markets lack detailed descriptions, neutral score avoids penalizing matches | 2026-02-04 |
+| Manual Metaculus matches take absolute precedence | Human curation more reliable than algorithmic for edge cases | 2026-02-04 |
+| Binary Metaculus questions only | Numeric/date/multiple choice have different semantics from Yes/No markets | 2026-02-04 |
 
 ### Active Constraints
 
@@ -199,12 +204,13 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T18:36:00Z
-- Completed 04-02-PLAN.md (Metaculus API Client)
-  - Created `src/services/metaculus-client.ts` with axios-retry
-  - 5-retry exponential backoff for rate limiting
-  - searchQuestions() and getQuestion() methods
-  - 19 new tests added (350 total tests passing)
+**Last Session:** 2026-02-04T18:43:34Z
+- Completed 04-03-PLAN.md (Question-to-Market Matcher)
+  - TDD cycle: comprehensive tests → implementation → refactoring
+  - Created `src/services/metaculus-matcher.ts` with multi-level similarity scoring
+  - Multi-dimensional matching: title (50%), description (30%), timing (20%)
+  - Conservative 0.8 confidence threshold, 14-day timing window
+  - 24 new unit tests + integration test framework (375 total tests passing)
 
 **Phase 3 Complete:**
 - 03-01: Settlement types + database schema
@@ -216,12 +222,14 @@ Overall Roadmap:
 **Phase 4 In Progress:**
 - 04-01: ✅ Metaculus foundation types
 - 04-02: ✅ Metaculus API client
+- 04-03: ✅ Question-to-market matcher
 
-**Resume Point:** Ready for 04-03 (Question-to-market matcher)
+**Resume Point:** Ready for 04-04 (Metaculus divergence detector)
 
 **Next Session Should:**
-- Build matcher to pair Metaculus questions with market data
-- Implement similarity scoring for question-to-market matching
+- Build divergence detector using MetaculusMatcher to find opportunities
+- Calculate divergence between superforecaster consensus and market prices
+- Apply staleness checks to forecast age
 
 **Outstanding from Phase 1:**
 - VPS provisioning still pending (01-09 Tasks 2-3)
