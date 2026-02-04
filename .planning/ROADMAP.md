@@ -128,7 +128,7 @@ Plans:
 
 **Dependencies:** Phase 2 (scoring and alerts), Phase 3 (settlement verification for matching)
 
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 **Requirements:**
 - DATA-03: Metaculus API integration (superforecaster consensus)
@@ -146,7 +146,8 @@ Plans:
 - [ ] 04-02-PLAN.md - MetaculusClient with rate limiting (axios-retry)
 - [ ] 04-03-PLAN.md - MetaculusMatcher question-to-market matching [TDD]
 - [ ] 04-04-PLAN.md - MetaculusDivergenceDetector [TDD]
-- [ ] 04-05-PLAN.md - Aggregator integration and dashboard MetaculusView
+- [ ] 04-05-PLAN.md - Aggregator/scoring integration and feature flag enablement
+- [ ] 04-06-PLAN.md - Dashboard MetaculusView and FP rate verification checkpoint
 
 ---
 
