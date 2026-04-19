@@ -63,7 +63,15 @@ src/            Core engine (shared) — services, detectors, scoring, database
 - Remove imports/variables that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
-### 4. Goal-Driven Execution
+### 4. Holistic Pass
+
+After finishing a feature, do a pass over all touched files and look for simplifications. Don't change things for the sake of it, but if there are real simplifications, call them out.
+
+### 5. Root Cause, Not Symptom
+
+Don't monkey-patch. If you find yourself solving the symptom instead of the root cause, stop and do a proper fix. Name what the real problem is.
+
+### 6. Goal-Driven Execution
 
 - Transform tasks into verifiable goals.
 - Run `npm run typecheck` after any TypeScript change.
