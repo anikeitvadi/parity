@@ -13,8 +13,9 @@ import type { Market, OrderBook, OrderBookLevel } from '../types/market.js';
 
 /**
  * Kalshi API endpoints
+ * The elections API host serves market data publicly (no auth needed for reads).
  */
-const KALSHI_PROD_API = 'https://api.elections.kalshi.com/trade-api/v2';
+const KALSHI_PUBLIC_API = 'https://api.elections.kalshi.com/trade-api/v2';
 const KALSHI_DEMO_API = 'https://demo-api.kalshi.com/trade-api/v2';
 
 /**
@@ -23,20 +24,23 @@ const KALSHI_DEMO_API = 'https://demo-api.kalshi.com/trade-api/v2';
 const KalshiMarketSchema = z.object({
   ticker: z.string(),
   title: z.string(),
-  subtitle: z.string().optional(),
+  yes_sub_title: z.string().optional(),
+  no_sub_title: z.string().optional(),
   close_time: z.string(),
-  yes_bid: z.number().nullable(),
-  yes_ask: z.number().nullable(),
-  no_bid: z.number().nullable(),
-  no_ask: z.number().nullable(),
-  last_price: z.number().nullable(),
-  volume: z.number().optional(),
-  volume_24h: z.number().optional(),
-  open_interest: z.number().optional(),
+  yes_bid_dollars: z.string().optional(),
+  yes_ask_dollars: z.string().optional(),
+  no_bid_dollars: z.string().optional(),
+  no_ask_dollars: z.string().optional(),
+  last_price_dollars: z.string().optional(),
+  volume_fp: z.string().optional(),
+  volume_24h_fp: z.string().optional(),
+  liquidity_dollars: z.string().optional(),
+  open_interest_fp: z.string().optional(),
   status: z.string(),
-  result: z.string().nullable().optional(),
-  category: z.string().optional(),
-});
+  result: z.string().optional(),
+  event_ticker: z.string().optional(),
+  market_type: z.string().optional(),
+}).passthrough();
 
 /**
  * Zod schema for Kalshi markets list response
@@ -44,6 +48,33 @@ const KalshiMarketSchema = z.object({
 const KalshiMarketsResponseSchema = z.object({
   markets: z.array(KalshiMarketSchema),
   cursor: z.string().optional(),
+});
+
+/**
+ * Zod schema for Kalshi event
+ */
+const KalshiEventSchema = z.object({
+  event_ticker: z.string(),
+  title: z.string(),
+  sub_title: z.string().optional(),
+  category: z.string().optional(),
+  mutually_exclusive: z.boolean().optional(),
+}).passthrough();
+
+/**
+ * Zod schema for Kalshi events list response
+ */
+const KalshiEventsResponseSchema = z.object({
+  events: z.array(KalshiEventSchema),
+  cursor: z.string().optional(),
+});
+
+/**
+ * Zod schema for single event detail (includes markets)
+ */
+const KalshiEventDetailSchema = z.object({
+  event: KalshiEventSchema,
+  markets: z.array(KalshiMarketSchema),
 });
 
 /**
@@ -73,26 +104,41 @@ type KalshiMarket = z.infer<typeof KalshiMarketSchema>;
  */
 export class KalshiClient {
   private baseUrl: string;
+  private publicUrl: string;
   private apiKey: string | undefined;
   private apiSecret: string | undefined;
   private rateLimiter: RateLimiter;
-  private demoMode: boolean;
+  private hasAuth: boolean;
 
   constructor() {
-    this.demoMode = !env.KALSHI_API_KEY || !env.KALSHI_API_SECRET;
-    this.baseUrl = env.KALSHI_USE_DEMO ? KALSHI_DEMO_API : KALSHI_PROD_API;
+    this.hasAuth = !!(env.KALSHI_API_KEY && env.KALSHI_API_SECRET);
+    this.baseUrl = env.KALSHI_USE_DEMO ? KALSHI_DEMO_API : KALSHI_PUBLIC_API;
+    this.publicUrl = KALSHI_PUBLIC_API;
     this.apiKey = env.KALSHI_API_KEY;
     this.apiSecret = env.KALSHI_API_SECRET;
     this.rateLimiter = createKalshiLimiter();
 
-    if (this.demoMode) {
-      kalshiLogger.info('Kalshi client running in demo mode (no API access)');
-    } else {
-      kalshiLogger.info(
-        { baseUrl: this.baseUrl, demo: env.KALSHI_USE_DEMO },
-        'Kalshi client initialized'
-      );
+    kalshiLogger.info(
+      { baseUrl: this.baseUrl, authenticated: this.hasAuth },
+      'Kalshi client initialized'
+    );
+  }
+
+  /**
+   * Make an unauthenticated public request (for market data reads)
+   */
+  private async publicRequest<T>(endpoint: string): Promise<T> {
+    const url = `${this.publicUrl}${endpoint}`;
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => 'Unknown error');
+      throw new Error(`Kalshi API error: ${response.status} ${errorBody}`);
     }
+
+    return response.json() as Promise<T>;
   }
 
   /**
@@ -203,47 +249,78 @@ export class KalshiClient {
   }
 
   /**
-   * Fetch active markets from Kalshi
-   *
-   * @returns Array of normalized Market objects (empty if demo mode)
+   * Fetch active markets from Kalshi via the events endpoint.
+   * Uses events for clean titles/categories, then fetches each event's
+   * markets for pricing data. Filters out multi-leg parlays.
    */
   async getActiveMarkets(): Promise<Market[]> {
-    if (this.demoMode) {
-      kalshiLogger.debug('Skipping Kalshi fetch (demo mode)');
-      return [];
-    }
-
     const startTime = Date.now();
 
     return this.rateLimiter.execute(async () => {
-      kalshiLogger.debug('Fetching active markets');
+      kalshiLogger.debug('Fetching active events');
 
-      // Fetch markets with active status filter
-      const response = await this.request<unknown>(
-        '/markets?status=open&limit=100'
+      // Step 1: Get all open events (clean titles + categories)
+      const eventsResponse = await this.publicRequest<unknown>(
+        '/events?status=open&limit=100'
       );
 
-      // Validate response with Zod
-      const parseResult = KalshiMarketsResponseSchema.safeParse(response);
+      const eventsResult = KalshiEventsResponseSchema.safeParse(eventsResponse);
+      if (!eventsResult.success) {
+        kalshiLogger.error({ error: eventsResult.error.message }, 'Invalid Kalshi events response');
+        throw new Error('Invalid Kalshi events response');
+      }
 
-      if (!parseResult.success) {
-        kalshiLogger.error(
-          { error: parseResult.error.message },
-          'Invalid Kalshi markets response'
+      // Step 2: Fetch market details for each event (batched)
+      const markets: Market[] = [];
+
+      // Fetch event details in parallel (max 10 concurrent)
+      const events = eventsResult.data.events;
+      const batchSize = 10;
+
+      for (let i = 0; i < events.length; i += batchSize) {
+        const batch = events.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map((event) =>
+            this.publicRequest<unknown>(`/events/${event.event_ticker}`)
+          )
         );
-        throw new Error('Invalid Kalshi API response');
+
+        for (const result of results) {
+          if (result.status !== 'fulfilled') continue;
+
+          const detailResult = KalshiEventDetailSchema.safeParse(result.value);
+          if (!detailResult.success) continue;
+
+          const { event, markets: eventMarkets } = detailResult.data;
+
+          // For single-market events, use the one market
+          // For multi-market events (e.g. "Who will win?"), include each option
+          for (const market of eventMarkets) {
+            // Skip inactive markets
+            if (market.status !== 'active' && market.status !== 'open') continue;
+
+            const normalized = this.normalizeMarket(market);
+            // Use event title + category for cleaner display
+            normalized.question = event.mutually_exclusive && eventMarkets.length > 1
+              ? `${event.title} - ${market.title}`
+              : event.title + (event.sub_title ? ` (${event.sub_title})` : '');
+            normalized.metadata = {
+              ...normalized.metadata,
+              category: event.category,
+              eventTicker: event.event_ticker,
+            };
+            markets.push(normalized);
+          }
+        }
       }
 
       const duration = Date.now() - startTime;
       kalshiLogger.info(
-        { count: parseResult.data.markets.length, durationMs: duration },
-        'Fetched Kalshi markets'
+        { events: events.length, markets: markets.length, durationMs: duration },
+        'Fetched Kalshi events and markets'
       );
 
-      // Map to common Market type
-      return parseResult.data.markets.map((market) =>
-        this.normalizeMarket(market)
-      );
+      return markets;
     });
   }
 
@@ -254,17 +331,13 @@ export class KalshiClient {
    * @returns OrderBook with bid/ask levels and depth (empty if demo mode)
    */
   async getOrderBook(ticker: string): Promise<OrderBook> {
-    if (this.demoMode) {
-      kalshiLogger.debug({ ticker }, 'Skipping order book fetch (demo mode)');
-      return { bids: [], asks: [], depth: 0, timestamp: Date.now() };
-    }
-
     const startTime = Date.now();
 
     return this.rateLimiter.execute(async () => {
       kalshiLogger.debug({ ticker }, 'Fetching order book');
 
-      const response = await this.request<unknown>(
+      // Public endpoint — no auth needed
+      const response = await this.publicRequest<unknown>(
         `/markets/${ticker}/orderbook`
       );
 
@@ -324,40 +397,38 @@ export class KalshiClient {
    * @returns Normalized Market object
    */
   private normalizeMarket(market: KalshiMarket): Market {
-    // Extract prices (Kalshi uses cents 1-99, convert to 0-1)
-    const yesPrice =
-      market.yes_ask !== null
-        ? market.yes_ask / 100
-        : market.last_price !== null
-          ? market.last_price / 100
-          : 0.5;
-    const noPrice =
-      market.no_ask !== null
-        ? market.no_ask / 100
-        : market.last_price !== null
-          ? 1 - market.last_price / 100
-          : 0.5;
+    // Prices are now dollar strings (e.g. "0.7500" = 75 cents = 75%)
+    const parsePrice = (s?: string) => (s ? parseFloat(s) : null);
+
+    const yesAsk = parsePrice(market.yes_ask_dollars);
+    const lastPrice = parsePrice(market.last_price_dollars);
+    const yesPrice = yesAsk && yesAsk > 0 ? yesAsk : lastPrice && lastPrice > 0 ? lastPrice : 0.5;
+    const noPrice = 1 - yesPrice;
+
+    const volume24h = parsePrice(market.volume_24h_fp) || parsePrice(market.volume_fp) || 0;
+    const liquidity = parsePrice(market.liquidity_dollars) || parsePrice(market.open_interest_fp) || 0;
 
     return {
       id: market.ticker,
       platform: 'kalshi',
-      question: market.title + (market.subtitle ? ` - ${market.subtitle}` : ''),
+      question: market.title,
       outcomes: ['Yes', 'No'],
       prices: {
         Yes: yesPrice,
         No: noPrice,
       },
       closeDate: market.close_time,
-      volume: market.volume_24h || market.volume,
-      liquidity: market.open_interest,
+      volume: volume24h,
+      liquidity,
       metadata: {
-        category: market.category,
+        eventTicker: market.event_ticker,
+        marketType: market.market_type,
         status: market.status,
         result: market.result,
-        yesBid: market.yes_bid,
-        yesAsk: market.yes_ask,
-        noBid: market.no_bid,
-        noAsk: market.no_ask,
+        yesBid: market.yes_bid_dollars,
+        yesAsk: market.yes_ask_dollars,
+        noBid: market.no_bid_dollars,
+        noAsk: market.no_ask_dollars,
       },
     };
   }

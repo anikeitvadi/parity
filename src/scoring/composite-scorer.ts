@@ -7,7 +7,7 @@
  * - RATE-01: Composite scoring 1-10 scale
  * - RATE-06: Minimum $0.05 net profit threshold (5% net edge)
  *
- * Default weights (research-backed):
+ * Default weights (heuristic, tunable via backtesting):
  * - Edge size: 35%
  * - Confidence: 25%
  * - Liquidity: 20%
@@ -39,7 +39,7 @@ import { calculateKelly } from './kelly.js';
 export const MIN_NET_EDGE_THRESHOLD = 0.05;
 
 /**
- * Default scoring weights (research-backed)
+ * Default scoring weights (heuristic, tunable via backtesting)
  *
  * These weights prioritize edge and confidence as they are the primary
  * determinants of expected value. Liquidity ensures executability.

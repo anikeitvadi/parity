@@ -1,10 +1,9 @@
 /**
  * Cross-Platform Arbitrage Detector
  *
- * CRITICAL: This detector is DISABLED until Phase 3 when settlement
- * verification is operational. Settlement divergence causes DOUBLE LOSSES.
- *
- * Detects arbitrage opportunities across Polymarket and Kalshi for matched markets.
+ * Detects arbitrage opportunities across Polymarket and Kalshi for matched
+ * markets. Gated by feature flag and guarded by settlement rule comparison
+ * to prevent losses from resolution divergence.
  *
  * @module detectors/cross-platform-arb
  */
@@ -104,7 +103,7 @@ const MIN_MATCH_CONFIDENCE = 0.5;
  *
  * Detects price divergence arbitrage opportunities across Polymarket and Kalshi.
  *
- * CRITICAL SAFETY: Disabled by feature flag until Phase 3 settlement verification.
+ * Gated by feature flag; uses settlement rule comparison before flagging opportunities.
  */
 export class CrossPlatformArbDetector {
   private minNetEdge: number;

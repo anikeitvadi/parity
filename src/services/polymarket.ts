@@ -166,7 +166,7 @@ export class PolymarketClient {
 
     try {
       const response = await this.rateLimiter.execute(async () => {
-        const res = await fetch(`${GAMMA_API_HOST}/markets?closed=false&active=true`);
+        const res = await fetch(`${GAMMA_API_HOST}/markets?closed=false&active=true&limit=500`);
         if (!res.ok) {
           const error = new Error(`Gamma API error: ${res.status} ${res.statusText}`) as Error & { status?: number };
           error.status = res.status;

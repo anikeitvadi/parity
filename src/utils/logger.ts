@@ -1,9 +1,10 @@
 import pino from 'pino';
 
+const isTest = process.env.NODE_ENV === 'test' || !!process.env.VITEST;
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export const logger = pino({
-  level: isDevelopment ? 'debug' : 'info',
+  level: isTest ? 'silent' : isDevelopment ? 'debug' : 'info',
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
     level: (label) => ({ level: label }),

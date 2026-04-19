@@ -109,6 +109,27 @@ export function initDatabase(dbPath: string = 'markets.db'): Database.Database {
 
     CREATE INDEX IF NOT EXISTS idx_settlement_comparisons_safe
       ON settlement_comparisons(safe_for_arbitrage);
+
+    CREATE TABLE IF NOT EXISTS user_forecasts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      market_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      market_question TEXT NOT NULL,
+      forecast_probability REAL NOT NULL,
+      market_price_at_forecast REAL NOT NULL,
+      category TEXT,
+      resolved INTEGER NOT NULL DEFAULT 0,
+      outcome INTEGER,
+      brier_score REAL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000),
+      resolved_at INTEGER
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_forecasts_resolved
+      ON user_forecasts(resolved);
+
+    CREATE INDEX IF NOT EXISTS idx_forecasts_category
+      ON user_forecasts(category);
   `);
 
   return db;

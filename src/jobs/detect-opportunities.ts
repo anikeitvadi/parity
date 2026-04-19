@@ -14,7 +14,6 @@
 import { parentPort } from 'worker_threads';
 import { OpportunityAggregator } from '../aggregator/opportunity-aggregator.js';
 import { scoreOpportunity } from '../scoring/index.js';
-import { calculateKelly } from '../scoring/kelly.js';
 import { initDatabase } from '../database/schema.js';
 import { insertOpportunities } from '../database/queries.js';
 import { logger } from '../utils/logger.js';
@@ -69,20 +68,8 @@ async function run(): Promise<void> {
     const scoredOpportunities: ScoredOpportunity[] = [];
 
     for (const opp of result.opportunities) {
-      // Score the opportunity (uses default weights)
-      const scored = scoreOpportunity(opp);
+      const scored = scoreOpportunity(opp, BANKROLL);
       if (scored && scored.score >= MIN_SCORE) {
-        // Calculate position sizing using Kelly criterion
-        const kelly = calculateKelly({
-          edge: opp.netEdge,
-          confidence: opp.detectorConfidence,
-          bankroll: BANKROLL,
-        });
-
-        // Update position sizing in scored opportunity
-        scored.positionSize = kelly.positionSize;
-        scored.positionPercent = kelly.positionPercent;
-
         scoredOpportunities.push(scored);
       }
     }

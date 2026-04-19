@@ -22,6 +22,9 @@
  * @module cli
  */
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import React from 'react';
 import { render } from 'ink';
 import meow from 'meow';
@@ -33,6 +36,7 @@ const cli = meow(
     $ npm run dashboard [options]
 
   Options
+    --demo, -d       Run with sample data (no API keys needed)
     --bankroll, -b   Your total capital for position sizing (default: 500)
     --min-score, -m  Minimum score to display (default: 0, range: 0-10)
     --watch, -w      Enable watch mode with auto-refresh
@@ -51,6 +55,7 @@ const cli = meow(
     Dim (<5)         Low confidence opportunity
 
   Examples
+    $ npm run dashboard -- --demo
     $ npm run dashboard -- --bankroll 1000 --watch
     $ npm run dashboard -- -b 500 -m 5 -w -i 60
     $ npm run dashboard -- --min-score 7
@@ -78,6 +83,11 @@ const cli = meow(
         shortFlag: 'i',
         default: 300,
       },
+      demo: {
+        type: 'boolean',
+        shortFlag: 'd',
+        default: false,
+      },
     },
   }
 );
@@ -87,6 +97,7 @@ const bankroll = Math.max(0, cli.flags.bankroll);
 const minScore = Math.max(0, Math.min(10, cli.flags.minScore));
 const interval = Math.max(10, cli.flags.interval); // Minimum 10 seconds
 const watchMode = cli.flags.watch;
+const demoMode = cli.flags.demo;
 
 // Render the dashboard
 render(
@@ -95,5 +106,6 @@ render(
     minScore={minScore}
     watchMode={watchMode}
     refreshInterval={interval * 1000}
+    demo={demoMode}
   />
 );

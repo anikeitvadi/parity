@@ -51,6 +51,19 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true'),
+
+  // OpenAI API key for AI research briefs (optional)
+  OPENAI_API_KEY: z.string().optional(),
+
+  // xAI API key for Grok + real-time X/Twitter data (optional, preferred over OpenAI)
+  // Free credits at console.x.ai
+  XAI_API_KEY: z.string().optional(),
+
+  // Web server port (default: 3001)
+  PORT: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 3001)),
 }).refine(
   (data) => {
     // In demo mode, credentials are optional

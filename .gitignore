@@ -3,6 +3,8 @@ node_modules/
 
 # Build output
 dist/
+dist-web/
+dist-server/
 
 # SQLite databases
 *.db
@@ -32,3 +34,13 @@ npm-debug.log*
 
 # Test coverage
 coverage/
+
+# Debug/test scripts
+debug-*.mjs
+test-*.mjs
+show-*.mjs
+fetch-and-scan.mjs
+quick-test.mjs
+
+# Personal files
+*.pdf

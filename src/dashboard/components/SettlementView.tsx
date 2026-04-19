@@ -172,10 +172,10 @@ export function SettlementView({
         </Box>
       </Box>
 
-      {/* Manual Override Hint */}
+      {/* Manual Override Note */}
       <Box marginTop={1}>
         <Text color="gray" dimColor>
-          Press 'o' to toggle manual override | Press 'n' to add notes
+          Use CLI to set manual overrides (see --help)
         </Text>
       </Box>
     </Box>
