@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
 import { initDatabase, getDatabase } from '../../src/database/schema.js';
-import { marketRoutes } from './routes/markets.js';
+import { marketRoutes, getMarketCounts } from './routes/markets.js';
 import { opportunityRoutes } from './routes/opportunities.js';
 import { researchRoutes } from './routes/research.js';
 import { calibrationRoutes } from './routes/calibration.js';
@@ -23,8 +23,8 @@ app.route('/api/calibration', calibrationRoutes);
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
-// System status
-app.get('/api/status', async (c) => {
+// System status — no self-fetch, uses direct DB queries and cache checks
+app.get('/api/status', (c) => {
   const db = getDatabase();
 
   const snapshots = db.prepare('SELECT COUNT(*) as c FROM market_snapshots').get() as { c: number };
@@ -37,23 +37,18 @@ app.get('/api/status', async (c) => {
     embeddingCount = (db.prepare('SELECT COUNT(*) as c FROM market_embedding_meta').get() as { c: number }).c;
   } catch { /* table may not exist yet */ }
 
-  // Check market counts from cache or quick fetch
-  let polyCount = 0;
-  let kalshiCount = 0;
-  try {
-    const mkts = await (await fetch('http://localhost:3001/api/markets?limit=1')).json() as { total: number };
-    // Get per-platform counts
-    const polyRes = await (await fetch('http://localhost:3001/api/markets?platform=polymarket&limit=1')).json() as { total: number };
-    const kalshiRes = await (await fetch('http://localhost:3001/api/markets?platform=kalshi&limit=1')).json() as { total: number };
-    polyCount = polyRes.total;
-    kalshiCount = kalshiRes.total;
-  } catch { /* ignore */ }
+  // Get cached market counts directly (no HTTP self-fetch)
+  const counts = getMarketCounts();
+
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasXAI = !!process.env.XAI_API_KEY;
+  const hasMetaculus = true; // public API, always available
 
   return c.json({
     api: { status: 'ok' },
     markets: {
-      polymarket: { count: polyCount, cached: true },
-      kalshi: { count: kalshiCount, cached: true },
+      polymarket: { count: counts.polymarket },
+      kalshi: { count: counts.kalshi },
     },
     database: {
       snapshots: snapshots.c,
@@ -63,12 +58,15 @@ app.get('/api/status', async (c) => {
     },
     embeddings: {
       count: embeddingCount,
-      hasApiKey: !!process.env.OPENAI_API_KEY || !!process.env.XAI_API_KEY,
+      hasApiKey: hasOpenAI || hasXAI,
     },
     ai: {
-      provider: process.env.XAI_API_KEY ? 'xai' : process.env.OPENAI_API_KEY ? 'openai' : 'none',
-      hasXSearch: !!process.env.XAI_API_KEY,
+      provider: hasXAI ? 'xai' : hasOpenAI ? 'openai' : 'none',
+      hasOpenAI,
+      hasXAI,
+      hasXSearch: hasXAI,
     },
+    metaculus: { available: hasMetaculus },
   });
 });
 

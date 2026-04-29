@@ -6,14 +6,33 @@ import { getSettlementComparison } from '../../../src/database/queries.js';
 import { SimpleCache } from '../cache.js';
 import type { Market } from '../../../src/types/market.js';
 
-const metaculusCache = new SimpleCache<Record<string, unknown> | null>(300); // 5 min
+const metaculusCache = new SimpleCache<MetaculusResult | null>(300); // 5 min
 
-async function findMetaculusMatch(market: Market): Promise<Record<string, unknown> | null> {
+export interface MetaculusResult {
+  title: string;
+  prediction: number;
+  marketPrice: number;
+  divergence: number;
+  confidence: number;
+}
+
+/** Simple word-overlap similarity between two strings. */
+function titleSimilarity(a: string, b: string): number {
+  const wordsA = new Set(a.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter((w) => w.length > 2));
+  const wordsB = new Set(b.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter((w) => w.length > 2));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  const intersection = [...wordsA].filter((w) => wordsB.has(w));
+  const union = new Set([...wordsA, ...wordsB]);
+  return intersection.length / union.size;
+}
+
+const MIN_METACULUS_SIMILARITY = 0.3;
+
+export async function findMetaculusMatch(market: Market): Promise<MetaculusResult | null> {
   const cacheKey = `${market.platform}-${market.id}`;
   const cached = metaculusCache.get(cacheKey);
   if (cached !== null) return cached;
 
-  // Search Metaculus for a matching question using keywords from the market title
   const keywords = market.question
     .replace(/[^\w\s]/g, '')
     .split(/\s+/)
@@ -34,24 +53,33 @@ async function findMetaculusMatch(market: Market): Promise<Record<string, unknow
     const data = await res.json() as { results?: { question?: { title?: string; aggregations?: { recency_weighted?: { latest?: { centers?: number[] } } } } }[] };
     const results = data.results || [];
 
-    // Find best match by title similarity
+    // Score all candidates by title similarity, pick the best
+    let bestResult: MetaculusResult | null = null;
+    let bestSim = 0;
+
     for (const post of results) {
       const q = post.question;
       if (!q?.title || !q?.aggregations?.recency_weighted?.latest?.centers?.[0]) continue;
 
+      const sim = titleSimilarity(market.question, q.title);
+      if (sim < MIN_METACULUS_SIMILARITY) continue;
+      if (sim <= bestSim) continue;
+
       const prediction = q.aggregations.recency_weighted.latest.centers[0];
       const marketPrice = market.prices['Yes'] ?? market.prices['yes'] ?? Object.values(market.prices)[0] ?? 0.5;
 
-      const result = {
+      bestSim = sim;
+      bestResult = {
         title: q.title,
         prediction,
         marketPrice,
         divergence: Math.abs(prediction - marketPrice),
+        confidence: sim,
       };
-
-      metaculusCache.set(cacheKey, result);
-      return result;
     }
+
+    metaculusCache.set(cacheKey, bestResult);
+    return bestResult;
   } catch {
     // Timeout or network error — skip
   }
@@ -63,6 +91,16 @@ async function findMetaculusMatch(market: Market): Promise<Record<string, unknow
 const polyClient = new PolymarketClient();
 const kalshiClient = new KalshiClient();
 const marketCache = new SimpleCache<Market[]>(60);
+
+/** Get cached market counts without fetching. Used by /api/status. */
+export function getMarketCounts(): { polymarket: number; kalshi: number } {
+  const poly = marketCache.get('polymarket');
+  const kalshi = marketCache.get('kalshi');
+  return {
+    polymarket: poly?.length || 0,
+    kalshi: kalshi?.length || 0,
+  };
+}
 
 export const marketRoutes = new Hono();
 

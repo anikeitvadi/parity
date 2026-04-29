@@ -43,17 +43,21 @@ A web app that aggregates live prediction markets from **Polymarket** and **Kals
   - **Closing Soon** (<7 days) — time-sensitive, last chance to get in
   - **High Conviction** (>85% or <15%) — crowd is very confident, but are they right?
   - **Contrarian** (10-25% or 75-90%) — unlikely but not impossible
-- **AI Research Brief** — GPT-4o streamed analysis per market (wired up, needs `OPENAI_API_KEY`). Currently market-data-only — no external news context yet.
+- **AI Research Brief** — streamed via GPT-4o or xAI Grok (dual provider). Enriched with DuckDuckGo news search, Metaculus superforecaster data, and cross-platform context. Confidence indicator shows data sources used. Needs `OPENAI_API_KEY` or `XAI_API_KEY`.
+- **Metaculus superforecaster data** — detail page shows forecaster vs market divergence. Research briefs include Metaculus context when a match is found. Matching uses title similarity scoring with a threshold.
+- **Semantic cross-platform matching** — sqlite-vec embeddings replace keyword matching. Cosine similarity at 0.85 threshold. Requires `OPENAI_API_KEY` for embedding generation.
+- **Calibration Coach** — log forecasts, resolve outcomes, track Brier scores over time with calibration curves by category.
+- **Saved Markets** — bookmark markets with notes, stored in browser localStorage.
+- **Interactive home page** — full-viewport canvas with live market data, physics-based cursor interaction, clickable markets.
+- **System Status** — pipeline health dashboard showing API status, DB state, and configuration.
 - **CLI dashboard** — terminal-based scanner with keyboard nav (original tool, still works)
-- **400+ tests passing** across 17 test files (core `src/` engine). All three tsconfigs typecheck clean via `npm run typecheck`. Server and web don't have their own test suites yet.
+- **400+ tests passing** across 17 test files (core `src/` engine). All three tsconfigs typecheck clean via `npm run typecheck`.
 
-### What Doesn't Work Yet
-- **AI briefs need an API key** — set `OPENAI_API_KEY=sk-...` in `.env`. Without it, the button returns a 503.
-- **Cross-platform price gap detection** — keyword matching produces false positives (e.g., "next James Bond actor" matching "next James Bond villain"). Threshold raised to 0.55 to suppress bad matches, but this means almost no gaps are surfaced. Needs semantic matching to be useful.
-- **Metaculus data not surfaced in web UI** — the backend has superforecaster integration (Phase 4) and a `MetaculusPrediction` component exists at `web/src/components/MetaculusPrediction.tsx`, but the detail page (`MarketDetailPage.tsx`) never renders it. The server market detail route doesn't attach Metaculus data to the response yet either.
-- **No user accounts, no saved watchlists** — everything is session-based
-- **No news context** — research briefs synthesize from market data only, not external news
-- **Kalshi pagination** — events endpoint is capped at `limit=100` with no cursor pagination implemented yet. Event-detail requests are already batched in parallel (groups of 10 via `Promise.allSettled`), so the bottleneck is the 100-event cap, not sequential fetching.
+### Known Limitations
+- **AI briefs need an API key** — set `XAI_API_KEY` (free at console.x.ai) or `OPENAI_API_KEY` in `.env`.
+- **Metaculus matching is best-effort** — uses keyword search + title similarity. Won't find matches for all markets.
+- **Kalshi pagination** — events endpoint capped at `limit=100`, no cursor pagination. Batched detail fetches (groups of 10) but can't fetch beyond 100 events.
+- **No user accounts** — saved markets and calibration data are local (localStorage and SQLite respectively).
 
 ## Architecture
 

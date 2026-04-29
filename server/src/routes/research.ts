@@ -6,6 +6,7 @@ import { KalshiClient } from '../../../src/services/kalshi.js';
 import { getRecentMatches, getLatestSnapshot, getSettlementComparison, getMarketHistory } from '../../../src/database/queries.js';
 import { SimpleCache } from '../cache.js';
 import { buildResearchPrompt } from '../prompts/research.js';
+import { findMetaculusMatch } from './markets.js';
 import type { Market } from '../../../src/types/market.js';
 
 const polyClient = new PolymarketClient();
@@ -126,6 +127,15 @@ researchRoutes.get('/markets/:id/research', async (c) => {
     newsHeadlines = await fetchNewsContext(market.question);
   }
 
+  // Metaculus superforecaster data (best-effort)
+  let metaculus: { title: string; prediction: number; divergence: number } | undefined;
+  try {
+    const match = await findMetaculusMatch(market);
+    if (match) {
+      metaculus = { title: match.title, prediction: match.prediction, divergence: match.divergence };
+    }
+  } catch { /* best-effort */ }
+
   // Build prompt with all available context
   const { system, user } = buildResearchPrompt({
     market,
@@ -140,6 +150,7 @@ researchRoutes.get('/markets/:id/research', async (c) => {
     priceHistory: priceHistory as unknown as { timestamp: number; data: { prices: Record<string, number> } }[],
     newsHeadlines: newsHeadlines.length > 0 ? newsHeadlines : undefined,
     xPosts: xPosts.length > 0 ? xPosts : undefined,
+    metaculus,
   });
 
   // Stream response

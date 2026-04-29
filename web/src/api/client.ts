@@ -32,6 +32,7 @@ export interface MarketDetailResponse {
     prediction: number;
     marketPrice: number;
     divergence: number;
+    confidence: number;
   };
 }
 
@@ -79,45 +80,27 @@ export async function fetchMarketDetail(
   return res.json();
 }
 
-export interface ScanResult {
-  opportunities: LiveOpportunity[];
-  cached: boolean;
-  detectedAt: number;
-  stats?: {
-    totalDetected: number;
-    totalScored: number;
-    errors: number;
-    detectors: Record<string, number>;
-  };
-}
-
-export interface LiveOpportunity {
+export interface WatchlistItem {
   id: string;
   type: string;
   platform: string;
   marketId: string;
   marketQuestion: string;
-  grossEdge: number;
-  netEdge: number;
-  detectorConfidence: number;
-  matchConfidence?: number;
-  minLiquidity: number;
-  detectedAt: number;
+  yesPrice: number;
+  volume: number;
+  liquidity: number;
   closeDate?: string;
-  score: number;
-  scoreBreakdown: {
-    edgeScore: number;
-    confidenceScore: number;
-    liquidityScore: number;
-    timeScore: number;
-    profitScore: number;
-  };
-  positionSize: number;
-  positionPercent: number;
-  details?: Record<string, unknown>;
+  insight: string;
+  category?: string;
 }
 
-export async function scanForEdges(type?: string): Promise<ScanResult> {
+export interface WatchlistResult {
+  opportunities: WatchlistItem[];
+  cached: boolean;
+  stats?: Record<string, number>;
+}
+
+export async function scanForEdges(type?: string): Promise<WatchlistResult> {
   const qs = new URLSearchParams();
   if (type) qs.set('type', type);
 

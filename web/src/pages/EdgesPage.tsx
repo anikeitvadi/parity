@@ -1,21 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { scanForEdges, type ScanResult } from '../api/client.js';
+import { scanForEdges, type WatchlistItem, type WatchlistResult } from '../api/client.js';
 import { PriceBar } from '../components/PriceBar.js';
 
-interface WatchlistItem {
-  id: string;
-  type: string;
-  platform: string;
-  marketId: string;
-  marketQuestion: string;
-  yesPrice: number;
-  volume: number;
-  liquidity: number;
-  closeDate?: string;
-  insight: string;
-  category?: string;
-}
+// Re-export is just for the HomePage import — WatchlistItem comes from client.ts now
+export type { WatchlistItem };
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
   toss_up: {
@@ -55,10 +44,7 @@ export function EdgesPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await scanForEdges(typeFilter || undefined) as unknown as {
-        opportunities: WatchlistItem[];
-        cached: boolean;
-      };
+      const data = await scanForEdges(typeFilter || undefined);
       setItems(data.opportunities);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
