@@ -70,7 +70,14 @@ app.get('/api/status', (c) => {
   });
 });
 
-// Initialize database and start server
+// Initialize database — use demo.db as seed if markets.db doesn't exist
+import { existsSync, copyFileSync } from 'fs';
+
+if (!existsSync('markets.db') && existsSync('demo.db')) {
+  console.log('First run: seeding from demo.db');
+  copyFileSync('demo.db', 'markets.db');
+}
+
 initDatabase();
 
 const port = parseInt(process.env.PORT || '3001', 10);

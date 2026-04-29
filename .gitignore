@@ -6,8 +6,9 @@ dist/
 dist-web/
 dist-server/
 
-# SQLite databases
+# SQLite databases (except demo seed)
 *.db
+!demo.db
 *.db-shm
 *.db-wal
 

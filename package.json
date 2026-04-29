@@ -17,7 +17,8 @@
     "dev:web": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build:web": "vite build --config web/vite.config.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p server/tsconfig.json && tsc --noEmit -p web/tsconfig.json",
-    "check": "npm run typecheck && npm run build:web && npm run test:run"
+    "check": "npm run typecheck && npm run build:web && npm run test:run",
+    "seed": "tsx scripts/seed-demo.ts"
   },
   "keywords": [
     "prediction-markets",
