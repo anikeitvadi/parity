@@ -30,6 +30,7 @@
     "test": "tests"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.5",
     "@ethersproject/wallet": "^5.8.0",
     "@hono/node-server": "^1.19.13",
     "@inkjs/ui": "^2.0.0",
