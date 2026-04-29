@@ -11,9 +11,9 @@ cp .env.example .env    # works out of the box — no API keys needed
 npm run dev:web          # → http://localhost:5173
 ```
 
-Ships with a seeded `demo.db` — the app has real market data, sample forecasts, and calibration data on first run. No API keys required to browse.
+No API keys required to browse markets — Polymarket and Kalshi data is public. For AI research briefs, add `OPENAI_API_KEY` or `XAI_API_KEY` (free credits at console.x.ai) to `.env`.
 
-For AI research briefs, add `OPENAI_API_KEY` or `XAI_API_KEY` (free credits at console.x.ai) to `.env`.
+To seed the database with sample data: `npm run seed`
 
 ## Features
 
