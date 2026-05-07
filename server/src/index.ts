@@ -2,7 +2,9 @@ import 'dotenv/config';
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { serve } from '@hono/node-server';
+import { existsSync } from 'fs';
 import { initDatabase, getDatabase } from '../../src/database/schema.js';
 import { marketRoutes, getMarketCounts } from './routes/markets.js';
 import { opportunityRoutes } from './routes/opportunities.js';
@@ -69,6 +71,16 @@ app.get('/api/status', (c) => {
     metaculus: { available: hasMetaculus },
   });
 });
+
+// In production, serve the built frontend from dist-web/
+if (existsSync('dist-web')) {
+  app.use('/*', serveStatic({ root: './dist-web' }));
+  // SPA fallback — serve index.html for non-API routes
+  app.get('*', (c) => {
+    if (c.req.path.startsWith('/api')) return c.notFound();
+    return c.html(require('fs').readFileSync('./dist-web/index.html', 'utf-8'));
+  });
+}
 
 // Initialize database
 initDatabase();

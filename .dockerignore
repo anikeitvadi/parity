@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-web
+dist-server
+*.db
+*.db-shm
+*.db-wal
+.claude
+.env
+.git

@@ -95,6 +95,30 @@ Optional keys for extra features:
 - `POLYMARKET_PRIVATE_KEY` — order book access (not needed for market data)
 - `KALSHI_API_KEY` / `KALSHI_API_SECRET` — not needed for market reads
 
+## Why This Is Technically Interesting
+
+**Cross-platform data normalization** — Polymarket and Kalshi structure their data completely differently (on-chain CLOB vs regulated REST API, different field names, different price formats). The system normalizes both into a unified `Market` type with Zod validation.
+
+**Semantic matching with sqlite-vec** — keyword matching produced false positives ("next James Bond actor" matching "James Bond villain"). Replaced with vector embeddings (OpenAI text-embedding-3-small) stored in sqlite-vec, doing cosine similarity search at 0.85 threshold. Runs inside the existing SQLite database — no external vector DB infrastructure.
+
+**Streaming RAG pipeline** — research briefs aren't just LLM completions. The server fetches news context (DuckDuckGo), Metaculus superforecaster data, cross-platform pricing, and price history, then constructs a structured prompt and streams the response via SSE. The frontend renders markdown as tokens arrive.
+
+**Dual AI provider** — supports both OpenAI and xAI/Grok with automatic fallback. The xAI path includes native X/Twitter search for real-time social sentiment. Same OpenAI SDK, different base URL.
+
+**Calibration scoring** — implements the Brier score (proper scoring rule from decision science) to track user prediction accuracy. Shows calibration curves that reveal systematic overconfidence or underconfidence by probability bucket.
+
+**Canvas data visualization** — the home page renders live market data on a full-viewport canvas with spring physics. Text reacts to cursor position, has particle trails, and is clickable (navigates to market detail). Built with requestAnimationFrame and manual hit detection.
+
+## Tradeoffs and Next Steps
+
+**SQLite** — chose embedded SQLite over Postgres for zero-infrastructure setup. Right choice for a single-server portfolio project; would swap to Postgres/Turso for multi-user deployment.
+
+**No auth** — saved markets use localStorage, forecasts use SQLite. No user accounts. Would add auth (OAuth or JWT) if this became a real product.
+
+**Metaculus matching is best-effort** — uses keyword search + title similarity. Doesn't find matches for all markets. Could improve with embedding-based matching (same as cross-platform).
+
+**Not yet built** — on-chain wallet profiling (smart money vs retail), autonomous news alerts, backtesting against historical data, and mobile-optimized UI.
+
 ## License
 
 ISC
