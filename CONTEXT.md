@@ -172,10 +172,10 @@ These were identified in an earlier audit and fixed:
 - [x] Server type error fixed in `research.ts` (MarketSnapshot data cast)
 
 ### Still Open from Audit
-- [ ] OpportunityTable score coloring: `ScoreIndicator` component exists but Ink `Select` only takes string labels — can't color individual rows without replacing the component
-- [ ] Settlement criteria always shows "No criteria available" on detail page — `OpportunityDetail` only passes `comparison`, not platform-specific criteria
+- [ ] CLI OpportunityTable score coloring: `ScoreIndicator` exists but Ink `Select` only takes string labels
+- [ ] CLI Settlement criteria always shows "No criteria available"
 - [ ] No screenshots/GIF in README yet
-- [ ] Metaculus component exists (`web/src/components/MetaculusPrediction.tsx`) but not wired into detail page or server response
+- [ ] Research brief source badges are inferred on the frontend, not based on what the server actually fetched
 
 ---
 

@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 interface SystemStatus {
   api: { status: string };
   markets: {
-    polymarket: { count: number; cached: boolean; fetchTime?: number };
-    kalshi: { count: number; cached: boolean; fetchTime?: number };
+    polymarket: { count: number };
+    kalshi: { count: number };
   };
   database: {
     snapshots: number;
@@ -13,6 +13,13 @@ interface SystemStatus {
     forecasts: number;
   };
   embeddings: { count: number; hasApiKey: boolean };
+  ai?: {
+    provider: string;
+    hasOpenAI: boolean;
+    hasXAI: boolean;
+    hasXSearch: boolean;
+  };
+  metaculus?: { available: boolean };
 }
 
 export function StatusPage() {
@@ -59,16 +66,20 @@ export function StatusPage() {
           <PipelineNode label="Web UI" status="ok" detail="localhost:5173" />
         </div>
         <div className="flex items-center gap-2 text-sm mt-4 flex-wrap">
-          <PipelineNode label="Embeddings" status={status.embeddings.hasApiKey ? 'ok' : 'off'} detail={status.embeddings.hasApiKey ? `${status.embeddings.count} stored` : 'No API key'} />
+          <PipelineNode label="Embeddings" status={status.ai?.hasOpenAI ? 'ok' : 'off'} detail={status.ai?.hasOpenAI ? `${status.embeddings.count} stored` : 'Needs OPENAI_API_KEY'} />
           <Arrow />
-          <PipelineNode label="Semantic Matcher" status={status.embeddings.hasApiKey ? 'ok' : 'off'} detail="Cross-platform" />
+          <PipelineNode label="Semantic Matcher" status={status.ai?.hasOpenAI ? 'ok' : 'off'} detail="Cross-platform" />
         </div>
         <div className="flex items-center gap-2 text-sm mt-4 flex-wrap">
-          <PipelineNode label="OpenAI GPT-4o" status={status.embeddings.hasApiKey ? 'ok' : 'off'} detail={status.embeddings.hasApiKey ? 'Research briefs' : 'No API key'} />
+          <PipelineNode
+            label={status.ai?.provider === 'xai' ? 'xAI Grok' : 'OpenAI GPT-4o'}
+            status={status.ai?.provider !== 'none' ? 'ok' : 'off'}
+            detail={status.ai?.provider !== 'none' ? `Research briefs (${status.ai?.provider})` : 'No API key'}
+          />
           <Arrow />
-          <PipelineNode label="News Search" status="ok" detail="DuckDuckGo" />
+          <PipelineNode label="News Search" status="ok" detail={status.ai?.hasXSearch ? 'X/Twitter + DDG' : 'DuckDuckGo'} />
           <Arrow />
-          <PipelineNode label="AI Brief" status={status.embeddings.hasApiKey ? 'ok' : 'off'} detail="SSE streaming" />
+          <PipelineNode label="AI Brief" status={status.ai?.provider !== 'none' ? 'ok' : 'off'} detail="SSE streaming" />
         </div>
       </div>
 
@@ -84,11 +95,11 @@ export function StatusPage() {
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 mb-6">
         <h2 className="text-sm font-semibold text-gray-400 mb-3">Configuration</h2>
         <div className="space-y-2 text-sm">
-          <ConfigRow label="OpenAI API Key" active={status.embeddings.hasApiKey} desc="Enables AI research briefs + semantic matching" />
+          <ConfigRow label="xAI / Grok" active={!!status.ai?.hasXAI} desc="Research briefs + X/Twitter search (free at console.x.ai)" />
+          <ConfigRow label="OpenAI" active={!!status.ai?.hasOpenAI} desc="Research briefs + embeddings for semantic matching" />
           <ConfigRow label="Polymarket Data" active={status.markets.polymarket.count > 0} desc="Public Gamma API (no key needed)" />
           <ConfigRow label="Kalshi Data" active={status.markets.kalshi.count > 0} desc="Public Events API (no key needed)" />
-          <ConfigRow label="Metaculus" active={true} desc="Public search API (no key needed)" />
-          <ConfigRow label="Background Scheduler" active={false} desc="Run 'npm start' to enable periodic data collection" />
+          <ConfigRow label="Metaculus" active={!!status.metaculus?.available} desc="Public search API (no key needed)" />
         </div>
       </div>
 

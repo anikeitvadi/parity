@@ -101,7 +101,7 @@ Optional keys for extra features:
 
 **Semantic matching with sqlite-vec** — keyword matching produced false positives ("next James Bond actor" matching "James Bond villain"). Replaced with vector embeddings (OpenAI text-embedding-3-small) stored in sqlite-vec, doing cosine similarity search at 0.85 threshold. Runs inside the existing SQLite database — no external vector DB infrastructure.
 
-**Streaming RAG pipeline** — research briefs aren't just LLM completions. The server fetches news context (DuckDuckGo), Metaculus superforecaster data, cross-platform pricing, and price history, then constructs a structured prompt and streams the response via SSE. The frontend renders markdown as tokens arrive.
+**Enriched streaming briefs** — research briefs aren't just LLM completions. The server fetches news headlines (DuckDuckGo), Metaculus superforecaster data, cross-platform pricing, and price history, then constructs a structured prompt and streams the response via SSE. The frontend renders markdown as tokens arrive. Note: news context is headline-level (no full article retrieval or source URLs yet).
 
 **Dual AI provider** — supports both OpenAI and xAI/Grok with automatic fallback. The xAI path includes native X/Twitter search for real-time social sentiment. Same OpenAI SDK, different base URL.
 

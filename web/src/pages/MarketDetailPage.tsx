@@ -13,6 +13,7 @@ export function MarketDetailPage() {
   const [data, setData] = useState<MarketDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { save, remove, isSaved: checkSaved } = useSavedMarkets();
 
   useEffect(() => {
     if (!platform || !id) return;
@@ -57,8 +58,7 @@ export function MarketDetailPage() {
   }
 
   const { market, crossPlatform, settlement, priceHistory, metaculus } = data;
-  const { save, remove, isSaved: checkSaved } = useSavedMarkets();
-  const saved = platform && id ? checkSaved(id, platform) : false;
+  const saved = checkSaved(market.id, market.platform);
   const yesPrice =
     market.prices['Yes'] ?? market.prices['yes'] ?? Object.values(market.prices)[0] ?? 0.5;
 

@@ -227,7 +227,7 @@ opportunityRoutes.get('/scan', async (c) => {
           items.push({
             id: `gap-${match.polymarket.id}-${match.kalshi.id}`,
             type: 'price_gap',
-            platform: 'cross',
+            platform: 'polymarket',
             marketId: match.polymarket.id,
             marketQuestion: match.polymarket.question,
             yesPrice: polyYes,

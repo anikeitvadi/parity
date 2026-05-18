@@ -1,20 +1,20 @@
+FROM node:20-slim AS build
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npx vite build --config web/vite.config.ts
+
 FROM node:20-slim
 
 WORKDIR /app
-
-# Install dependencies
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
+COPY --from=build /app/dist-web ./dist-web
+COPY src/ ./src/
+COPY server/ ./server/
 
-# Copy source
-COPY . .
-
-# Build frontend
-RUN npx vite build --config web/vite.config.ts
-
-# Expose port
 ENV PORT=3001
 EXPOSE 3001
-
-# Start server (serves API + built frontend)
 CMD ["npx", "tsx", "server/src/index.ts"]
