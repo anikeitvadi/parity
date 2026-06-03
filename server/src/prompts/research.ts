@@ -75,7 +75,13 @@ export function buildResearchPrompt(ctx: ResearchContext): { system: string; use
   const hasMetaculus = !!ctx.metaculus;
   const hasCrossPlatform = !!ctx.crossPlatform?.matchedMarket;
 
-  const system = `You are an expert prediction market analyst. Provide concise, actionable research briefs that help traders make informed decisions. Be direct and specific. ${hasSocialContext ? 'Reference the provided social/news context when relevant.' : ''} If data is limited, say so.`;
+  const system = `You are a sharp prediction-market trader writing a decision brief for another trader who is ALREADY looking at the live odds, the price chart, and any forecaster/cross-platform signals. Do not restate those numbers or explain what the market is — add judgment they can act on.
+
+Rules:
+- Open with a verdict line: a directional call (Lean YES / Lean NO / Pass), your estimated fair-value probability, and the edge versus the current price in percentage points.
+- Commit to a fair-value number even under uncertainty. If the data is thin, say so and mark conviction Low — don't refuse to call it.
+- Be concrete. Name the specific events, players, numbers, or dynamics that decide this. Ban filler like "monitor the news", "pay attention to outcomes", or "stay updated".
+- Tight markdown: bold section labels, bullets over paragraphs, blank line between sections. Bold the key numbers.${hasSocialContext ? '\n- Use the provided news/social context only where it actually changes the read.' : ''}`;
 
   let userPrompt = `Analyze this prediction market and provide an actionable research brief.
 
@@ -142,28 +148,28 @@ export function buildResearchPrompt(ctx: ResearchContext): { system: string; use
     userPrompt += `\n\n## Recent Price History\n${trend.join('\n')}`;
   }
 
-  let section = 1;
-  userPrompt += `\n\nProvide:
-${section++}. **Context** — What this market is about (1 short paragraph)
-${section++}. **Key Factors** — 3-5 specific factors that could move this market`;
+  userPrompt += `\n\nWrite the brief in this exact markdown structure, under 250 words:
+
+**Verdict** — one line, e.g. \`Lean YES · Fair value ~58% · Edge +6pp · Conviction Med\` (use Pass if there's no edge).
+
+**Thesis** — 1–2 sentences on the core reason for the call.
+
+**Drivers** — 3–4 bullets naming the specific things that decide the outcome.
+
+**Bull / Bear** — one bullet each: the strongest reason Yes is cheap, the strongest reason No is cheap.
+
+**Catalysts** — concrete near-term events before close that would move the price, with rough timing.`;
 
   if (hasSocialContext) {
-    userPrompt += `\n${section++}. **Social & News Analysis** — What the ${hasXPosts ? 'X/Twitter posts' : 'news headlines'}${hasXPosts && hasNews ? ' and news' : ''} reveal about current sentiment and developments`;
+    userPrompt += `\n\n**Sentiment** — one line on what the ${hasXPosts ? 'X/Twitter posts' : 'news'}${hasXPosts && hasNews ? ' and news' : ''} actually signal (skip if they add nothing).`;
   }
 
-  userPrompt += `\n${section++}. **Bull Case** — Why Yes might be underpriced
-${section++}. **Bear Case** — Why No might be underpriced
-${section++}. **Risks** — Key uncertainties and what to watch for`;
-
-  if (hasMetaculus) {
-    userPrompt += `\n${section++}. **Forecaster Signal** — What the ${(ctx.metaculus!.divergence * 100).toFixed(0)}% divergence between superforecasters and the market might mean`;
+  if (hasMetaculus || hasCrossPlatform) {
+    const parts: string[] = [];
+    if (hasMetaculus) parts.push(`the ${(ctx.metaculus!.divergence * 100).toFixed(0)}pp superforecaster divergence`);
+    if (hasCrossPlatform) parts.push('the cross-platform price gap');
+    userPrompt += `\n\n**Signal read** — one line on whether ${parts.join(' and ')} is a real edge or noise.`;
   }
-
-  if (hasCrossPlatform) {
-    userPrompt += `\n${section++}. **Cross-Platform Signal** — What the price gap between platforms might indicate`;
-  }
-
-  userPrompt += `\n\nKeep it under 600 words. Be specific and actionable.`;
 
   return { system, user: userPrompt };
 }

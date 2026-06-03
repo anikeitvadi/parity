@@ -44,3 +44,7 @@ quick-test.mjs
 
 # Personal files
 *.pdf
+
+# Local-only working files (private job-search strategy, agent state)
+.claude/
+PORTFOLIO-STRATEGY.md

@@ -109,6 +109,29 @@ export async function scanForEdges(type?: string): Promise<WatchlistResult> {
   return res.json();
 }
 
+export interface FeedItem {
+  id: string;
+  platform: string;
+  marketId: string;
+  marketQuestion: string;
+  yesPrice: number;
+  volume: number;
+  liquidity: number;
+  closeDate?: string;
+  category?: string;
+  type: WatchlistItem['type'] | null;
+  signal: number | null;
+  divergence: number | null;
+  matchedPlatform?: string;
+  matchConfidence?: number;
+}
+
+export async function fetchFeed(): Promise<{ items: FeedItem[]; cached: boolean }> {
+  const res = await fetch(`${BASE}/opportunities/feed`);
+  if (!res.ok) throw new Error(`Feed failed: ${res.status}`);
+  return res.json();
+}
+
 export function streamResearch(
   platform: string,
   id: string,

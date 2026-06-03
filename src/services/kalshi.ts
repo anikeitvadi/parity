@@ -300,9 +300,11 @@ export class KalshiClient {
             if (market.status !== 'active' && market.status !== 'open') continue;
 
             const normalized = this.normalizeMarket(market);
-            // Use event title + category for cleaner display
+            // Use event title + category for cleaner display. For multi-outcome
+            // events each market.title just repeats the event question, so the
+            // actual option lives in yes_sub_title (e.g. the candidate name).
             normalized.question = event.mutually_exclusive && eventMarkets.length > 1
-              ? `${event.title} - ${market.title}`
+              ? `${event.title} — ${market.yes_sub_title || market.title}`
               : event.title + (event.sub_title ? ` (${event.sub_title})` : '');
             normalized.metadata = {
               ...normalized.metadata,
@@ -405,8 +407,14 @@ export class KalshiClient {
     const yesPrice = yesAsk && yesAsk > 0 ? yesAsk : lastPrice && lastPrice > 0 ? lastPrice : 0.5;
     const noPrice = 1 - yesPrice;
 
-    const volume24h = parsePrice(market.volume_24h_fp) || parsePrice(market.volume_fp) || 0;
-    const liquidity = parsePrice(market.liquidity_dollars) || parsePrice(market.open_interest_fp) || 0;
+    // Kalshi reports volume/open-interest in *contracts*, not dollars, while
+    // Polymarket reports dollar volume. Convert to approximate USD turnover
+    // (contracts × price) so the two platforms sort on the same scale. Use
+    // lifetime volume_fp — volume_24h_fp is usually 0 for established markets.
+    const volumeContracts = parsePrice(market.volume_fp) || 0;
+    const volume = volumeContracts * yesPrice;
+    const oiContracts = parsePrice(market.open_interest_fp) || 0;
+    const liquidity = (parsePrice(market.liquidity_dollars) || 0) || oiContracts * yesPrice;
 
     return {
       id: market.ticker,
@@ -418,7 +426,7 @@ export class KalshiClient {
         No: noPrice,
       },
       closeDate: market.close_time,
-      volume: volume24h,
+      volume,
       liquidity,
       metadata: {
         eventTicker: market.event_ticker,

@@ -24,9 +24,27 @@ interface WatchlistItem {
   category?: string;
 }
 
+interface FeedItem {
+  id: string;
+  platform: string;
+  marketId: string;
+  marketQuestion: string;
+  yesPrice: number;
+  volume: number;
+  liquidity: number;
+  closeDate?: string;
+  category?: string;
+  type: WatchlistItem['type'] | null;
+  signal: number | null;
+  divergence: number | null;
+  matchedPlatform?: string;
+  matchConfidence?: number;
+}
+
 const polyClient = new PolymarketClient();
 const kalshiClient = new KalshiClient();
 const watchlistCache = new SimpleCache<WatchlistItem[]>(120);
+const feedCache = new SimpleCache<FeedItem[]>(120);
 const marketCache = new SimpleCache<Market[]>(60);
 
 export const opportunityRoutes = new Hono();
@@ -267,6 +285,75 @@ opportunityRoutes.get('/scan', async (c) => {
   }
 });
 
+// GET /api/opportunities/feed — Full market universe, each annotated with
+// cross-platform divergence (computed server-side) and an opportunity tag.
+// This is the data source for the research list: browse everything, sorted
+// by how far the price sits from the cross-platform signal.
+opportunityRoutes.get('/feed', async (c) => {
+  const cached = feedCache.get('latest');
+  if (cached) return c.json({ items: cached, cached: true });
+
+  try {
+    let polyMarkets = marketCache.get('polymarket');
+    if (!polyMarkets) {
+      polyMarkets = await polyClient.getActiveMarkets();
+      marketCache.set('polymarket', polyMarkets);
+    }
+    let kalshiMarkets = marketCache.get('kalshi');
+    if (!kalshiMarkets) {
+      kalshiMarkets = await kalshiClient.getActiveMarkets();
+      marketCache.set('kalshi', kalshiMarkets);
+    }
+
+    // Build a cross-platform divergence map keyed by `${platform}:${id}`.
+    // Reuses the precomputed embeddings — findSemanticMatches is pure
+    // in-memory cosine similarity, no API calls.
+    const divergence = new Map<string, { signal: number; matchedPlatform: string; confidence: number }>();
+    if (process.env.OPENAI_API_KEY && polyMarkets.length > 0 && kalshiMarkets.length > 0) {
+      try {
+        const db = getDatabase();
+        initEmbeddingTable(db);
+        await embedMarkets(db, [...polyMarkets, ...kalshiMarkets]);
+        for (const match of findSemanticMatches(db, polyMarkets, kalshiMarkets)) {
+          const polyYes = getYesPrice(match.polymarket);
+          const kalshiYes = getYesPrice(match.kalshi);
+          divergence.set(`polymarket:${match.polymarket.id}`, { signal: kalshiYes, matchedPlatform: 'kalshi', confidence: match.similarity });
+          divergence.set(`kalshi:${match.kalshi.id}`, { signal: polyYes, matchedPlatform: 'polymarket', confidence: match.similarity });
+        }
+      } catch (err) {
+        matcherLogger.warn({ err }, 'Feed divergence matching failed');
+      }
+    }
+
+    const items: FeedItem[] = [...polyMarkets, ...kalshiMarkets].map((m) => {
+      const yesPrice = getYesPrice(m);
+      const div = divergence.get(`${m.platform}:${m.id}`);
+      const signal = div ? div.signal : null;
+      return {
+        id: `${m.platform}:${m.id}`,
+        platform: m.platform,
+        marketId: m.id,
+        marketQuestion: m.question,
+        yesPrice,
+        volume: m.volume || 0,
+        liquidity: m.liquidity || 0,
+        closeDate: m.closeDate,
+        category: (m.metadata as Record<string, unknown>)?.category as string,
+        type: classifyMarket(m, yesPrice, signal),
+        signal,
+        divergence: signal != null ? signal - yesPrice : null,
+        matchedPlatform: div?.matchedPlatform,
+        matchConfidence: div?.confidence,
+      };
+    });
+
+    feedCache.set('latest', items);
+    return c.json({ items, cached: false });
+  } catch (err) {
+    return c.json({ error: err instanceof Error ? err.message : 'Feed failed', items: [] }, 500);
+  }
+});
+
 // GET /api/opportunities/stats
 opportunityRoutes.get('/stats', (c) => {
   const stats = getOpportunityStats();
@@ -275,4 +362,23 @@ opportunityRoutes.get('/stats', (c) => {
 
 function getYesPrice(market: Market): number {
   return market.prices['Yes'] ?? market.prices['yes'] ?? Object.values(market.prices)[0] ?? 0.5;
+}
+
+/**
+ * Assign a single opportunity tag to a market using the same thresholds as
+ * the /scan buckets. Returns null if the market isn't notable. Priority:
+ * a real cross-platform gap wins, then time pressure, then price band.
+ */
+function classifyMarket(m: Market, yesPrice: number, signal: number | null): WatchlistItem['type'] | null {
+  if (signal != null && Math.abs(signal - yesPrice) >= 0.03) return 'price_gap';
+
+  const vol = m.volume || 0;
+  if (m.closeDate) {
+    const daysLeft = (new Date(m.closeDate).getTime() - Date.now()) / 86400000;
+    if (daysLeft > 0 && daysLeft <= 7 && vol > 500) return 'closing_soon';
+  }
+  if (yesPrice >= 0.35 && yesPrice <= 0.65 && vol > 500) return 'toss_up';
+  if (((yesPrice >= 0.85 && yesPrice < 1) || (yesPrice > 0 && yesPrice <= 0.15)) && vol > 2000) return 'high_conviction';
+  if (((yesPrice >= 0.10 && yesPrice < 0.25) || (yesPrice > 0.75 && yesPrice <= 0.90)) && vol > 1000) return 'contrarian';
+  return null;
 }
