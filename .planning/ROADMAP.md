@@ -2,7 +2,15 @@
 
 **Created:** 2026-01-29
 **Depth:** Standard
-**Total Phases:** 6
+**Total Phases:** 6 (Phases 5–6 abandoned after pivot — see below)
+
+> **⚠ PIVOT (2026-06): the edge-finding premise was killed by live data.** This roadmap was
+> built around finding profitable mispricings. The live scanner found **0 real cross-platform
+> gaps across 314 markets** — the markets are efficient. Phases 1–4 shipped and remain the
+> technical foundation, but **Phases 5 (Longshot Bias) and 6 (Whale Tracking) are abandoned**:
+> they double down on the dead "beat the market" premise. The project reframed around
+> research synthesis, contract-risk awareness, and forecasting calibration. See `README.md`,
+> `HANDOFF.md`, `docs/PORTFOLIO.md`, and `PORTFOLIO-STRATEGY.md` for the current direction.
 
 ## Overview
 
@@ -151,8 +159,13 @@ Plans:
 
 ---
 
-### Phase 5: Longshot Bias Detection
-**Goal:** Identify systematically mispriced longshots and favorites using historical calibration data
+### Phase 5: Longshot Bias Detection — ❌ ABANDONED (pivot)
+**Abandoned 2026-06:** another edge-finding detector ("systematically mispriced longshots"),
+which is the premise live data invalidated. Not built. The calibration *tracking* idea
+(TRCK-* below) survived the pivot — but reframed as a personal forecasting-accuracy tool, not
+a mispricing signal. See `HANDOFF.md`.
+
+**Goal (original, not pursued):** Identify systematically mispriced longshots and favorites using historical calibration data
 
 **Dependencies:** Phase 2 (scoring and alerts), Phase 4 (Metaculus data for calibration)
 
@@ -172,8 +185,12 @@ Plans:
 
 ---
 
-### Phase 6: Whale Tracking & Production Hardening
-**Goal:** Add on-chain whale tracking and optimize system for speed, reliability, and accuracy
+### Phase 6: Whale Tracking & Production Hardening — ❌ ABANDONED (pivot)
+**Abandoned 2026-06:** on-chain whale tracking is more edge-hunting. Listed as a possible
+*future* "what I'd build next" item in the portfolio narrative (smart-money vs retail), but
+not part of the current scope. Not built.
+
+**Goal (original, not pursued):** Add on-chain whale tracking and optimize system for speed, reliability, and accuracy
 
 **Dependencies:** Phase 5 (full edge detection suite operational)
 
@@ -198,10 +215,13 @@ Plans:
 | 2 - Scoring Engine & CLI Dashboard | Complete | 14 | 100% |
 | 3 - Cross-Platform Arbitrage Enablement | Complete | 2 | 100% |
 | 4 - Metaculus Integration | Complete | 2 | 100% |
-| 5 - Longshot Bias Detection | Pending | 5 | 0% |
-| 6 - Whale Tracking & Production Hardening | Pending | 3 | 0% |
+| 5 - Longshot Bias Detection | ❌ Abandoned (pivot) | 5 | — |
+| 6 - Whale Tracking & Production Hardening | ❌ Abandoned (pivot) | 3 | — |
 
-**Overall:** 32/40 requirements complete (80%)
+**Milestone 1 (edge scanner): closed.** Phases 1–4 complete (32 requirements shipped) and
+serve as the technical foundation. Phases 5–6 abandoned after the pivot. The project's next
+work is portfolio packaging (narrative, docs, proof artifacts), not more roadmap phases —
+tracked outside this file in `HANDOFF.md` / `PORTFOLIO-STRATEGY.md`.
 
 ---
 
@@ -225,4 +245,4 @@ Plans:
 
 ---
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-06-03 (pivot: Phases 5–6 abandoned, milestone 1 closed)*

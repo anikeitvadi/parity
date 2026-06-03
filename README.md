@@ -1,123 +1,101 @@
 # Prediction Market Scanner
 
-Research tool for prediction markets. Aggregates live data from Polymarket and Kalshi, generates AI-powered research briefs with real-time news context, tracks superforecaster signals, and helps you calibrate your own prediction accuracy.
+**A full-stack AI research terminal for prediction markets — and a case study in letting live data kill my original premise.**
 
-## Quick Start
+I set out to find cross-platform mispricings between Polymarket and Kalshi. Then the live scanner found **0 real gaps across 314 markets.** Markets are efficient; "beat the crowd" fights physics for retail. So I killed the premise and reframed the product around honest value: research synthesis, contract-risk awareness, and forecasting calibration.
+
+The pivot is the point. This README is the story of building under real market constraints and changing course when the data said to.
+
+---
+
+## The case study
+
+**1. Problem.** Prediction markets (Polymarket, Kalshi, Metaculus) hold a huge amount of dispersed, real-time information. Using them well is work most people skip: checking the same event across platforms, reading the news behind a price, judging whether the crowd is informed or herding, and separating signal from noise.
+
+**2. Hypothesis.** The obvious play: *find cross-platform mispricings.* The same real-world event is often listed on both Polymarket and Kalshi — if they price it differently, that gap is an edge. Build a scanner that surfaces those gaps.
+
+**3. What the data showed.** I built the live scanner across both platforms — semantic event matching, divergence computation, the works. Across **314 live markets it found 0 real cross-platform gaps.** Not a bug: the markets are efficient enough that the price already reflects available information. The original edge thesis didn't survive contact with live data.
+
+**4. The pivot.** Instead of pretending an edge exists, I reframed the product around what *is* genuinely useful when you can't beat the price:
+   - **Research synthesis** — pull the dispersed context (news, cross-platform pricing, superforecaster signals) into one AI brief, so you spend a minute instead of an hour.
+   - **Contract-risk awareness** — surface settlement rules and stale/odd markets so you don't misread what you're actually betting on.
+   - **Forecasting calibration** — log your own probability calls, track them against outcomes, and see where you're systematically over- or under-confident.
+
+**5. What I'd build next.** Evidence-grounded briefs (real web retrieval and base rates instead of LLM "vibes"), embedding-based Metaculus matching, on-chain "smart money" wallet profiling, and strategy backtesting against the historical snapshot data.
+
+---
+
+## What it does today
+
+A single-screen research terminal (it opens straight into the workspace):
+
+- **Market list** — the full universe of ~300+ markets across Polymarket + Kalshi in one place. Platform badge, platform/type filters, and sort by volume, divergence, or time-to-close. Quality-ranked, meme markets filtered out.
+- **Decision pane** — select any market to get: current odds + 7-day price history, divergence vs cross-platform and Metaculus signals, settlement-risk notes, an on-demand **AI research brief** (streamed, decision-first: verdict, fair-value estimate, edge, bull/bear, catalysts), and a **"your call"** slider with half-Kelly sizing.
+- **Track record** — log forecasts, resolve them when markets settle, and read a plain-language calibration chart: *when you say 70%, does it happen 70% of the time?* (Brier score — a proper scoring rule from decision science — is shown as a footnote; lower is better, 0.25 = a coin flip.)
+- **Consensus gap map** — a scatter of market price vs external signal; dots far from the diagonal are where the crowd and the signal disagree.
+
+## Quick start
 
 ```bash
 git clone <repo-url> && cd prediction-market-scanner
 npm install
-cp .env.example .env    # works out of the box — no API keys needed
-npm run dev:web          # → http://localhost:5173
+cp .env.example .env     # works out of the box — no API keys needed to browse
+npm run dev:web          # API server + Vite frontend → http://localhost:5173
 ```
 
-No API keys required to browse markets — Polymarket and Kalshi data is public. For AI research briefs, add `OPENAI_API_KEY` or `XAI_API_KEY` (free credits at console.x.ai) to `.env`.
-
-To seed the database with sample data: `npm run seed`
-
-## Features
-
-**Market Browser** — search and filter across Polymarket + Kalshi with category tags, quality-ranked listings, and meme market filtering.
-
-**AI Research Briefs** — click "Generate" on any market for a streamed GPT-4o analysis. Pulls real-time news context via DuckDuckGo, Metaculus superforecaster data, and cross-platform pricing into a structured brief with bull/bear case, risks, and key factors. Confidence indicator shows how many data sources informed the analysis.
-
-**Watchlist** — auto-curated picks in 4 categories: toss-ups (50/50 markets), closing soon, high conviction, and contrarian bets. Live scan across both platforms.
-
-**Calibration Coach** — log your forecasts on any market, resolve them when they settle, track Brier scores over time. Calibration curve shows where you're overconfident vs underconfident, broken down by category.
-
-**Saved Markets** — bookmark markets, add notes, track your thesis. Stored in browser localStorage.
-
-**Semantic Matching** — sqlite-vec vector embeddings detect when the same event is listed on both platforms, replacing keyword matching that produced false positives.
-
-**Interactive Home Page** — full-viewport canvas visualization with live market data. Text reacts to cursor (physics-based repulsion), clickable (navigates to market), hover tooltips, scroll-speed boost.
-
-**System Status** — pipeline health dashboard showing data freshness, API status, and configuration.
+Market data is public (Polymarket Gamma + Kalshi events APIs), so browsing needs no keys. For AI briefs, add `OPENAI_API_KEY` or `XAI_API_KEY` (free credits at console.x.ai) to `.env`. For semantic cross-platform matching, an `OPENAI_API_KEY` powers the embeddings. Seed sample data with `npm run seed`.
 
 ## Architecture
 
 ```
-web/                    React 19 + Vite + Tailwind v4
-├── pages/              Home, Markets, Watchlist, Calibration, Saved, Status
-├── components/         PriceBar, MarketCard, ResearchBrief, PretextHero, etc.
-└── api/client.ts       fetch + SSE streaming
+web/                         React 19 + Vite + Tailwind v4 — single-screen "Scanner"
+├── pages/TerminalPage.tsx       list + decision-pane orchestration, filters, sort
+├── components/OpportunityQueue  the market list (left)
+├── components/DecisionPane      evidence + brief + your-call, or dashboard when idle
+├── components/EvidenceBoard     odds, 7d history sparkline, divergence, settlement risk
+├── components/ConsensusGapMap   market-price vs signal scatter
+└── api/client.ts                fetch() + SSE for streamed briefs
 
-server/                 Hono API (port 3001)
-├── routes/markets      List + detail with enrichments (Metaculus, cross-platform)
-├── routes/opportunities Live watchlist scan + DB queries
-├── routes/research     SSE streaming AI briefs (OpenAI or xAI/Grok)
-├── routes/calibration  Forecast logging + Brier score tracking
-└── prompts/research    Prompt construction with news + social context
+server/                      Hono API (:3001), 60–120s TTL in-memory cache
+├── routes/opportunities.ts      /feed (full universe + server-side divergence + tags), /scan
+├── routes/markets.ts            /markets, /markets/:id (+ enrichments), /:id/research (SSE)
+├── routes/calibration.ts        forecast logging + resolution + Brier/calibration stats
+└── prompts/research.ts          decision-first brief prompt construction
 
-src/                    Core engine (shared by server + CLI + scheduler)
-├── services/           Polymarket, Kalshi, Metaculus, embedding, semantic-matcher
-├── detectors/          Cross-platform arb, Metaculus divergence, multi-outcome, correlated
-├── scoring/            Composite scorer (5 factors), Kelly sizing, Brier scores
-├── aggregator/         Detector orchestration + deduplication
-├── database/           SQLite + WAL (snapshots, matches, opportunities, forecasts, embeddings)
-├── jobs/               Bree scheduler (fetch 15m, detect 30m)
-└── config/             Zod env validation, feature flags
+src/                         Core engine (shared by server, CLI, scheduler)
+├── services/                    Polymarket, Kalshi, Metaculus clients; embeddings; semantic matcher
+├── detectors/ scoring/          edge detectors + composite scoring + Kelly sizing
+├── aggregator/ database/        orchestration + SQLite (WAL) snapshots/matches/forecasts
+├── jobs/ parsers/               Bree scheduler; settlement-rule extraction
+└── dashboard/                   original Ink terminal UI (CLI)
 ```
 
-## Tech Stack
+**Data flow:** external APIs → Zod-validated `Market` schema → SQLite snapshots → `/api/opportunities/feed` (universe + divergence) → React UI. Three TypeScript projects (`src/`, `server/`, `web/`) typecheck independently.
 
-| Layer | Tech |
-|-------|------|
-| Frontend | React 19, Vite 6, Tailwind CSS v4, React Router 7 |
-| API | Hono (ESM-native, SSE streaming) |
-| AI | OpenAI GPT-4o / xAI Grok (dual provider, streamed briefs) |
-| Matching | sqlite-vec (vector embeddings, cosine similarity) |
-| Data | SQLite + WAL mode, Zod validation |
-| Market APIs | Polymarket (Gamma + CLOB), Kalshi (public events), Metaculus |
-| CLI | Ink v6 + React 19 terminal UI |
-| Testing | Vitest (400+ tests), full typecheck across 3 tsconfigs |
-| Scheduling | Bree (worker threads) |
+## Technical highlights (the things worth asking me about)
+
+- **Integration / data normalization** — three completely different market APIs (Polymarket on-chain CLOB, Kalshi REST events, Metaculus posts) normalized into one Zod-validated `Market` type. Kalshi reports volume in *contracts* and Polymarket in *dollars*; reconciling units like that is most of the real work.
+- **Semantic event matching** — keyword matching produced false positives ("next James Bond actor" vs "next James Bond villain"). Replaced with `text-embedding-3-small` vectors in sqlite-vec and cosine similarity at a 0.85 threshold — no external vector DB.
+- **Streamed applied AI** — research briefs stream token-by-token over SSE, with a dual provider (xAI Grok preferred, OpenAI GPT-4o fallback) and prompt/context engineering that injects market data, news headlines, and cross-platform/forecaster signals.
+- **Decision-science scoring** — calibration uses the Brier score (a proper scoring rule), bucketed into a reliability curve.
+- **Verification** — `npm run check` runs all three tsconfigs + Vite build + 405 tests.
+
+## Honest limitations
+
+- **Cross-platform gaps are ~0** right now — markets are efficient. The divergence column is honest, not faked; it lights up only when a real gap exists.
+- **Briefs are synthesis, not retrieval-grounded research** yet — the next high-value step is real web retrieval + base rates instead of LLM reasoning over the prompt alone. News context is currently headline-level (no full-article retrieval or source URLs).
+- **Some markets are stale upstream** — e.g. a long-resolved event still listed `active` by the exchange. A close-date / zero-volume filter would clean this up.
+- **No accounts** — saved markets live in localStorage, calibration in local SQLite. SQLite (not Postgres) is the right call for a single-server portfolio project; I'd swap to Postgres/Turso for multi-user.
 
 ## Commands
 
 ```bash
-npm run dev:web        # Web app (API + frontend)
-npm run dashboard      # CLI scanner
-npm run check          # Typecheck + build + test (full verification)
-npm run typecheck      # All 3 tsconfigs
-npm run test:run       # 400+ tests
-npm run build          # Compile core engine
-npm run build:web      # Vite production build
-npm start              # Background scheduler (needs npm run build first)
+npm run dev:web      # API + web → localhost:5173
+npm run typecheck    # all 3 tsconfigs
+npm run test:run     # 405 core-engine tests
+npm run check        # typecheck + build + tests
+npm run dashboard -- --demo   # original CLI terminal UI
 ```
-
-## Configuration
-
-`.env.example` defaults to `DEMO_MODE=true` — everything works without API keys. Market data from Polymarket and Kalshi is public.
-
-Optional keys for extra features:
-- `OPENAI_API_KEY` — AI research briefs (GPT-4o)
-- `XAI_API_KEY` — preferred over OpenAI, free credits at console.x.ai, includes X/Twitter data
-- `POLYMARKET_PRIVATE_KEY` — order book access (not needed for market data)
-- `KALSHI_API_KEY` / `KALSHI_API_SECRET` — not needed for market reads
-
-## Why This Is Technically Interesting
-
-**Cross-platform data normalization** — Polymarket and Kalshi structure their data completely differently (on-chain CLOB vs regulated REST API, different field names, different price formats). The system normalizes both into a unified `Market` type with Zod validation.
-
-**Semantic matching with sqlite-vec** — keyword matching produced false positives ("next James Bond actor" matching "James Bond villain"). Replaced with vector embeddings (OpenAI text-embedding-3-small) stored in sqlite-vec, doing cosine similarity search at 0.85 threshold. Runs inside the existing SQLite database — no external vector DB infrastructure.
-
-**Enriched streaming briefs** — research briefs aren't just LLM completions. The server fetches news headlines (DuckDuckGo), Metaculus superforecaster data, cross-platform pricing, and price history, then constructs a structured prompt and streams the response via SSE. The frontend renders markdown as tokens arrive. Note: news context is headline-level (no full article retrieval or source URLs yet).
-
-**Dual AI provider** — supports both OpenAI and xAI/Grok with automatic fallback. The xAI path includes native X/Twitter search for real-time social sentiment. Same OpenAI SDK, different base URL.
-
-**Calibration scoring** — implements the Brier score (proper scoring rule from decision science) to track user prediction accuracy. Shows calibration curves that reveal systematic overconfidence or underconfidence by probability bucket.
-
-**Canvas data visualization** — the home page renders live market data on a full-viewport canvas with spring physics. Text reacts to cursor position, has particle trails, and is clickable (navigates to market detail). Built with requestAnimationFrame and manual hit detection.
-
-## Tradeoffs and Next Steps
-
-**SQLite** — chose embedded SQLite over Postgres for zero-infrastructure setup. Right choice for a single-server portfolio project; would swap to Postgres/Turso for multi-user deployment.
-
-**No auth** — saved markets use localStorage, forecasts use SQLite. No user accounts. Would add auth (OAuth or JWT) if this became a real product.
-
-**Metaculus matching is best-effort** — uses keyword search + title similarity. Doesn't find matches for all markets. Could improve with embedding-based matching (same as cross-platform).
-
-**Not yet built** — on-chain wallet profiling (smart money vs retail), autonomous news alerts, backtesting against historical data, and mobile-optimized UI.
 
 ## License
 
