@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-06-16T17:00:16.205Z",
+  "universe": {
+    "polymarket": 1500,
+    "kalshi": 719,
+    "total": 2219
+  },
+  "matching": {
+    "similarityThreshold": 0.85,
+    "matchedPairs": 7
+  },
+  "fees": {
+    "polymarket": 0.02,
+    "kalshi": 0.07,
+    "roundTrip": 0.09000000000000001
+  },
+  "gapDistribution": {
+    "medianGap": 0.0345,
+    "meanGap": 0.06264285714285714,
+    "p90Gap": 0.185,
+    "maxGap": 0.185
+  },
+  "actionable": {
+    "surfaced_3pp": 5,
+    "beatsFees_9pp": 2,
+    "meetsDetectorThreshold_19pp": 0
+  },
+  "pairs": [
+    {
+      "question": "Will Naftali Bennett be the next Prime Minister of Israel?",
+      "polymarketYes": 0.195,
+      "kalshiYes": 0.38,
+      "gap": 0.185,
+      "netAfterFees": 0.09499999999999999,
+      "similarity": 0.853606365072266,
+      "volume": 1624573.422689993
+    },
+    {
+      "question": "Will Gavin Newsom announce a Presidential run before 2027?",
+      "polymarketYes": 0.15,
+      "kalshiYes": 0.25,
+      "gap": 0.1,
+      "netAfterFees": 0.009999999999999995,
+      "similarity": 0.8580754330695061,
+      "volume": 53943.624599999974
+    },
+    {
+      "question": "Will Israel Katz be the next Prime Minister of Israel?",
+      "polymarketYes": 0.0075,
+      "kalshiYes": 0.071,
+      "gap": 0.0635,
+      "netAfterFees": 0,
+      "similarity": 0.8605051005834414,
+      "volume": 430253.81819400226
+    },
+    {
+      "question": "Will Itamar Ben Gvir be the next Prime Minister of Israel?",
+      "polymarketYes": 0.0125,
+      "kalshiYes": 0.047,
+      "gap": 0.0345,
+      "netAfterFees": 0,
+      "similarity": 0.8531595191008414,
+      "volume": 1099194.2345360024
+    },
+    {
+      "question": "Will Yair Lapid be the next Prime Minister of Israel?",
+      "polymarketYes": 0.0045,
+      "kalshiYes": 0.037,
+      "gap": 0.0325,
+      "netAfterFees": 0,
+      "similarity": 0.8663066081474151,
+      "volume": 816368.2740160013
+    },
+    {
+      "question": "Will Yariv Levin be the next Prime Minister of Israel?",
+      "polymarketYes": 0.005,
+      "kalshiYes": 0.023,
+      "gap": 0.018,
+      "netAfterFees": 0,
+      "similarity": 0.8764445998069955,
+      "volume": 652920.7334309976
+    },
+    {
+      "question": "Will Yossi Cohen be the next Prime Minister of Israel?",
+      "polymarketYes": 0.004,
+      "kalshiYes": 0.009,
+      "gap": 0.004999999999999999,
+      "netAfterFees": 0,
+      "similarity": 0.8573505791636177,
+      "volume": 1066787.1566640087
+    }
+  ]
+}

@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p server/tsconfig.json && tsc --noEmit -p web/tsconfig.json",
     "check": "npm run typecheck && npm run build:web && npm run test:run",
     "seed": "tsx scripts/seed-demo.ts",
+    "study": "tsx scripts/efficiency-study.ts",
     "start:web": "npm run build:web && tsx server/src/index.ts",
     "build:prod": "npm run build && npm run build:web"
   },

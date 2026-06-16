@@ -205,6 +205,52 @@ export class PolymarketClient {
   }
 
   /**
+   * Fetch the full active-market universe by paginating the Gamma API.
+   *
+   * `getActiveMarkets` only sees the first page (Gamma caps `limit` at 100),
+   * which under-samples the universe. This walks `offset` until a short page
+   * signals the end (or `maxPages` is hit). Used by the efficiency study.
+   *
+   * @param maxPages - Safety cap on pages fetched (default: 15 → up to 1500)
+   */
+  async getAllActiveMarkets(maxPages: number = 15): Promise<Market[]> {
+    const pageSize = 100;
+    const all: Market[] = [];
+
+    for (let page = 0; page < maxPages; page++) {
+      const offset = page * pageSize;
+      const response = await this.rateLimiter.execute(async () => {
+        const res = await fetch(
+          `${GAMMA_API_HOST}/markets?closed=false&active=true&limit=${pageSize}&offset=${offset}`
+        );
+        if (!res.ok) {
+          throw new Error(`Gamma API error: ${res.status} ${res.statusText}`);
+        }
+        return res.json();
+      });
+
+      const parseResult = z.array(PolymarketMarketSchema).safeParse(response);
+      if (!parseResult.success) {
+        throw new Error('API validation failed');
+      }
+
+      const markets = parseResult.data
+        .filter((m) => m.active !== false && m.closed !== true)
+        .map((m) => this.transformMarket(m));
+      all.push(...markets);
+
+      // A short page means we've reached the end.
+      if (parseResult.data.length < pageSize) break;
+    }
+
+    logger.info(
+      { marketCount: all.length, source: 'gamma', paginated: true },
+      'Fetched full active-market universe from Gamma API'
+    );
+    return all;
+  }
+
+  /**
    * Fetch market details from CLOB API by condition ID (includes token IDs)
    */
   async getMarketDetails(conditionId: string): Promise<ClobMarketResponse | null> {

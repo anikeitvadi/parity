@@ -271,50 +271,8 @@ export class KalshiClient {
       }
 
       // Step 2: Fetch market details for each event (batched)
-      const markets: Market[] = [];
-
-      // Fetch event details in parallel (max 10 concurrent)
       const events = eventsResult.data.events;
-      const batchSize = 10;
-
-      for (let i = 0; i < events.length; i += batchSize) {
-        const batch = events.slice(i, i + batchSize);
-        const results = await Promise.allSettled(
-          batch.map((event) =>
-            this.publicRequest<unknown>(`/events/${event.event_ticker}`)
-          )
-        );
-
-        for (const result of results) {
-          if (result.status !== 'fulfilled') continue;
-
-          const detailResult = KalshiEventDetailSchema.safeParse(result.value);
-          if (!detailResult.success) continue;
-
-          const { event, markets: eventMarkets } = detailResult.data;
-
-          // For single-market events, use the one market
-          // For multi-market events (e.g. "Who will win?"), include each option
-          for (const market of eventMarkets) {
-            // Skip inactive markets
-            if (market.status !== 'active' && market.status !== 'open') continue;
-
-            const normalized = this.normalizeMarket(market);
-            // Use event title + category for cleaner display. For multi-outcome
-            // events each market.title just repeats the event question, so the
-            // actual option lives in yes_sub_title (e.g. the candidate name).
-            normalized.question = event.mutually_exclusive && eventMarkets.length > 1
-              ? `${event.title} — ${market.yes_sub_title || market.title}`
-              : event.title + (event.sub_title ? ` (${event.sub_title})` : '');
-            normalized.metadata = {
-              ...normalized.metadata,
-              category: event.category,
-              eventTicker: event.event_ticker,
-            };
-            markets.push(normalized);
-          }
-        }
-      }
+      const markets = await this.expandEventsToMarkets(events);
 
       const duration = Date.now() - startTime;
       kalshiLogger.info(
@@ -324,6 +282,93 @@ export class KalshiClient {
 
       return markets;
     });
+  }
+
+  /**
+   * Fetch the full active-market universe by paginating `/events` via cursor.
+   *
+   * `getActiveMarkets` fetches only the first 100 events. This walks the
+   * cursor until exhausted (or `maxEvents` is reached), then expands every
+   * event to its markets. Used by the efficiency study. Note: each event
+   * costs a detail request, so this is intentionally bounded.
+   *
+   * @param maxEvents - Safety cap on events fetched (default: 500)
+   */
+  async getAllActiveMarkets(maxEvents: number = 500): Promise<Market[]> {
+    return this.rateLimiter.execute(async () => {
+      const events: z.infer<typeof KalshiEventsResponseSchema>['events'] = [];
+      let cursor: string | undefined;
+
+      do {
+        const query = `/events?status=open&limit=100${cursor ? `&cursor=${cursor}` : ''}`;
+        const response = await this.publicRequest<unknown>(query);
+        const parsed = KalshiEventsResponseSchema.safeParse(response);
+        if (!parsed.success) {
+          kalshiLogger.error({ error: parsed.error.message }, 'Invalid Kalshi events response');
+          throw new Error('Invalid Kalshi events response');
+        }
+        events.push(...parsed.data.events);
+        cursor = parsed.data.cursor;
+      } while (cursor && events.length < maxEvents);
+
+      const markets = await this.expandEventsToMarkets(events);
+      kalshiLogger.info(
+        { events: events.length, markets: markets.length, paginated: true },
+        'Fetched full Kalshi market universe'
+      );
+      return markets;
+    });
+  }
+
+  /**
+   * Expand a list of events to their normalized markets (batched detail fetch).
+   */
+  private async expandEventsToMarkets(
+    events: z.infer<typeof KalshiEventsResponseSchema>['events']
+  ): Promise<Market[]> {
+    const markets: Market[] = [];
+    const batchSize = 10;
+
+    for (let i = 0; i < events.length; i += batchSize) {
+      const batch = events.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map((event) =>
+          this.publicRequest<unknown>(`/events/${event.event_ticker}`)
+        )
+      );
+
+      for (const result of results) {
+        if (result.status !== 'fulfilled') continue;
+
+        const detailResult = KalshiEventDetailSchema.safeParse(result.value);
+        if (!detailResult.success) continue;
+
+        const { event, markets: eventMarkets } = detailResult.data;
+
+        // For single-market events, use the one market
+        // For multi-market events (e.g. "Who will win?"), include each option
+        for (const market of eventMarkets) {
+          // Skip inactive markets
+          if (market.status !== 'active' && market.status !== 'open') continue;
+
+          const normalized = this.normalizeMarket(market);
+          // Use event title + category for cleaner display. For multi-outcome
+          // events each market.title just repeats the event question, so the
+          // actual option lives in yes_sub_title (e.g. the candidate name).
+          normalized.question = event.mutually_exclusive && eventMarkets.length > 1
+            ? `${event.title} — ${market.yes_sub_title || market.title}`
+            : event.title + (event.sub_title ? ` (${event.sub_title})` : '');
+          normalized.metadata = {
+            ...normalized.metadata,
+            category: event.category,
+            eventTicker: event.event_ticker,
+          };
+          markets.push(normalized);
+        }
+      }
+    }
+
+    return markets;
   }
 
   /**
