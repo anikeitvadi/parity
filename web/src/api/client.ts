@@ -132,6 +132,32 @@ export async function fetchFeed(): Promise<{ items: FeedItem[]; cached: boolean 
   return res.json();
 }
 
+export interface EfficiencyPair {
+  question: string;
+  polymarketYes: number;
+  kalshiYes: number;
+  gap: number;
+  netAfterFees: number;
+  similarity: number;
+  volume: number;
+}
+
+export interface EfficiencyStudy {
+  generatedAt: string;
+  universe: { polymarket: number; kalshi: number; total: number };
+  matching: { similarityThreshold: number; matchedPairs: number };
+  fees: { polymarket: number; kalshi: number; roundTrip: number };
+  gapDistribution: { medianGap: number; meanGap: number; p90Gap: number; maxGap: number };
+  actionable: { surfaced_3pp: number; beatsFees_9pp: number; meetsDetectorThreshold_19pp: number };
+  pairs: EfficiencyPair[];
+}
+
+export async function fetchEfficiencyStudy(): Promise<{ available: boolean; study?: EfficiencyStudy }> {
+  const res = await fetch(`${BASE}/lab/efficiency`);
+  if (!res.ok) throw new Error(`Lab fetch failed: ${res.status}`);
+  return res.json();
+}
+
 export function streamResearch(
   platform: string,
   id: string,

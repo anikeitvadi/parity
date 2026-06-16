@@ -25,6 +25,20 @@ app.route('/api/calibration', calibrationRoutes);
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 
+// Efficiency Lab — serves the precomputed study artifact (npm run study).
+// Static result by design: it's a reproducible finding, not a live query.
+app.get('/api/lab/efficiency', (c) => {
+  const path = 'docs/data/efficiency-study.json';
+  if (!existsSync(path)) {
+    return c.json({ available: false });
+  }
+  try {
+    return c.json({ available: true, study: JSON.parse(readFileSync(path, 'utf-8')) });
+  } catch {
+    return c.json({ available: false });
+  }
+});
+
 // System status — no self-fetch, uses direct DB queries and cache checks
 app.get('/api/status', (c) => {
   const db = getDatabase();
