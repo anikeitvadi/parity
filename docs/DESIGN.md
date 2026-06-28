@@ -8,6 +8,14 @@ The source of truth for tokens is the `@theme` block in
 [`web/src/app.css`](../web/src/app.css). Components are styled with Tailwind v4
 utility classes inline (no CSS modules).
 
+> **Working on this together (human or AI agents):** this file plus the `@theme`
+> block in `app.css` are the **current ground truth** on `main`. If you're doing a
+> design pass, base it on the live repo and propose changes as a **branch / PR** —
+> a diff on top of this — rather than a parallel design system that has to be
+> reconciled later. Everything below is extracted from real components; if you
+> change a token, update both `@theme` **and** the components that use it so the two
+> never drift.
+
 ---
 
 ## 1. Principles
