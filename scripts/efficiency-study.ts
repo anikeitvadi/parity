@@ -28,6 +28,12 @@ import {
   embedMarkets,
   findSemanticMatches,
 } from '../src/services/semantic-matcher.js';
+import { EMBEDDING_MODEL } from '../src/services/embedding.js';
+import {
+  persistStudyRun,
+  type StudyMarketRecord,
+  type StudyPairRecord,
+} from '../src/database/study-store.js';
 import type { Market } from '../src/types/market.js';
 
 /** Platform fees, round-trip — matches detectors/cross-platform-arb.ts. */
@@ -42,6 +48,9 @@ const OUT_DIR = 'docs/data';
 
 interface PairRow {
   question: string;
+  polymarketId: string;
+  kalshiId: string;
+  kalshiQuestion: string;
   polymarketYes: number;
   kalshiYes: number;
   gap: number; // |poly - kalshi|, the gross edge before fees
@@ -144,6 +153,9 @@ async function main(): Promise<void> {
     const gap = Math.abs(polyYes - kalshiYes);
     return {
       question: m.polymarket.question,
+      polymarketId: m.polymarket.id,
+      kalshiId: m.kalshi.id,
+      kalshiQuestion: m.kalshi.question,
       polymarketYes: polyYes,
       kalshiYes,
       gap,
@@ -172,6 +184,7 @@ async function main(): Promise<void> {
     matching: {
       similarityThreshold: SIMILARITY_THRESHOLD,
       matchedPairs: matches.length,
+      embeddingModel: EMBEDDING_MODEL,
     },
     fees: { polymarket: POLYMARKET_FEE, kalshi: KALSHI_FEE, roundTrip: ROUND_TRIP_FEES },
     gapDistribution: {
@@ -195,17 +208,52 @@ async function main(): Promise<void> {
     JSON.stringify(summary, null, 2)
   );
   const csv = [
-    'question,polymarket_yes,kalshi_yes,gap,net_after_fees,similarity,volume',
+    'polymarket_id,kalshi_id,question,polymarket_yes,kalshi_yes,gap,net_after_fees,similarity,volume',
     ...pairs.map(
       (p) =>
-        `${JSON.stringify(p.question)},${p.polymarketYes.toFixed(4)},${p.kalshiYes.toFixed(
+        `${JSON.stringify(p.polymarketId)},${JSON.stringify(p.kalshiId)},${JSON.stringify(
+          p.question
+        )},${p.polymarketYes.toFixed(4)},${p.kalshiYes.toFixed(4)},${p.gap.toFixed(
           4
-        )},${p.gap.toFixed(4)},${p.netAfterFees.toFixed(4)},${p.similarity.toFixed(
-          4
-        )},${Math.round(p.volume)}`
+        )},${p.netAfterFees.toFixed(4)},${p.similarity.toFixed(4)},${Math.round(p.volume)}`
     ),
   ].join('\n');
   writeFileSync(`${OUT_DIR}/gap-map.csv`, csv);
+
+  // Persist the same records to SQLite so the match is inspectable, not a vibe:
+  // a self-describing run row + universe snapshot + matched pairs with gap math.
+  const universeSnapshot: StudyMarketRecord[] = [...polyMarkets, ...kalshiMarkets].map((m) => ({
+    marketId: m.id,
+    platform: m.platform,
+    title: m.question,
+    closeDate: m.closeDate,
+    price: getYesPrice(m),
+    volume: m.volume || 0,
+  }));
+  const pairRecords: StudyPairRecord[] = pairs.map((p) => ({
+    polymarketId: p.polymarketId,
+    kalshiId: p.kalshiId,
+    polymarketTitle: p.question,
+    kalshiTitle: p.kalshiQuestion,
+    cosineSimilarity: p.similarity,
+    polymarketPrice: p.polymarketYes,
+    kalshiPrice: p.kalshiYes,
+    priceGap: p.gap,
+    feeAdjustedGap: p.netAfterFees,
+    surfaced3pp: p.gap >= 0.03,
+    beatsFees9pp: p.gap > ROUND_TRIP_FEES,
+    meetsDetector19pp: p.gap >= 0.19,
+    volume: p.volume,
+  }));
+  const runId = persistStudyRun(db, {
+    generatedAt: summary.generatedAt,
+    embeddingModel: EMBEDDING_MODEL,
+    similarityThreshold: SIMILARITY_THRESHOLD,
+    roundTripFees: ROUND_TRIP_FEES,
+    universe: summary.universe,
+    markets: universeSnapshot,
+    pairs: pairRecords,
+  });
 
   // Print the finding.
   console.log('\n────────────────────────────────────────────────────────');
@@ -228,6 +276,7 @@ async function main(): Promise<void> {
   console.log('\nArtifacts written:');
   console.log(`  ${OUT_DIR}/efficiency-study.json`);
   console.log(`  ${OUT_DIR}/gap-map.csv`);
+  console.log(`  markets.db → study run #${runId} (study_runs / study_markets / study_pairs)`);
 }
 
 main().catch((err) => {

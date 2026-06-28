@@ -21,7 +21,10 @@
     "seed": "tsx scripts/seed-demo.ts",
     "study": "tsx scripts/efficiency-study.ts",
     "start:web": "npm run build:web && tsx server/src/index.ts",
-    "build:prod": "npm run build && npm run build:web"
+    "build:prod": "npm run build && npm run build:web",
+    "eval:briefs": "PROMPTFOO_DISABLE_UPDATE=1 promptfoo eval -c evals/research-brief.promptfooconfig.yaml",
+    "eval:briefs:mock": "PROMPTFOO_MOCK=1 PROMPTFOO_DISABLE_UPDATE=1 promptfoo eval -c evals/research-brief.promptfooconfig.yaml",
+    "collect:context": "tsx scripts/collect-market-context.ts"
   },
   "keywords": [
     "prediction-markets",
@@ -39,6 +42,7 @@
     "@hono/node-server": "^1.19.13",
     "@inkjs/ui": "^2.0.0",
     "@ladjs/graceful": "^5.0.0",
+    "@observablehq/plot": "^0.6.17",
     "@polymarket/clob-client": "^5.2.1",
     "axios-retry": "^4.5.0",
     "better-sqlite3": "^12.6.2",
@@ -57,6 +61,7 @@
     "react": "^19.2.4",
     "sqlite-vec": "^0.1.9",
     "string-similarity": "^4.0.4",
+    "tsx": "^4.22.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
@@ -68,11 +73,11 @@
     "@types/string-similarity": "^4.0.2",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.1",
+    "promptfoo": "^0.118.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.14.0",
     "tailwindcss": "^4.2.2",
     "ts-node": "^10.9.2",
-    "tsx": "^4.22.2",
     "typescript": "^5.9.3",
     "vite": "^6.4.2",
     "vitest": "^4.0.18"

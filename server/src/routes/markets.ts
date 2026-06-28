@@ -4,6 +4,7 @@ import { KalshiClient } from '../../../src/services/kalshi.js';
 import { getLatestSnapshot, getRecentMatches, getMarketHistory } from '../../../src/database/queries.js';
 import { getSettlementComparison } from '../../../src/database/queries.js';
 import { SimpleCache } from '../cache.js';
+import { readCachedSources, slugify } from '../../../src/services/source-collector.js';
 import type { Market } from '../../../src/types/market.js';
 
 const metaculusCache = new SimpleCache<MetaculusResult | null>(300); // 5 min
@@ -265,6 +266,13 @@ marketRoutes.get('/:id', async (c) => {
     }
   } catch {
     // Metaculus enrichment is optional
+  }
+
+  // Cached research sources (populated by `npm run collect:context`). Read-only —
+  // a market view never triggers a live scrape.
+  const cachedSources = readCachedSources(slugify(market.question));
+  if (cachedSources && cachedSources.sources.length > 0) {
+    enrichments.sources = cachedSources.sources;
   }
 
   return c.json({ market, ...enrichments });

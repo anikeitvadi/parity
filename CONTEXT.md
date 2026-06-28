@@ -9,10 +9,11 @@
 A full-stack AI **research terminal** for prediction markets (Polymarket + Kalshi), and a
 **portfolio project** demonstrating integration + applied AI + product judgment.
 
-It started as an *edge scanner* — find cross-platform mispricings and trade them. The live
-scanner found **0 real cross-platform gaps across 314 markets**: the markets are efficient,
-so there's no reliable retail edge. Rather than fake one, the product was reframed around
-value that survives efficient markets:
+It started as an *edge scanner* — find cross-platform mispricings and trade them. One
+reproducible scan of **2,219 markets surfaced 7 high-confidence overlaps (cosine ≥ 0.85) and
+0 that cleared the arbitrage threshold** (~19pp after ~9pp round-trip fees): the overlapping
+markets are efficient, so there's no reliable retail edge. Rather than fake one, the product
+was reframed around value that survives efficient markets:
 
 - **Research synthesis** — an on-demand, streamed AI brief per market (news + Metaculus +
   cross-platform context).
@@ -27,7 +28,7 @@ The pivot is the asset, not a flaw to hide. See `HANDOFF.md` for the full reason
 Single-screen "Scanner" (the old Home/Markets/Watchlist/Calibration/Saved/Status pages and
 the canvas home page are deleted):
 
-- **Left:** full market universe (~300+ across both platforms) — platform badge, platform/
+- **Left:** full market universe (~2,219 across both platforms) — platform badge, platform/
   type filters, sort by volume / divergence / closing.
 - **Right (market selected):** one decision pane — odds + 7d history, divergence vs cross-
   platform/Metaculus, settlement risk, on-demand AI brief, your-call slider (half-Kelly).
@@ -90,8 +91,9 @@ Add `OPENAI_API_KEY` or `XAI_API_KEY` for AI briefs; `OPENAI_API_KEY` also power
   Phases 5–6 (longshot bias, whale tracking) are **abandoned** — dead premise. See
   `.planning/ROADMAP.md`.
 - Cross-platform gaps are ~0 (efficient markets) — the divergence column is honest, not faked.
-- AI briefs are *synthesis*, not retrieval-grounded research yet (headline-level news, no
-  citations). The top "build next" item is real web retrieval + base rates.
+- AI briefs now ground on real cached web sources (titles + URLs) via an optional collector
+  (`npm run collect:context`), surfaced in the Terminal under "Sources used." Full-article
+  retrieval + structured base rates are still the top "build next" item.
 - Some markets are stale upstream (listed active but long resolved). No accounts (localStorage
   + local SQLite).
 
@@ -99,7 +101,7 @@ Add `OPENAI_API_KEY` or `XAI_API_KEY` for AI briefs; `OPENAI_API_KEY` also power
 
 | Doc | Purpose |
 |-----|---------|
-| `README.md` | Public case study (problem → hypothesis → 0/314 → pivot → built) |
+| `README.md` | Public case study (problem → hypothesis → 0/2,219 → pivot → built) |
 | `docs/PORTFOLIO.md` | Recruiter-facing 90-sec case study |
 | `docs/ARCHITECTURE.md` | System + sequence diagrams, data flow |
 | `docs/INTERVIEW-WALKTHROUGH.md` | "Explain it cold" Q&A study doc |

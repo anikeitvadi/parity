@@ -12,8 +12,21 @@ export interface Market {
   metadata?: Record<string, unknown>;
 }
 
+export interface Source {
+  platform: string;
+  query: string;
+  title: string;
+  url: string;
+  excerpt: string;
+  publishedAt?: string;
+  fetchedAt: string;
+  retrievalMethod: string;
+  confidence: number;
+}
+
 export interface MarketDetailResponse {
   market: Market;
+  sources?: Source[];
   crossPlatform?: {
     matchedId: string;
     matchedPlatform: string;
@@ -134,6 +147,9 @@ export async function fetchFeed(): Promise<{ items: FeedItem[]; cached: boolean 
 
 export interface EfficiencyPair {
   question: string;
+  polymarketId?: string;
+  kalshiId?: string;
+  kalshiQuestion?: string;
   polymarketYes: number;
   kalshiYes: number;
   gap: number;
@@ -145,7 +161,7 @@ export interface EfficiencyPair {
 export interface EfficiencyStudy {
   generatedAt: string;
   universe: { polymarket: number; kalshi: number; total: number };
-  matching: { similarityThreshold: number; matchedPairs: number };
+  matching: { similarityThreshold: number; matchedPairs: number; embeddingModel?: string };
   fees: { polymarket: number; kalshi: number; roundTrip: number };
   gapDistribution: { medianGap: number; meanGap: number; p90Gap: number; maxGap: number };
   actionable: { surfaced_3pp: number; beatsFees_9pp: number; meetsDetectorThreshold_19pp: number };

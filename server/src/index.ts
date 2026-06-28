@@ -10,6 +10,7 @@ import { marketRoutes, getMarketCounts } from './routes/markets.js';
 import { opportunityRoutes } from './routes/opportunities.js';
 import { researchRoutes } from './routes/research.js';
 import { calibrationRoutes } from './routes/calibration.js';
+import { maybeSeedDemoForecasts } from './seed.js';
 
 const app = new Hono();
 
@@ -74,13 +75,12 @@ app.get('/api/status', (c) => {
     },
     embeddings: {
       count: embeddingCount,
-      hasApiKey: hasOpenAI || hasXAI,
+      hasApiKey: hasOpenAI, // embeddings use OpenAI only — xAI doesn't power them
     },
     ai: {
       provider: hasXAI ? 'xai' : hasOpenAI ? 'openai' : 'none',
       hasOpenAI,
       hasXAI,
-      hasXSearch: hasXAI,
     },
     metaculus: { available: hasMetaculus },
   });
@@ -99,6 +99,7 @@ if (existsSync('dist-web')) {
 
 // Initialize database
 initDatabase();
+maybeSeedDemoForecasts(getDatabase());
 
 const port = parseInt(process.env.PORT || '3001', 10);
 

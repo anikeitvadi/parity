@@ -55,7 +55,7 @@ const envSchema = z.object({
   // OpenAI API key for AI research briefs (optional)
   OPENAI_API_KEY: z.string().optional(),
 
-  // xAI API key for Grok + real-time X/Twitter data (optional, preferred over OpenAI)
+  // xAI API key for Grok (optional, preferred over OpenAI). No live X/Twitter retrieval.
   // Free credits at console.x.ai
   XAI_API_KEY: z.string().optional(),
 

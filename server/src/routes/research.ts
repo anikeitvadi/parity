@@ -7,24 +7,55 @@ import { getRecentMatches, getLatestSnapshot, getSettlementComparison, getMarket
 import { SimpleCache } from '../cache.js';
 import { buildResearchPrompt } from '../prompts/research.js';
 import { findMetaculusMatch } from './markets.js';
+import { readCachedSources, slugify } from '../../../src/services/source-collector.js';
 import type { Market } from '../../../src/types/market.js';
 
 const polyClient = new PolymarketClient();
 const kalshiClient = new KalshiClient();
 const marketCache = new SimpleCache<Market[]>(60);
+// Completed briefs, keyed by platform:id — repeat views replay free, no model call.
+const briefCache = new SimpleCache<string>(600);
+
+// In-memory fixed-window rate limit. Single server, no scheduler — a Map is enough.
+// Caps token spend if a public demo is hammered; cache hits skip this entirely.
+const RATE_WINDOW_MS = 60_000;
+const PER_IP_LIMIT = 5; // brief generations per minute per IP
+const GLOBAL_LIMIT = 40; // brief generations per minute, all IPs combined
+const rateHits = new Map<string, { count: number; resetAt: number }>();
+
+function takeRateToken(ip: string): boolean {
+  const now = Date.now();
+  const active = (key: string) => {
+    const e = rateHits.get(key);
+    return e && now <= e.resetAt ? e : null;
+  };
+  const global = active('__global__');
+  const perIp = active(ip);
+  if ((global && global.count >= GLOBAL_LIMIT) || (perIp && perIp.count >= PER_IP_LIMIT)) {
+    return false;
+  }
+  const bump = (key: string) => {
+    const e = active(key);
+    if (e) e.count++;
+    else rateHits.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+  };
+  bump('__global__');
+  bump(ip);
+  return true;
+}
 
 /**
  * Get the AI client configuration.
- * Prefers xAI/Grok (free credits + real-time X data), falls back to OpenAI.
+ * Prefers xAI/Grok (free credits), falls back to OpenAI. The brief does no live
+ * web/X retrieval — external sources come from cached artifacts only.
  */
-function getAIConfig(): { client: OpenAI; model: string; provider: string; hasXSearch: boolean } | null {
+function getAIConfig(): { client: OpenAI; model: string; provider: string } | null {
   const xaiKey = process.env.XAI_API_KEY;
   if (xaiKey) {
     return {
       client: new OpenAI({ apiKey: xaiKey, baseURL: 'https://api.x.ai/v1' }),
       model: 'grok-3-mini-fast',
       provider: 'xai',
-      hasXSearch: true,
     };
   }
 
@@ -34,7 +65,6 @@ function getAIConfig(): { client: OpenAI; model: string; provider: string; hasXS
       client: new OpenAI({ apiKey: openaiKey }),
       model: 'gpt-4o',
       provider: 'openai',
-      hasXSearch: false,
     };
   }
 
@@ -57,6 +87,26 @@ researchRoutes.get('/markets/:id/research', async (c) => {
 
   if (!platform) {
     return c.json({ error: 'platform query param required' }, 400);
+  }
+
+  const cacheKey = `${platform}:${id}`;
+
+  // Repeat views are free: replay the cached brief without touching the model.
+  const cachedBrief = briefCache.get(cacheKey);
+  if (cachedBrief) {
+    return streamSSE(c, async (stream) => {
+      await stream.writeSSE({ data: cachedBrief });
+      await stream.writeSSE({ data: '[DONE]' });
+    });
+  }
+
+  // Generating a fresh brief spends tokens — rate-limit it so a public demo can't be drained.
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0].trim()
+    || c.req.header('x-real-ip')
+    || 'unknown';
+  if (!takeRateToken(ip)) {
+    c.header('Retry-After', '60');
+    return c.json({ error: 'Rate limit reached — too many briefs generated right now. Try again in a minute.' }, 429);
   }
 
   // Find market
@@ -90,42 +140,12 @@ researchRoutes.get('/markets/:id/research', async (c) => {
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
   const priceHistory = getMarketHistory(id, weekAgo, now);
 
-  // Fetch social/news context via xAI x_search if available, else DuckDuckGo
-  let newsHeadlines: string[] = [];
-  let xPosts: string[] = [];
-
-  if (aiConfig.hasXSearch) {
-    // Use Grok to search X for relevant posts — separate quick call
-    try {
-      const xSearchResult = await aiConfig.client.chat.completions.create({
-        model: 'grok-3-mini-fast',
-        messages: [
-          {
-            role: 'system',
-            content: 'Search X/Twitter for recent posts about this topic. Return only the 5 most relevant and informative posts as a numbered list. Include the poster\'s handle if visible. Be concise.',
-          },
-          {
-            role: 'user',
-            content: `Find recent X posts about: ${market.question}`,
-          },
-        ],
-        max_tokens: 400,
-      });
-      const xContent = xSearchResult.choices[0]?.message?.content || '';
-      if (xContent) {
-        xPosts = xContent
-          .split('\n')
-          .filter((line) => line.trim().length > 10)
-          .slice(0, 5);
-      }
-    } catch {
-      // x_search is best-effort
-    }
-  } else {
-    // Fallback: DuckDuckGo news search
-    const { fetchNewsContext } = await import('../prompts/research.js');
-    newsHeadlines = await fetchNewsContext(market.question);
-  }
+  // Read pre-collected sources only (run `npm run collect:context` to populate) —
+  // no live scrape at request time. The brief grounds on the cached artifact, or
+  // honestly says it has none. Titles feed the model; the full sourced URLs
+  // surface in the UI under "Sources used", not in the prompt.
+  const cachedSources = readCachedSources(slugify(market.question));
+  const newsHeadlines: string[] = (cachedSources?.sources ?? []).map((s) => s.title);
 
   // Metaculus superforecaster data (best-effort)
   let metaculus: { title: string; prediction: number; divergence: number } | undefined;
@@ -149,7 +169,6 @@ researchRoutes.get('/markets/:id/research', async (c) => {
     settlement: settlement || undefined,
     priceHistory: priceHistory as unknown as { timestamp: number; data: { prices: Record<string, number> } }[],
     newsHeadlines: newsHeadlines.length > 0 ? newsHeadlines : undefined,
-    xPosts: xPosts.length > 0 ? xPosts : undefined,
     metaculus,
   });
 
@@ -168,13 +187,16 @@ researchRoutes.get('/markets/:id/research', async (c) => {
         stream: true,
       });
 
+      let full = '';
       for await (const chunk of response) {
         const text = chunk.choices[0]?.delta?.content;
         if (text) {
+          full += text;
           await stream.writeSSE({ data: text });
         }
       }
 
+      if (full) briefCache.set(cacheKey, full);
       await stream.writeSSE({ data: '[DONE]' });
     } catch (err) {
       await stream.writeSSE({

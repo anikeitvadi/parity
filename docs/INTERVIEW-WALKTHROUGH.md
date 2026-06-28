@@ -9,8 +9,9 @@ below should be narratable without notes. Practice out loud until each answer is
 
 > "It's a full-stack AI research terminal for prediction markets. I set out to find
 > cross-platform mispricings between Polymarket and Kalshi — same event priced differently,
-> that's an edge. I built the live scanner with semantic matching across 314 markets and
-> found **zero real gaps**. The markets are efficient; for retail there's no free edge.
+> that's an edge. I built the live scanner with semantic matching across 2,219 markets — it
+> found 7 high-confidence overlaps and **zero that cleared the arbitrage threshold** after
+> fees. The overlapping markets are efficient; for retail there's no free edge.
 > So instead of faking it, I killed the premise and reframed the product around what's
 > actually useful when you can't beat the price: synthesizing the dispersed research,
 > flagging contract/settlement risk, and tracking your own forecasting calibration. The
@@ -71,10 +72,13 @@ Events. The frontend renders markdown as tokens arrive. It's a dual provider: it
 Grok and falls back to OpenAI GPT-4o — same OpenAI SDK, different base URL. I made generation
 manual rather than automatic specifically to not burn tokens on markets the user doesn't open."
 
-*Honest limitation to volunteer:* "Right now the brief reasons over what's in the prompt —
-it's synthesis, not retrieval-grounded research. News is headline-level, no full-article
-retrieval or citations yet. The next step is real web retrieval + base rates, which is the
-difference between 'sounds smart' and 'is grounded.'"
+*Honest limitation to volunteer:* "The brief now grounds on real cached web sources with
+URLs — an optional collector (`npm run collect:context`; built-in DuckDuckGo, optional
+Agent-Reach for richer sources) gathers them, and the Terminal surfaces them under 'Sources
+used.' What's left is full-article retrieval + structured base rates — the step from 'cites a
+source' to 'reasons over the full evidence.' The prompt also carries explicit source-honesty
+rules — no invented citations, no claiming live retrieval it didn't do — verified by a
+promptfoo eval suite (`npm run eval:briefs`) that runs offline."
 
 ## Q: The calibration feature — what's a Brier score?
 
@@ -95,17 +99,20 @@ so the whole list is populated and sortable by divergence in one pass."
 
 ## Q: Why did the original premise fail, and how do you know?
 
-"The scanner ran the cross-platform match across 314 live markets and found zero gaps above
-threshold — the detector's own counter confirms `priceGaps: 0`. That's not a code failure;
-it's the efficient-market hypothesis showing up in real data. Two well-capitalized markets on
+"The scanner ran the cross-platform match across 2,219 live markets — 7 cleared the 0.85
+cosine bar as genuine overlaps and 0 of those cleared the arbitrage threshold (~19pp after
+~9pp round-trip fees); the detector's own counter still reads `priceGaps: 0`. That's not a
+code failure; it's the efficient-market hypothesis showing up in real data on this scan. Two
+well-capitalized markets on
 the same event converge. I could have hidden that and shipped a fake 'edge finder,' but the
 honest finding is more valuable — it forced a better product and it's the part of this
 project I'm most willing to defend."
 
 ## Q: What would you build next, and what would you cut?
 
-"Next: evidence-grounded briefs — real web retrieval and base rates with citations — because
-that's the one feature that adds value a market price doesn't already contain. After that,
+"Next: deeper evidence-grounded briefs — full-article retrieval and structured base rates on
+top of the cached sources they already cite — because that's the one feature that adds value a
+market price doesn't already contain. After that,
 on-chain wallet profiling (Polymarket is on Polygon, holder data is public) to show smart-
 money vs retail positioning, and backtesting against my historical snapshots. Cut: anything
 that revives 'find the edge' — that premise is dead and chasing it would be dishonest."
@@ -122,7 +129,7 @@ that revives 'find the edge' — that premise is dead and chasing it would be di
 | SSE streaming brief | `server/src/routes/markets.ts` (`/:id/research`), `web/src/hooks/useResearch.ts` |
 | Decision-first prompt | `server/src/prompts/research.ts` |
 | Brier / calibration | `src/scoring/brier.ts`, `server/src/routes/calibration.ts` |
-| The pivot in one number | scan stats `priceGaps: 0` across 314 markets |
+| The pivot in one number | scan stats `priceGaps: 0` across 2,219 markets |
 
 ## The one honesty rule
 

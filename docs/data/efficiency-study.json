@@ -7,7 +7,8 @@
   },
   "matching": {
     "similarityThreshold": 0.85,
-    "matchedPairs": 7
+    "matchedPairs": 7,
+    "embeddingModel": "text-embedding-3-small"
   },
   "fees": {
     "polymarket": 0.02,

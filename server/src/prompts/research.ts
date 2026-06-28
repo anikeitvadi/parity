@@ -22,49 +22,6 @@ interface ResearchContext {
   xPosts?: string[];
 }
 
-/**
- * Fetch recent news headlines relevant to a market question.
- * Uses DuckDuckGo instant answer API (free, no key needed).
- */
-export async function fetchNewsContext(question: string): Promise<string[]> {
-  const keywords = question
-    .replace(/[^\w\s]/g, '')
-    .split(/\s+/)
-    .filter((w) => w.length > 3)
-    .slice(0, 6)
-    .join(' ');
-
-  if (!keywords) return [];
-
-  try {
-    // Use DuckDuckGo HTML search and extract titles (lightweight, no API key)
-    const res = await fetch(
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(keywords + ' news 2026')}`,
-      {
-        headers: { 'User-Agent': 'PredictionMarketScanner/1.0' },
-        signal: AbortSignal.timeout(5000),
-      }
-    );
-
-    if (!res.ok) return [];
-
-    const html = await res.text();
-
-    // Extract result titles from DDG HTML results
-    const titles: string[] = [];
-    const regex = /<a[^>]*class="result__a"[^>]*>([^<]+)<\/a>/g;
-    let match;
-    while ((match = regex.exec(html)) !== null && titles.length < 5) {
-      const title = match[1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").trim();
-      if (title.length > 10) titles.push(title);
-    }
-
-    return titles;
-  } catch {
-    return [];
-  }
-}
-
 export function buildResearchPrompt(ctx: ResearchContext): { system: string; user: string } {
   const { market } = ctx;
   const yesPrice = market.prices['Yes'] ?? market.prices['yes'] ?? Object.values(market.prices)[0] ?? 0.5;
@@ -81,7 +38,8 @@ Rules:
 - Open with a verdict line: a directional call (Lean YES / Lean NO / Pass), your estimated fair-value probability, and the edge versus the current price in percentage points.
 - Commit to a fair-value number even under uncertainty. If the data is thin, say so and mark conviction Low — don't refuse to call it.
 - Be concrete. Name the specific events, players, numbers, or dynamics that decide this. Ban filler like "monitor the news", "pay attention to outcomes", or "stay updated".
-- Tight markdown: bold section labels, bullets over paragraphs, blank line between sections. Bold the key numbers.${hasSocialContext ? '\n- Use the provided news/social context only where it actually changes the read.' : ''}`;
+- Tight markdown: bold section labels, bullets over paragraphs, blank line between sections. Bold the key numbers.${hasSocialContext ? '\n- Use the provided news/social context only where it actually changes the read.' : ''}
+- Source honesty: ground every claim in the data provided below. Never invent article titles, URLs, quotes, or statistics, and never claim you searched the web, news, or X/Twitter in real time.${hasSocialContext ? ' Treat the provided headlines/posts as the only external sources you have.' : ' No external news or social sources were retrieved for this market — do not imply you have live coverage; reason from base rates and the listed signals, and note the thin sourcing if it affects the call.'}`;
 
   let userPrompt = `Analyze this prediction market and provide an actionable research brief.
 
@@ -168,7 +126,7 @@ Rules:
     const parts: string[] = [];
     if (hasMetaculus) parts.push(`the ${(ctx.metaculus!.divergence * 100).toFixed(0)}pp superforecaster divergence`);
     if (hasCrossPlatform) parts.push('the cross-platform price gap');
-    userPrompt += `\n\n**Signal read** — one line on whether ${parts.join(' and ')} is a real edge or noise.`;
+    userPrompt += `\n\n**Signal read** — one line on whether ${parts.join(' and ')} is a real edge or noise${hasCrossPlatform ? ', after round-trip trading fees and any settlement-rule differences between the two platforms' : ''}.`;
   }
 
   return { system, user: userPrompt };

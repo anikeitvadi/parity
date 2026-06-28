@@ -8,10 +8,12 @@
 
 We keep polishing the surface; the **core value proposition is unproven and may not exist.**
 
-- The original premise is "find mispriced markets / cross-platform gaps." But the markets
-  are **efficient**: 0 cross-platform gaps across 314 live markets right now (the scanner's
-  own `priceGaps: 0` confirms it). In an efficient market the price *is* the best estimate,
-  so a "spot where the crowd is wrong" tool is fighting the premise, not executing badly.
+- The original premise is "find mispriced markets / cross-platform gaps." But the overlapping
+  markets are **efficient**: one reproducible scan of 2,219 markets surfaced 7 high-confidence
+  overlaps (cosine ≥ 0.85) and 0 that cleared the arbitrage threshold (~19pp after ~9pp
+  round-trip fees; the scanner's own `priceGaps: 0` confirms it). In an efficient market the
+  price *is* the best estimate, so a "spot where the crowd is wrong" tool is fighting the
+  premise, not executing badly.
 - The AI brief produces plausible-but-generic analysis (LLM vibes, not real research). It
   doesn't beat the price either.
 - Every session improves layout/formatting/data correctness without resolving *what job
@@ -42,7 +44,7 @@ changes your decision vs. reading the price. If not, the premise is the problem.
 
 Single-screen "Scanner" terminal UI (the old multi-page app is deleted):
 
-- **Left:** full market list — ~314 markets from Polymarket + Kalshi, POLY/KALSHI badge,
+- **Left:** full market list — ~2,219 markets from Polymarket + Kalshi, POLY/KALSHI badge,
   platform filter, type filter, sort by volume / divergence / closing.
 - **Right (a market selected):** one decision pane — price + 7d history, divergence vs
   cross-platform/Metaculus, settlement risk, on-demand AI brief, your-call slider (Kelly).
@@ -79,14 +81,17 @@ Verification: `npm run typecheck` clean (3 tsconfigs), `npm run build:web` green
 ## Known real limitations (not bugs to fix — facts to design around)
 - Cross-platform gaps are ~0 (efficient markets). The divergence column is honest but
   mostly empty.
-- Brief is generic; no live news/base-rate retrieval despite the prompt asking for it.
+- Brief now grounds on real cached web sources with URLs (optional `npm run collect:context`,
+  built-in DuckDuckGo adapter; optional Agent-Reach for richer sources); the remaining gap is
+  full-article retrieval + structured base rates.
 - Some Kalshi markets are stale-in-reality but listed `active` upstream (e.g. "next Pope",
   close date 2070). Not our bug; could filter by close date / zero volume if desired.
 - Calibration data is thin (a few logged forecasts) — chart works, just sparse.
 
 ## If continuing
 Don't start with code. Answer the decision above. Then:
-- If **#2 (synthesis):** make the brief do real research (web search + base rates) — the
-  only path to value a price doesn't already contain.
+- If **#2 (synthesis):** push the brief past the cached sources it already cites to
+  full-article retrieval + structured base rates — the only path to value a price doesn't
+  already contain.
 - If **#1 (calibration):** make logging + resolving a forecast frictionless; make the track
   record the landing screen.

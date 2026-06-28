@@ -35,6 +35,13 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Local research-source cache (populated by `npm run collect:context`). Ephemeral
+# and goes stale — the schema lives in the dir's README.
+docs/data/research-context/*.json
+
+# Local tooling (Serena MCP workspace)
+.serena/
+
 # Debug/test scripts
 debug-*.mjs
 test-*.mjs

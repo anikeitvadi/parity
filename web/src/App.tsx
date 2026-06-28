@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { TerminalPage } from './pages/TerminalPage.js';
-import { LabPage } from './pages/LabPage.js';
+
+// The Lab is the only consumer of Observable Plot (~270KB) — load it on demand
+// so the default Scanner view stays lean.
+const LabPage = lazy(() => import('./pages/LabPage.js').then((m) => ({ default: m.LabPage })));
 
 function Clock() {
   const [time, setTime] = useState('');
@@ -55,7 +58,13 @@ export function App() {
       </header>
 
       {/* Active view fills the rest */}
-      {tab === 'scanner' ? <TerminalPage /> : <LabPage />}
+      {tab === 'scanner' ? (
+        <TerminalPage />
+      ) : (
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[12px] text-[#64748B]">Loading lab…</div>}>
+          <LabPage />
+        </Suspense>
+      )}
     </div>
   );
 }

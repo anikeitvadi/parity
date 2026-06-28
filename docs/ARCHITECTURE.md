@@ -27,12 +27,14 @@ flowchart LR
         MKT["/markets/:id: enrichments"]
         RES["/research: SSE stream"]
         CAL["/calibration: log, resolve, stats"]
+        LABE["/lab/efficiency: study artifact"]
     end
 
     subgraph web["web/ — React SPA :5173"]
         LIST["Market list"]
-        PANE["Decision pane: evidence, brief, your-call"]
+        PANE["Decision pane: evidence, brief, sources, your-call"]
         TRK["Track record"]
+        LAB["Efficiency Lab: Observable Plot"]
     end
 
     PM & KAL --> SVC --> DB
@@ -48,6 +50,7 @@ flowchart LR
     MKT --> PANE
     RES -. tokens .-> PANE
     PANE --> CAL --> TRK
+    LABE --> LAB
 ```
 
 ## The core abstraction: one `Market` type
@@ -99,7 +102,7 @@ sequenceDiagram
     participant CTX as Context builder
     participant LLM as xAI Grok / OpenAI GPT-4o
     UI->>API: open EventSource (on "Generate")
-    API->>CTX: gather market + news + Metaculus + cross-platform
+    API->>CTX: gather market + cached web sources + Metaculus + cross-platform
     CTX->>LLM: decision-first prompt
     loop token by token
         LLM-->>API: chunk
@@ -109,20 +112,27 @@ sequenceDiagram
 ```
 
 Briefs are **on-demand** (a button, not auto-run) to avoid burning tokens on markets you
-don't care about, and stream token-by-token so the pane fills as the model writes.
+don't care about, and stream token-by-token so the pane fills as the model writes. Context
+sources are **real and cached** (`docs/data/research-context/`, populated explicitly by
+`npm run collect:context` — never scraped at request time) and shown in the pane under
+"Sources used"; the prompt forbids invented citations or claimed live retrieval, and
+`npm run eval:briefs` (promptfoo, offline) checks that.
 
 ## Three TypeScript projects
 
 `src/` (engine), `server/` (API), `web/` (SPA) each have their own `tsconfig` and typecheck
 independently — the engine has no React or HTTP dependency and is reused by the server, the
 CLI dashboard, and the Bree scheduler. `npm run check` runs all three typechecks + the Vite
-build + 405 tests.
+build + 408 tests.
 
 ## Persistence
 
 SQLite (better-sqlite3, WAL mode) holds `market_snapshots` (price history), `matched_markets`,
-`user_forecasts` (calibration), and `market_embedding_meta` (1536-dim vectors via sqlite-vec).
-Embedded SQLite is the deliberate choice for a single-server project — no vector-DB infra,
-embeddings live in the same file as the data. Postgres/Turso would be the multi-user swap.
+`user_forecasts` (calibration), `market_embedding_meta` (1536-dim vectors via sqlite-vec), and
+the study tables `study_runs` / `study_markets` / `study_pairs` (one set of rows per `npm run
+study`, persisted so the finding is inspectable rather than a runtime vibe). Embedded SQLite is
+the deliberate choice for a single-server project — no vector-DB infra, embeddings live in the
+same file as the data. The Postgres + pgvector production-migration path and the full schema are
+documented in [SCHEMA.md](./SCHEMA.md).
 ```
 

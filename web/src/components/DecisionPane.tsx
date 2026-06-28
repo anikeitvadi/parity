@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Markdown from 'react-markdown';
-import type { MarketDetailResponse } from '../api/client.js';
+import type { MarketDetailResponse, Source } from '../api/client.js';
 import { useResearch } from '../hooks/useResearch.js';
 import { useSavedMarkets } from '../hooks/useSavedMarkets.js';
 import { getYesPrice, kellyEstimate } from '../lib/utils.js';
 import { EvidenceBoard } from './EvidenceBoard.js';
+
+/** Bare hostname for a source URL, e.g. https://www.forbes.com/x → forbes.com */
+function domainOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
 
 interface Props {
   detail: MarketDetailResponse | null;
@@ -49,6 +58,7 @@ export function DecisionPane({ detail, loading, selectedId, onSelectMarket }: Pr
           onUnsave={() => remove(market.id, market.platform)}
           hasMetaculus={!!detail.metaculus}
           hasCrossPlatform={!!detail.crossPlatform?.matchedMarket}
+          sources={detail.sources ?? []}
         />
       </div>
     </div>
@@ -65,6 +75,7 @@ function BriefAndCall({
   onUnsave,
   hasMetaculus,
   hasCrossPlatform,
+  sources,
 }: {
   market: { id: string; platform: string; question: string; metadata?: Record<string, unknown> };
   yesPrice: number;
@@ -74,6 +85,7 @@ function BriefAndCall({
   onUnsave: () => void;
   hasMetaculus: boolean;
   hasCrossPlatform: boolean;
+  sources: Source[];
 }) {
   const { content, isStreaming, error, start, stop } = useResearch(selectedId.platform, selectedId.id);
   const [forecast, setForecast] = useState(Math.round(yesPrice * 100));
@@ -105,10 +117,11 @@ function BriefAndCall({
     } catch { /* ignore */ }
   };
 
-  const sources: string[] = ['Market data'];
-  if (hasMetaculus) sources.push('Metaculus');
-  if (hasCrossPlatform) sources.push('Cross-platform');
-  sources.push('News');
+  // Badges reflect what's actually attached to this market — no guessed "News".
+  const badges: string[] = ['Market data'];
+  if (hasMetaculus) badges.push('Metaculus');
+  if (hasCrossPlatform) badges.push('Cross-platform');
+  if (sources.length > 0) badges.push(`${sources.length} web source${sources.length > 1 ? 's' : ''}`);
 
   return (
     <div className="space-y-3 mt-3">
@@ -116,7 +129,7 @@ function BriefAndCall({
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] text-[#64748B] uppercase tracking-wider">AI Brief</span>
-          <span className="text-[10px] text-[#64748B]">{sources.join(' · ')}</span>
+          <span className="text-[10px] text-[#64748B]">{badges.join(' · ')}</span>
         </div>
         <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3">
           {error && <div className="text-[11px] text-[#EF4444] mb-2">{error}</div>}
@@ -145,6 +158,27 @@ function BriefAndCall({
           )}
         </div>
       </div>
+
+      {/* Sources used — real cached sources with URLs, not guessed badges */}
+      {sources.length > 0 && (
+        <div>
+          <div className="text-[10px] text-[#64748B] uppercase tracking-wider mb-1.5">Sources used</div>
+          <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3 space-y-1.5">
+            {sources.map((s, i) => (
+              <a
+                key={i}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-[11px] text-[#06B6D4] hover:underline truncate"
+                title={s.title}
+              >
+                {s.title} <span className="text-[#64748B]">· {domainOf(s.url)}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Your Call */}
       <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3">

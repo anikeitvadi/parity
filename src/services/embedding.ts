@@ -78,4 +78,4 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-export { EMBEDDING_DIMENSIONS };
+export { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL };

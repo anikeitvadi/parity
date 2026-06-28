@@ -1,0 +1,226 @@
+# Evaluates the AI research brief for factuality and source honesty.
+#
+# Note: promptfoo is pinned to 0.118.x in package.json for Node 20.11 support
+# (0.119+ pulls a transitive dep needing Node >=20.12). Bump both together.
+#
+# The prompt function calls the REAL server prompt builder; the custom provider
+# uses a live model when XAI_API_KEY/OPENAI_API_KEY is set, otherwise replays
+# recorded briefs. Every assertion is deterministic (pure JS, no LLM grader), so
+# `npm run eval:briefs` runs locally with zero API keys.
+description: AI research brief — factuality & source-honesty checks
+
+prompts:
+  - file://brief.prompt.ts:briefPrompt
+
+providers:
+  - id: file://brief-provider.ts
+    label: research-brief
+
+# Shared checks applied to every fixture: it's a real brief, and it never
+# fabricates links or claims live retrieval it didn't do.
+defaultTest:
+  assert:
+    - type: javascript
+      value: file://asserts.ts:looksLikeBrief
+    - type: javascript
+      value: file://asserts.ts:noFabricatedUrls
+    - type: javascript
+      value: file://asserts.ts:noLiveRetrievalClaim
+
+tests:
+  # 1 — Nothing but the market. Must not pretend it has sources.
+  - description: plain market, no external sources
+    vars:
+      fixtureId: plain-no-sources
+      context:
+        market:
+          id: poly-rain
+          platform: polymarket
+          question: 'Will it rain in NYC tomorrow?'
+          prices: { Yes: 0.4, No: 0.6 }
+          closeDate: '2026-07-01'
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsSourceLimits
+
+  # 2 — Cross-platform price gap. Must address fees and platform differences.
+  - description: cross-platform price gap (fees + platform diff)
+    vars:
+      fixtureId: cross-platform-arb
+      context:
+        market:
+          id: poly-cpi
+          platform: polymarket
+          question: 'Will US CPI come in above 3% in July 2026?'
+          prices: { Yes: 0.32, No: 0.68 }
+          closeDate: '2026-08-12'
+          volume: 250000
+        crossPlatform:
+          matchedPlatform: kalshi
+          confidence: 0.88
+          matchedMarket:
+            question: 'Will July 2026 CPI exceed 3%?'
+            prices: { Yes: 0.30, No: 0.70 }
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsFees
+      - type: javascript
+        value: file://asserts.ts:mentionsPlatformDiff
+
+  # 3 — Metaculus divergence present. Must reference the superforecaster signal.
+  - description: metaculus superforecaster divergence
+    vars:
+      fixtureId: metaculus-divergence
+      context:
+        market:
+          id: poly-fed
+          platform: polymarket
+          question: 'Will the Fed cut rates at the September 2026 meeting?'
+          prices: { Yes: 0.5, No: 0.5 }
+          closeDate: '2026-09-18'
+        metaculus:
+          title: 'Will the Fed cut rates in September 2026?'
+          prediction: 0.66
+          divergence: 0.16
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsMetaculus
+
+  # 4 — Real headlines supplied. Must engage with them, invent nothing.
+  - description: news headlines provided
+    vars:
+      fixtureId: news-provided
+      context:
+        market:
+          id: poly-election
+          platform: polymarket
+          question: 'Will Candidate X win the 2026 primary?'
+          prices: { Yes: 0.42, No: 0.58 }
+          closeDate: '2026-10-01'
+        newsHeadlines:
+          - 'Candidate X slips in latest statewide poll'
+          - 'Major donor pulls support from Candidate X campaign'
+          - 'Rival consolidates establishment backing'
+    assert:
+      - type: javascript
+        value: file://asserts.ts:engagesProvidedNews
+
+  # 5 — Cross-platform gap flagged unsafe for arbitrage. Must weigh settlement + fees.
+  - description: settlement-risk cross-platform pair
+    vars:
+      fixtureId: settlement-risk
+      context:
+        market:
+          id: poly-gdp
+          platform: polymarket
+          question: 'Will Q2 2026 US GDP growth be reported above 2%?'
+          prices: { Yes: 0.55, No: 0.45 }
+          closeDate: '2026-07-30'
+        crossPlatform:
+          matchedPlatform: kalshi
+          confidence: 0.86
+          matchedMarket:
+            question: 'Will US Q2 2026 GDP exceed 2% (advance estimate)?'
+            prices: { Yes: 0.52, No: 0.48 }
+        settlement:
+          similarity: { overall: 0.7 }
+          safeForArbitrage: false
+          riskFactors:
+            - 'Different settlement data source (advance vs final estimate)'
+            - 'Different resolution timing'
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsSettlement
+      - type: javascript
+        value: file://asserts.ts:mentionsFees
+
+  # 6 — Sparse market. Must say the data is thin, not bluff confidence.
+  - description: thin data, must acknowledge limits
+    vars:
+      fixtureId: thin-data
+      context:
+        market:
+          id: kalshi-obscure
+          platform: kalshi
+          question: 'Will a specific obscure regulatory filing be approved by year end?'
+          prices: { Yes: 0.5, No: 0.5 }
+          closeDate: '2026-12-31'
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsSourceLimits
+
+  # 7 — Longshot. Honesty under a tail-priced market.
+  - description: longshot market
+    vars:
+      fixtureId: longshot
+      context:
+        market:
+          id: poly-longshot
+          platform: polymarket
+          question: 'Will an asteroid be confirmed on collision course in 2026?'
+          prices: { Yes: 0.03, No: 0.97 }
+          closeDate: '2026-12-31'
+
+  # 8 — Everything at once. Must integrate Metaculus + cross-platform + news + fees.
+  - description: full context (metaculus + cross-platform + news + history)
+    vars:
+      fixtureId: full-context
+      context:
+        market:
+          id: poly-full
+          platform: polymarket
+          question: 'Will Country Y join the trade pact in 2026?'
+          prices: { Yes: 0.53, No: 0.47 }
+          closeDate: '2026-11-15'
+          volume: 480000
+        crossPlatform:
+          matchedPlatform: kalshi
+          confidence: 0.9
+          matchedMarket:
+            question: 'Will Country Y join the trade pact this year?'
+            prices: { Yes: 0.51, No: 0.49 }
+        settlement:
+          similarity: { overall: 0.82 }
+          safeForArbitrage: false
+          riskFactors:
+            - 'Different settlement wording on "join"'
+        metaculus:
+          title: 'Will Country Y join the trade pact in 2026?'
+          prediction: 0.64
+          divergence: 0.11
+        newsHeadlines:
+          - 'Country Y signals openness to trade pact terms'
+          - 'Negotiators report progress on final clauses'
+        priceHistory:
+          - { timestamp: 1717200000000, data: { prices: { Yes: 0.45 } } }
+          - { timestamp: 1717800000000, data: { prices: { Yes: 0.49 } } }
+          - { timestamp: 1718400000000, data: { prices: { Yes: 0.53 } } }
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsMetaculus
+      - type: javascript
+        value: file://asserts.ts:mentionsFees
+      - type: javascript
+        value: file://asserts.ts:mentionsSettlement
+      - type: javascript
+        value: file://asserts.ts:engagesProvidedNews
+
+  # 9 — Price history supplied. Must read the trend.
+  - description: price history trend
+    vars:
+      fixtureId: price-history
+      context:
+        market:
+          id: poly-trend
+          platform: polymarket
+          question: 'Will Project Z ship before Q4 2026?'
+          prices: { Yes: 0.42, No: 0.58 }
+          closeDate: '2026-09-30'
+        priceHistory:
+          - { timestamp: 1717200000000, data: { prices: { Yes: 0.6 } } }
+          - { timestamp: 1717800000000, data: { prices: { Yes: 0.52 } } }
+          - { timestamp: 1718400000000, data: { prices: { Yes: 0.46 } } }
+          - { timestamp: 1719000000000, data: { prices: { Yes: 0.42 } } }
+    assert:
+      - type: javascript
+        value: file://asserts.ts:mentionsTrend
