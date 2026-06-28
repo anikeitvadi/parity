@@ -1,7 +1,7 @@
 {
   "name": "prediction-market-scanner",
   "version": "1.0.0",
-  "description": "Multi-source mispricing scanner for prediction markets",
+  "description": "Market Efficiency Lab and active prediction-market research terminal.",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

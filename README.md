@@ -14,7 +14,7 @@ The pivot is the point. This README is the story of building under real market c
 
 **2. Hypothesis.** The obvious play: *find cross-platform mispricings.* The same real-world event is often listed on both Polymarket and Kalshi — if they price it differently, that gap is an edge. Build a scanner that surfaces those gaps.
 
-**3. What the data showed.** I built the live scanner across both platforms — semantic event matching, divergence computation, the works. The latest scan: **2,219 live markets, only 7 listed on both platforms (cosine ≥ 0.85), and 0 gaps that cleared the ~19pp arbitrage threshold after fees.** Not a bug: the markets are efficient enough that the price already reflects available information. The original edge thesis didn't survive contact with live data. It's a single-run finding, reproducible with `npm run study` — not a universal claim about market efficiency.
+**3. What the data showed.** I built the live scanner across both platforms — semantic event matching, divergence computation, the works. The latest scan: **2,219 live markets, only 7 listed on both platforms (cosine ≥ 0.85), and 0 gaps that cleared the ~19pp arbitrage threshold after fees.** Not a bug: in this scan, the easy cross-platform arb thesis didn't survive fees and settlement review. It's a single-run finding, reproducible with `npm run study` — not a universal claim about market efficiency.
 
 **4. The pivot.** Instead of pretending an edge exists, I reframed the product around what *is* genuinely useful when you can't beat the price:
    - **Research synthesis** — pull the dispersed context (cited web sources, cross-platform pricing, superforecaster signals) into one AI brief, so you spend a minute instead of an hour.
