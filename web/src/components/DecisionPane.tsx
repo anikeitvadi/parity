@@ -247,6 +247,21 @@ function BriefAndCall({
   );
 }
 
+// --- Workflow card (empty-state guidance) ---
+function WorkflowCard({ step, title, body }: { step: string; title: string; body: string }) {
+  return (
+    <div className="border border-[#1E293B] rounded-md p-2.5 bg-[#0E1223]">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="w-4 h-4 shrink-0 rounded-full bg-[#1E293B] text-[#94A3B8] text-[9px] font-semibold flex items-center justify-center">
+          {step}
+        </span>
+        <span className="text-[11px] font-semibold text-[#F8FAFC]">{title}</span>
+      </div>
+      <p className="text-[10px] text-[#64748B] leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
 // --- Dashboard (no market selected) ---
 function Dashboard({
   saved,
@@ -258,10 +273,23 @@ function Dashboard({
   onRemove: (id: string, platform: string) => void;
 }) {
   return (
-    <div className="h-full overflow-y-auto p-3 space-y-4">
-      <div className="text-[11px] text-[#64748B]">
-        Select a market to research, or review your track record below.
+    <div className="h-full overflow-y-auto p-4 space-y-5">
+      <div>
+        <h2 className="text-[13px] font-semibold text-[#F8FAFC]">Research queue</h2>
+        <p className="text-[11px] text-[#64748B] mt-1 leading-relaxed max-w-[460px]">
+          Pick a market on the left to pull its odds, price history, cross-platform and Metaculus
+          signals, and a cited AI brief into one view. The list is the full live universe across
+          Polymarket and Kalshi — this is the daily workflow; the Efficiency Lab is the one-off
+          study behind it.
+        </p>
       </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <WorkflowCard step="1" title="Scan" body="Sort by volume, divergence, or close; filter by platform or type. Related outcomes collapse into one row." />
+        <WorkflowCard step="2" title="Research" body="Open a market for evidence + an AI brief grounded in cited sources — never invented." />
+        <WorkflowCard step="3" title="Log a call" body="Set your probability and log it; calibration builds as markets resolve." />
+      </div>
+
       <TrackRecord />
       <div>
         <div className="text-[10px] text-[#64748B] uppercase tracking-wider mb-1.5">
@@ -325,13 +353,15 @@ function TrackRecord() {
     <div>
       <div className="text-[10px] text-[#64748B] uppercase tracking-wider mb-1.5">Your track record</div>
 
-      {stats.resolvedForecasts === 0 ? (
+      {stats.resolvedForecasts < 5 ? (
         <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3 text-[11px] text-[#64748B] leading-relaxed">
-          {stats.totalForecasts > 0
-            ? `${stats.totalForecasts} forecast${stats.totalForecasts > 1 ? 's' : ''} logged, none resolved yet.`
-            : 'No forecasts yet.'}
-          {' '}Log your probability on markets — once they resolve, this shows whether
-          things you call <span className="text-[#F8FAFC]">70%</span> actually happen ~70% of the time.
+          {stats.resolvedForecasts > 0
+            ? `${stats.resolvedForecasts} of ${stats.totalForecasts} forecasts resolved. `
+            : stats.totalForecasts > 0
+              ? `${stats.totalForecasts} forecast${stats.totalForecasts > 1 ? 's' : ''} logged, none resolved yet. `
+              : 'No forecasts yet. '}
+          Calibration starts after <span className="text-[#F8FAFC]">5</span> resolved calls — then this shows
+          whether things you call <span className="text-[#F8FAFC]">70%</span> actually happen ~70% of the time.
         </div>
       ) : (
         <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3 space-y-3">
