@@ -20,7 +20,8 @@ export class RateLimiter {
     private maxRequestsPerWindow: number,
     private windowMs: number,
     private minDelayMs: number,
-    name = 'default'
+    name = 'default',
+    private shouldRetry?: (error: RateLimitError) => boolean
   ) {
     this.name = name;
   }
@@ -65,15 +66,19 @@ export class RateLimiter {
       maxDelay: 30000,
       jitter: 'full', // Add randomness to prevent thundering herd
       retry: (error: RateLimitError, attemptNumber: number) => {
-        // Retry on rate limit or network errors
-        const shouldRetry = error.status === 429 || error.code === 'ECONNRESET';
-        if (shouldRetry) {
+        // 429 (rate limit) and ECONNRESET are transient by default. But a caller
+        // can veto specific errors that retrying won't fix — e.g. a daily-cap (RPD)
+        // or billing 429 must fail FAST so the run stops cleanly instead of burning
+        // the rest of the quota on futile retries.
+        const transient = error.status === 429 || error.code === 'ECONNRESET';
+        const retryable = transient && (this.shouldRetry?.(error) ?? true);
+        if (retryable) {
           logger.warn(
             { limiter: this.name, attemptNumber, error: error.message },
             'Retrying after error'
           );
         }
-        return shouldRetry;
+        return retryable;
       },
     });
   }
