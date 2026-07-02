@@ -530,7 +530,8 @@ export function streamResearch(
           const data = line.slice(6);
           if (data === '[DONE]') { onDone(); return; }
           if (data.startsWith('[ERROR]')) { onError(data.slice(8)); return; }
-          onToken(data);
+          // Tokens are JSON-encoded so newlines survive SSE's newline framing; parse them back.
+          try { onToken(JSON.parse(data) as string); } catch { onToken(data); }
         }
       }
 

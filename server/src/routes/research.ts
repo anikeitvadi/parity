@@ -96,7 +96,7 @@ researchRoutes.get('/markets/:id/research', async (c) => {
   const cachedBrief = briefCache.get(cacheKey);
   if (cachedBrief) {
     return streamSSE(c, async (stream) => {
-      await stream.writeSSE({ data: cachedBrief });
+      await stream.writeSSE({ data: JSON.stringify(cachedBrief) });
       await stream.writeSSE({ data: '[DONE]' });
     });
   }
@@ -212,7 +212,8 @@ researchRoutes.get('/markets/:id/research', async (c) => {
         const text = chunk.choices[0]?.delta?.content;
         if (text) {
           full += text;
-          await stream.writeSSE({ data: text });
+          // JSON-encode so newlines/markdown survive SSE's newline framing (client JSON-parses).
+          await stream.writeSSE({ data: JSON.stringify(text) });
         }
       }
 
