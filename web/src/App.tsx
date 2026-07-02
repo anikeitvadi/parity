@@ -3,8 +3,8 @@ import { TerminalPage } from './pages/TerminalPage.js';
 import { SnapshotBadge } from './components/SnapshotBadge.js';
 import { IS_STATIC } from './api/client.js';
 
-// The Lab is the only consumer of Observable Plot (~270KB) — load it on demand
-// so the default Scanner view stays lean.
+// The Lab is the only consumer of Observable Plot (~270KB) — code-split so the
+// Terminal view doesn't pay for it.
 const LabPage = lazy(() => import('./pages/LabPage.js').then((m) => ({ default: m.LabPage })));
 
 function Clock() {
@@ -19,7 +19,7 @@ function Clock() {
 }
 
 export function App() {
-  const [tab, setTab] = useState<'scanner' | 'lab'>('scanner');
+  const [tab, setTab] = useState<'scanner' | 'lab'>('lab');
 
   return (
     <div className="h-screen flex flex-col" style={{ background: '#020617' }}>
@@ -27,13 +27,16 @@ export function App() {
       <header className="h-7 shrink-0 flex items-center justify-between px-3 border-b border-[#1E293B]">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-[7px] font-bold text-white">
-              PM
-            </div>
-            <span className="text-[12px] font-semibold text-[#F8FAFC] tracking-tight">Scanner</span>
+            {/* Two offset dots — Polymarket (blue) + Kalshi (green) — overlapping on the cross-listed set. */}
+            <svg width="20" height="14" viewBox="0 0 20 14" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="5" fill="#60A5FA" fillOpacity="0.9" />
+              <circle cx="13" cy="7" r="5" fill="#22C55E" fillOpacity="0.6" />
+            </svg>
+            <span className="text-[12px] font-semibold text-[#F8FAFC] tracking-tight">Parity</span>
+            <span className="hidden md:inline text-[10px] text-[#475569]">prediction-market efficiency</span>
           </div>
           <nav className="flex items-center gap-1">
-            {(['scanner', 'lab'] as const).map((t) => (
+            {(['lab', 'scanner'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -41,7 +44,7 @@ export function App() {
                   tab === t ? 'bg-[#1E293B] text-[#F8FAFC]' : 'text-[#64748B] hover:text-[#94A3B8]'
                 }`}
               >
-                {t === 'scanner' ? 'Scanner' : 'Efficiency Lab'}
+                {t === 'scanner' ? 'Terminal' : 'Lab'}
               </button>
             ))}
           </nav>
