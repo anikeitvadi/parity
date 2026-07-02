@@ -129,9 +129,9 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
       for (const th of scene.threads) {
         const a = project(th.a.x, th.a.y, th.a.z, rot);
         const b = project(th.b.x, th.b.y, th.b.z, rot);
-        ctx.globalAlpha = 0.10 * Math.min(a.s, b.s);
+        ctx.globalAlpha = 0.16 * Math.min(a.s, b.s);
         ctx.strokeStyle = rgba(THREAD, 1);
-        ctx.lineWidth = 0.8;
+        ctx.lineWidth = 1.0;
         ctx.beginPath();
         ctx.moveTo(a.sx, a.sy);
         ctx.lineTo(b.sx, b.sy);
@@ -141,10 +141,10 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
       // Background universe points.
       const drawPt = (p: Pt) => {
         const q = project(p.x, p.y, p.z, rot);
-        ctx.globalAlpha = p.bright * q.s;
+        ctx.globalAlpha = Math.min(1, p.bright * q.s * 1.45);
         ctx.fillStyle = rgba(p.side === 0 ? POLY : KALSHI, 1);
         ctx.beginPath();
-        ctx.arc(q.sx, q.sy, 1.4 * q.s, 0, Math.PI * 2);
+        ctx.arc(q.sx, q.sy, 2.3 * q.s, 0, Math.PI * 2);
         ctx.fill();
       };
       for (const p of scene.bg) drawPt(p);
@@ -159,9 +159,9 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
         const tip = project(fl.base.x, fl.base.y - fall + h0, fl.base.z, rot);
         const col = fl.cat === 2 ? RED : fl.cat === 1 ? AMBER : THREAD;
         const a = (fl.cat === 2 ? 1 - tp : 1) * base.s;
-        ctx.globalAlpha = 0.35 * a;
+        ctx.globalAlpha = 0.5 * a;
         ctx.strokeStyle = rgba(col, 1);
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.moveTo(base.sx, base.sy);
         ctx.lineTo(tip.sx, tip.sy);
@@ -169,7 +169,7 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
         ctx.globalAlpha = 0.9 * a;
         ctx.fillStyle = rgba(col, 1);
         ctx.beginPath();
-        ctx.arc(tip.sx, tip.sy, 1.8 * tip.s, 0, Math.PI * 2);
+        ctx.arc(tip.sx, tip.sy, 2.6 * tip.s, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -223,7 +223,7 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
   const num = (n?: number) => (n ?? 0).toLocaleString();
 
   return (
-    <div className="relative rounded-lg border border-[#1E293B] bg-[#060912] overflow-hidden" style={{ height: 'min(72vh, 720px)' }}>
+    <div className="relative border-y border-[#1E293B] bg-[#060912] overflow-hidden" style={{ height: '85vh' }}>
       <div ref={wrapRef} className="absolute inset-0">
         <canvas ref={canvasRef} className="w-full h-full block" />
       </div>

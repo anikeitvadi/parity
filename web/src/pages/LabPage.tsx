@@ -305,8 +305,8 @@ export function LabPage() {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto p-5">
-      <div className="max-w-[1800px] mx-auto">
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[1800px] mx-auto px-5 pt-5">
         <div className="mb-1 flex items-baseline justify-between">
           <h1 className="text-[16px] font-semibold text-[#F8FAFC]">Market Efficiency Lab</h1>
           <span className="text-[10px] text-[#64748B] font-mono">single reproducible scan · {date}</span>
@@ -336,11 +336,14 @@ export function LabPage() {
           <span className="text-[10px] text-[#475569] ml-auto shrink-0">one command · reproducible</span>
         </div>
 
-        {/* Signature visual — the 3D consensus field: real markets, threads, and gap flares. */}
-        <div className="mb-5">
-          <ConsensusField study={s} apparentCount={correctedSemantic} />
-        </div>
+      </div>
 
+      {/* Signature visual — full-bleed 3D consensus field: real markets, threads, gap flares. */}
+      <div className="mb-5">
+        <ConsensusField study={s} apparentCount={correctedSemantic} />
+      </div>
+
+      <div className="max-w-[1800px] mx-auto px-5 pb-5">
         {/* Headline numbers */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           <Stat value={s.universe.total.toLocaleString()} label="Standalone markets enumerated" sub={`Poly ${polyDenom} · Kalshi ${s.universe.kalshi.toLocaleString()}`} />
