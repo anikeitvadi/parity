@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EfficiencyStudy, EfficiencyPair } from '../../api/client.js';
-import { drawWaveText } from '../../lib/pretextText.js';
 
 /**
  * The signature Lab visual — a rotating 3D "consensus field" where every point, thread, and flare is
@@ -40,12 +39,14 @@ function catOf(reason: string): 0 | 1 | 2 {
 }
 
 function lobe(i: number, side: 0 | 1, bright: number): Pt {
-  const cx = side === 0 ? -1.05 : 1.05;
+  const cx = side === 0 ? -1.28 : 1.28;
   const a = rnd(i * 1.7) * Math.PI * 2;
   const el = (rnd(i * 3.3) - 0.5) * Math.PI;
-  const r = 0.32 + rnd(i * 5.1) * 0.5;
+  // Concentrate points toward the core (dense glowing center + sparse halo) — a galaxy, not a blob.
+  // With additive blending the dense cores then glow on their own.
+  const r = 0.1 + Math.pow(rnd(i * 5.1), 1.8) * 0.78;
   const ce = Math.cos(el);
-  return { x: cx + Math.cos(a) * ce * r * 0.85, y: Math.sin(el) * r * 0.72, z: Math.sin(a) * ce * r * 0.85, side, bright };
+  return { x: cx + Math.cos(a) * ce * r * 0.92, y: Math.sin(el) * r * 0.7, z: Math.sin(a) * ce * r * 0.92, side, bright };
 }
 
 export function ConsensusField({ study, apparentCount }: { study: EfficiencyStudy; apparentCount?: number }) {
@@ -67,7 +68,7 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
     const same = pairs.filter((p) => p.triage_label === 'validated_same_contract').sort(byVol).slice(0, 95);
     const surv = pairs.filter((p) => p.triage_label === 'semantic_survivor').sort(byVol).slice(0, 55);
     const bg: Pt[] = [];
-    for (let i = 0; i < 440; i++) bg.push(lobe(i + 1000, (i % 2) as 0 | 1, 0.16 + rnd(i * 2.2) * 0.14));
+    for (let i = 0; i < 820; i++) bg.push(lobe(i + 1000, (i % 2) as 0 | 1, 0.18 + rnd(i * 2.2) * 0.2));
     const threads: Thread[] = same.map((_, i) => ({ a: lobe(i + 1, 0, 0.7), b: lobe(i + 1, 1, 0.7) }));
     const flares: Flare[] = surv.map((p, i) => ({
       base: lobe(i + 500, i % 2 === 0 ? 0 : 1, 0.9),
@@ -76,17 +77,6 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
     }));
     return { bg, threads, flares };
   }, [study]);
-
-  const featured = useMemo(
-    () =>
-      (study.pairs ?? [])
-        .filter((p) => p.triage_label === 'semantic_survivor')
-        .sort((a, b) => (b.volume || 0) - (a.volume || 0))
-        .slice(0, 6)
-        .map((p) => p.question)
-        .filter(Boolean),
-    [study]
-  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -141,7 +131,7 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
       // Background universe points.
       const drawPt = (p: Pt) => {
         const q = project(p.x, p.y, p.z, rot);
-        ctx.globalAlpha = Math.min(1, p.bright * q.s * 1.45);
+        ctx.globalAlpha = Math.min(1, p.bright * Math.pow(q.s, 1.35) * 1.6);
         ctx.fillStyle = rgba(p.side === 0 ? POLY : KALSHI, 1);
         ctx.beginPath();
         ctx.arc(q.sx, q.sy, 2.3 * q.s, 0, Math.PI * 2);
@@ -173,26 +163,8 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
         ctx.fill();
       }
 
-      // Featured real market question, in variable-weight pretext typography.
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-      if (featured.length) {
-        const idx = Math.floor(t / 4200) % featured.length;
-        const local = (t % 4200) / 4200;
-        const fade = Math.min(1, Math.min(local, 1 - local) * 6); // fade in/out between questions
-        const raw = featured[idx].toUpperCase();
-        const q = raw.length > 50 ? `${raw.slice(0, 48).trimEnd()}…` : raw; // keep it one sculptural line
-        ctx.textAlign = 'left';
-        drawWaveText(ctx, q, w / 2, h - 22, {
-          size: Math.max(13, Math.min(19, w / 48)),
-          t,
-          color: '#CBD5E1',
-          align: 'center',
-          maxWidth: w - 60,
-          alpha: 0.9 * fade,
-          sizeAmp: 0.2,
-        });
-      }
     };
 
     const loop = (t: number) => {
@@ -210,7 +182,7 @@ export function ConsensusField({ study, apparentCount }: { study: EfficiencyStud
     if (reduced) { tpRef.current = 1; playingRef.current = false; setPhase('resolved'); }
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); ro.disconnect(); };
-  }, [scene, featured, reduced]);
+  }, [scene, reduced]);
 
   const replay = () => {
     startRef.current = performance.now();
