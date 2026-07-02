@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fetchPairs, fetchEfficiencyStudy, fetchCorrections, fetchStrictSurvivors, type PairsResponse, type PairRow, type PairStatus, type EfficiencyStudy, type Corrections, type StrictSurvivors } from '../api/client.js';
+import { fetchPairs, fetchEfficiencyStudy, type PairsResponse, type PairRow, type PairStatus, type EfficiencyStudy } from '../api/client.js';
 import { PairQueue } from '../components/PairQueue.js';
 import { PairDossier } from '../components/PairDossier.js';
 import { PAIR_STATUS } from '../lib/pairStatus.js';
 import { useCountUp } from '../lib/useCountUp.js';
-import { correctedFunnelCounts, type CorrectedCounts } from '../lib/funnel.js';
 
 type StatusFilter = 'curated' | 'strict' | PairStatus;
 type SortKey = 'opportunity' | 'gap' | 'liquidity';
@@ -23,40 +22,33 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
   const [sort, setSort] = useState<SortKey>('opportunity');
   const [search, setSearch] = useState('');
   const [study, setStudy] = useState<EfficiencyStudy | null>(null);
-  const [corrections, setCorrections] = useState<Corrections | null>(null);
-  const [strict, setStrict] = useState<StrictSurvivors | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const autoSelected = useRef(false);
 
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        const r = await fetchPairs();
-        if (alive) setData(r);
-      } catch { /* keep prior data */ }
-      if (alive) setLoading(false);
-    };
-    load();
-    const t = setInterval(load, 120_000);
-    return () => { alive = false; clearInterval(t); };
+  // Re-price the terminal on demand (and every 120s). This is the live capability — it re-fetches
+  // current prices for the cached, batch-verified corpus; it does NOT re-run the verification batch.
+  const reload = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const r = await fetchPairs();
+      setData(r);
+    } catch { /* keep prior data */ }
+    finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
   }, []);
 
-  // The funnel headline (52,858 → … → 0) + the corrections/strict data behind it; fetched once so the
-  // verdict strip shows the SAME corrected numbers as the Lab (apparent 176, verified 40).
+  useEffect(() => {
+    reload();
+    const t = setInterval(reload, 120_000);
+    return () => clearInterval(t);
+  }, [reload]);
+
+  // The funnel headline (52,858 → 3,791 cross-listed → 0) comes from the Efficiency Lab study.
   useEffect(() => {
     fetchEfficiencyStudy().then((r) => setStudy(r.study ?? null)).catch(() => {});
-    fetchCorrections().then((r) => setCorrections(r.data ?? null)).catch(() => {});
-    fetchStrictSurvivors().then((r) => setStrict(r.data ?? null)).catch(() => {});
   }, []);
-
-  const correctedFunnel = useMemo<CorrectedCounts | undefined>(() => {
-    if (!study) return undefined;
-    const keys = new Set((corrections?.corrections ?? []).map((c) => `${c.polymarketId}::${c.kalshiId}`));
-    const semanticFalsePositives = (corrections?.corrections ?? []).filter(
-      (c) => c.correction_source !== 'strict_reverify' && c.original_verdict === 'semantic_survivor'
-    ).length;
-    return correctedFunnelCounts(study, strict?.pairs ?? [], keys, semanticFalsePositives);
-  }, [study, corrections, strict]);
 
   const pairs = data?.pairs ?? [];
   const counts = data?.meta.counts;
@@ -134,7 +126,7 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* The thesis, stated before a click: the whole funnel from tradeable universe to 0 executable. */}
-      <VerdictStrip funnel={study?.funnel} universeTotal={study?.universe.total} corrected={correctedFunnel} />
+      <VerdictStrip funnel={study?.funnel} universeTotal={study?.universe.total} />
 
       {/* Header: freshness + search + status chips + sort */}
       <div className="shrink-0 border-b border-[#1E293B] bg-[#0E1223]">
@@ -176,6 +168,15 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
               </button>
             ))}
           </div>
+          <button
+            onClick={reload}
+            disabled={refreshing}
+            title="Re-fetch current prices for the verified corpus (does not re-run the verification batch)"
+            className="ml-1 flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded text-[#64748B] hover:text-[#06B6D4] transition-colors disabled:opacity-50"
+          >
+            <span className={refreshing ? 'inline-block animate-spin' : 'inline-block'}>↻</span>
+            {refreshing ? 'refreshing…' : 'refresh prices'}
+          </button>
           {onOpenLab && (
             <button onClick={onOpenLab} className="ml-1 px-2 py-0.5 text-[10px] font-medium rounded text-[#64748B] hover:text-[#06B6D4] transition-colors">
               Methodology →
@@ -239,9 +240,9 @@ function FunnelNum({ value, label, color, hero }: { value: number; label: string
  * The verdict strip — the funnel from tradeable universe to zero executable arbitrage, stated as the
  * Scanner's headline before any click. Numbers count up on load; the terminal-green 0 is the finding.
  */
-function VerdictStrip({ funnel, universeTotal, corrected }: { funnel?: EfficiencyStudy['funnel']; universeTotal?: number; corrected?: CorrectedCounts }) {
+function VerdictStrip({ funnel, universeTotal }: { funnel?: EfficiencyStudy['funnel']; universeTotal?: number }) {
   const audited = funnel?.tradeable ?? universeTotal ?? 0;
-  const verified = corrected?.strictSpecSurvivors ?? funnel?.strictSpecSurvivors ?? 0;
+  const crossListed = funnel?.sameContract ?? 0;
   const executable = funnel?.clearExecutableArb ?? 0;
   const Arrow = () => <span className="text-[#334155] text-[15px] shrink-0 px-0.5">→</span>;
   return (
@@ -249,7 +250,7 @@ function VerdictStrip({ funnel, universeTotal, corrected }: { funnel?: Efficienc
       <div className="flex items-center gap-3">
         <FunnelNum value={audited} label="tradeable markets" />
         <Arrow />
-        <FunnelNum value={verified} label="verified same-contract" color="#38BDF8" />
+        <FunnelNum value={crossListed} label="cross-listed contracts" color="#38BDF8" />
         <Arrow />
         <FunnelNum value={executable} label="executable arbitrage" color="#22C55E" hero />
         <div className="flex-1" />

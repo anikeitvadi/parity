@@ -6,6 +6,7 @@ import { KalshiClient } from '../../../src/services/kalshi.js';
 import { getRecentMatches, getLatestSnapshot, getSettlementComparison, getMarketHistory } from '../../../src/database/queries.js';
 import { SimpleCache } from '../cache.js';
 import { buildResearchPrompt } from '../prompts/research.js';
+import { loadVerifiedPairs } from '../pairs-data.js';
 import { findMetaculusMatch } from './markets.js';
 import { readCachedSources, slugify } from '../../../src/services/source-collector.js';
 import type { Market } from '../../../src/types/market.js';
@@ -123,6 +124,25 @@ researchRoutes.get('/markets/:id/research', async (c) => {
       market = markets.find((m) => m.id === id) || null;
     } catch {
       // fall through
+    }
+  }
+
+  if (!market) {
+    // The market has resolved / dropped out of the live feed, but it's in the frozen study corpus.
+    // Reconstruct a minimal Market from the verified pairs so briefs still work over the whole scan.
+    const vp = loadVerifiedPairs()?.pairs.find((p) => p.polymarketId === id || p.kalshiId === id);
+    if (vp) {
+      const isPoly = vp.polymarketId === id;
+      const yes = isPoly ? vp.polymarketYes : vp.kalshiYes;
+      market = {
+        id,
+        platform: platform as Market['platform'],
+        question: isPoly ? vp.polymarketTitle : vp.kalshiTitle,
+        outcomes: ['Yes', 'No'],
+        prices: { Yes: yes, No: 1 - yes },
+        closeDate: '',
+        volume: isPoly ? vp.polyVolume : vp.kalshiVolume,
+      };
     }
   }
 

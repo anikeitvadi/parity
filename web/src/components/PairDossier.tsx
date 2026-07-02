@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchPairLive, fetchPairHistory, type PairRow, type PairLive, type PairHistory, type HistoryPoint, type PairsVerification, type LiveSide } from '../api/client.js';
+import Markdown from 'react-markdown';
+import { fetchPairLive, fetchPairHistory, IS_STATIC, type PairRow, type PairLive, type PairHistory, type HistoryPoint, type PairsVerification, type LiveSide } from '../api/client.js';
+import { useResearch } from '../hooks/useResearch.js';
 import { verdictDisplay, CHECKS, actionability, causeOfDeath, usd, pp, POLY, KALSHI, FEE } from '../lib/pairStatus.js';
 import { DiffText } from './lab/DeepSurvivors.js';
 
@@ -132,6 +134,41 @@ function Checklist({ checklist }: { checklist: Record<string, boolean | string> 
           </span>
         );
       })}
+    </div>
+  );
+}
+
+/** Grounded research brief — streams an LLM synthesis over cross-platform prices, 7-day history,
+ *  cached news, and Metaculus forecasts. Needs the backend, so it degrades to a note in static mode. */
+function Brief({ polyId }: { polyId: string }) {
+  const { content, isStreaming, error, start, stop } = useResearch('polymarket', polyId);
+  useEffect(() => stop, [stop, polyId]);
+  if (IS_STATIC) {
+    return (
+      <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3 text-[11px] text-[#64748B] leading-relaxed">
+        Research briefs generate live from the backend — grounding on cross-platform prices, 7-day price
+        history, cached news, and Metaculus forecasts. Run the terminal with its server to generate one.
+      </div>
+    );
+  }
+  return (
+    <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3">
+      {error && <div className="text-[11px] text-[#EF4444] mb-2">{error}</div>}
+      {content ? (
+        <div className="prose prose-invert max-w-none text-[12px] leading-relaxed [&_h1]:text-[13px] [&_h2]:text-[12px] [&_h3]:text-[12px] [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_p]:mb-1.5 [&_ul]:mb-1.5 [&_li]:mb-0.5 [&_strong]:text-[#F8FAFC]">
+          <Markdown>{content}</Markdown>
+          {isStreaming && <span className="text-[#06B6D4] animate-pulse">|</span>}
+        </div>
+      ) : isStreaming ? (
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-[#64748B] animate-pulse">Generating research brief…</span>
+          <button onClick={stop} className="text-[10px] text-[#64748B] hover:text-[#EF4444]">Stop</button>
+        </div>
+      ) : (
+        <button onClick={start} className="w-full py-2 text-[11px] font-medium text-[#06B6D4] border border-[#06B6D4]/30 rounded hover:bg-[#06B6D4]/10 transition-colors">
+          Generate research brief
+        </button>
+      )}
     </div>
   );
 }
@@ -361,6 +398,11 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
         {/* Actionability */}
         <Section title="Is this actionable?">
           <div className={`text-[11px] leading-snug rounded px-3 py-2 border ${v.chip}`}>{actionability(eff)}</div>
+        </Section>
+
+        {/* AI research brief — grounded synthesis (cross-platform + history + news + Metaculus) */}
+        <Section title="Research brief">
+          <Brief key={pair.polymarket.id} polyId={pair.polymarket.id} />
         </Section>
 
         {/* Provenance — one glance = the whole reliability story */}
