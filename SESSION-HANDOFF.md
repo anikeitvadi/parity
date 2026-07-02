@@ -38,7 +38,7 @@ connection style is **Arcs**. Everything is **green** (`npm run check` passes) b
   sprites (galaxies + gaps), flowing lines (Arcs/Waist), and flowing points (Pulses/Stream). Bloom via
   `@react-three/postprocessing`. Orbit camera. HTML overlay = honest readout + connection switcher + triage badge.
 - `web/src/pages/LabPage.tsx` — swapped `<ConsensusField>` → `<ConsensusField3D study={s} apparentCount={correctedSemantic} />` (line ~343).
-- `web/src/components/lab/ConsensusField.tsx` — the OLD Canvas2D version. **Now unused/dead** — delete after commit (it lives in git history via this session's edits once committed).
+- `web/src/components/lab/ConsensusField.tsx` — the OLD Canvas2D version. **Deleted** (recoverable from git history).
 - Deps added: `three@0.185.1 @react-three/fiber@9.6.1 @react-three/drei@10.7.7 @react-three/postprocessing@3.0.4 @types/three@0.185.0`.
 
 ## Current visual params (dials)
@@ -53,16 +53,14 @@ connection style is **Arcs**. Everything is **green** (`npm run check` passes) b
   `@react-three/fiber`, a full restart (not just refresh) is required so Vite pre-bundles them.
 - `npm run check` — typecheck (3 tsconfigs) + build + tests. **Currently GREEN.**
 
-## Immediate next steps (in order)
-1. **COMMIT** — nothing is committed. On branch `infra/harden-batch-verification`; consider a fresh branch
-   `feat/consensus-field-3d`. Suggested: commit deps + `consensus3d/` + LabPage swap together.
-2. **Prune** — after committing, delete the unused styles (Waist/Pulses/Stream + their builders/shaders +
-   the switcher) if you want Arcs-only shipped, and **delete the dead `ConsensusField.tsx`**. (Kept for now
-   so nothing is lost pre-commit.)
-3. **Code-split** — the Lab is the landing page and three.js adds ~360 KB gz. Lazy-load the canvas:
-   `const ConsensusField3D = lazy(() => import('.../ConsensusField3D.js'))` + `<Suspense fallback>` in
-   LabPage, so the page shell + readout paint instantly.
-4. **Static snapshot** — re-run `npm run snapshot` if the frozen public bundle needs the new visual (see memory `static-portfolio-mode`).
+## Status / next steps
+- ✅ **Committed** — branch `feat/consensus-field-3d`, commit `1609968` (deps + `consensus3d/` + LabPage swap).
+- ✅ **Pruned** — Arcs-only; the Waist/Pulses/Stream builders + switcher removed; dead Canvas2D
+  `ConsensusField.tsx` deleted. (All still recoverable from git history.)
+- ✅ **Code-split** — canvas is `lazy()` + `<Suspense>`; three.js is its own chunk
+  (`ConsensusField3D-*.js`, ~266 KB gz) so the Lab shell + readout paint first.
+- ⬜ **Push + PR** — `git push -u origin feat/consensus-field-3d`, open PR against `main`.
+- ⬜ **Static snapshot** — re-run `npm run snapshot` if the frozen public bundle needs the new visual (memory `static-portfolio-mode`).
 
 ## Gotchas
 - **npm cache is broken**: `~/.npm/_cacache` has a root-owned locked file → `npm install` fails with EACCES.

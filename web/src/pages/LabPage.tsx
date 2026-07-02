@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Plot from '@observablehq/plot';
 import {
   fetchEfficiencyStudy,
@@ -11,7 +11,10 @@ import {
 } from '../api/client.js';
 import { CompressionWaterfall } from '../components/lab/CompressionWaterfall.js';
 import { ComparisonMatrix } from '../components/lab/ComparisonMatrix.js';
-import { ConsensusField3D } from '../components/lab/consensus3d/ConsensusField3D.js';
+// Code-split the WebGL canvas (three.js ~360 KB gz) so the Lab shell + readout paint immediately.
+const ConsensusField3D = lazy(() =>
+  import('../components/lab/consensus3d/ConsensusField3D.js').then((m) => ({ default: m.ConsensusField3D }))
+);
 import { EvidenceWall } from '../components/lab/EvidenceWall.js';
 import { DeepSurvivors } from '../components/lab/DeepSurvivors.js';
 import { correctedFunnelCounts } from '../lib/funnel.js';
@@ -340,7 +343,9 @@ export function LabPage() {
 
       {/* Signature visual — full-bleed 3D consensus field: real markets, threads, gap flares. */}
       <div className="mb-5">
-        <ConsensusField3D study={s} apparentCount={correctedSemantic} />
+        <Suspense fallback={<div className="border-y border-[#1E293B] bg-[#04060e]" style={{ height: '62vh' }} />}>
+          <ConsensusField3D study={s} apparentCount={correctedSemantic} />
+        </Suspense>
       </div>
 
       <div className="max-w-[1800px] mx-auto px-5 pb-5">

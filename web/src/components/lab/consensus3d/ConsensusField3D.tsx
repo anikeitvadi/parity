@@ -9,8 +9,8 @@ import { useFieldModel, POLY_CENTER, KALSHI_CENTER, type FieldModel } from './us
 /**
  * The signature Lab visual in true 3D (react-three-fiber + bloom). Honest data model: 1 point = 1
  * market (Kalshi 2.43× Polymarket), ~215 gap beacons = 0.23%, ~3,791 same-contract links, 0 confirmed.
- * Polymarket is a ring galaxy, Kalshi a 4-arm spiral. The same-contract connection has four selectable
- * styles so the right representation can be chosen by eye. Counts/proportions stay exact.
+ * Polymarket is a ring galaxy, Kalshi a 4-arm spiral; the verified links render as gently-bowed cyan
+ * arcs graded blue→green with a flow pulse. Counts/proportions stay exact; layout is aesthetic.
  */
 
 const POLY_COLOR = '#5AA2FF';
@@ -49,34 +49,7 @@ const POINT_FRAG = /* glsl */ `
   }
 `;
 
-// ---- Flowing points (Pulses + Stream connection styles) ------------------------------------------
-const FLOWPT_VERT = /* glsl */ `
-  uniform float uSize; uniform float uTime; uniform float uGate;
-  attribute float aT; attribute float aPhase; attribute vec3 aColor;
-  varying vec3 vColor; varying float vA;
-  void main() {
-    vColor = aColor;
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    float p = fract(aT * 1.2 - uTime * 0.14 + aPhase);
-    float pulse = smoothstep(0.8, 1.0, p);
-    float amp = mix(0.5 + 0.5 * pulse, pulse, uGate); // gate=0 steady wave, gate=1 gated packets
-    vA = amp;
-    gl_PointSize = clamp(uSize * amp * (300.0 / -mv.z), 0.0, 24.0);
-    gl_Position = projectionMatrix * mv;
-  }
-`;
-const FLOWPT_FRAG = /* glsl */ `
-  uniform float uOpacity;
-  varying vec3 vColor; varying float vA;
-  void main() {
-    float d = length(gl_PointCoord - 0.5);
-    if (d > 0.5) discard;
-    float a = smoothstep(0.5, 0.0, d);
-    gl_FragColor = vec4(vColor + vec3(0.3, 0.5, 0.6) * vA * 0.5, a * vA * uOpacity);
-  }
-`;
-
-// ---- Flowing lines (Waist + Arcs connection styles) ----------------------------------------------
+// ---- Flowing lines (the same-contract bridge) ----------------------------------------------------
 const LINE_VERT = /* glsl */ `
   uniform float uTime;
   attribute float aT; attribute float aPhase; attribute vec3 aColor;
@@ -141,14 +114,10 @@ function Gaps({ positions, onPhase }: { positions: Float32Array; onPhase: (p: 's
   );
 }
 
-// ---- Connection geometry builders (pure) ---------------------------------------------------------
-type ConnStyle = 'waist' | 'arcs' | 'pulses' | 'stream';
-type Geo = { positions: Float32Array; colors: Float32Array; ts: Float32Array; phases: Float32Array };
-
 const grad = (t: number, i: 0 | 1 | 2) => POLY_RGB[i] + (KALSHI_RGB[i] - POLY_RGB[i]) * t;
 
-/** Bowed bezier threads → line segments. mode 'center' funnels controls to a tight waist. */
-function buildLineGeo(model: FieldModel, count: number, mode: 'center' | 'splay'): Geo {
+/** Bowed bezier threads → line segments, graded blue→green, with per-vertex flow data. */
+function buildArcGeo(model: FieldModel, count: number) {
   const N = Math.min(count, model.bridgeN);
   const SEG = 14;
   const positions = new Float32Array(N * SEG * 2 * 3);
@@ -159,18 +128,11 @@ function buildLineGeo(model: FieldModel, count: number, mode: 'center' | 'splay'
   for (let i = 0; i < N; i++) {
     const ax = model.bridgeA[i * 3], ay = model.bridgeA[i * 3 + 1], az = model.bridgeA[i * 3 + 2];
     const bx = model.bridgeB[i * 3], by = model.bridgeB[i * 3 + 1], bz = model.bridgeB[i * 3 + 2];
-    const mx = (ax + bx) / 2, my = (ay + by) / 2, mz = (az + bz) / 2;
-    let cx: number, cy: number, cz: number;
-    if (mode === 'center') {
-      cx = mx * 0.12 + (rnd(i * 9.1) - 0.5) * 0.5;
-      cy = my * 0.12 + (rnd(i * 11.7) - 0.5) * 0.5;
-      cz = mz * 0.12 + (rnd(i * 13.3) - 0.5) * 0.5;
-    } else {
-      const mag = 1.0 + rnd(i * 6.3) * 2.4;
-      cx = mx + (rnd(i * 9.1) - 0.5) * mag * 1.3;
-      cy = my + (rnd(i * 11.7) - 0.5) * mag * 1.7;
-      cz = mz + (rnd(i * 13.3) - 0.5) * mag * 1.7;
-    }
+    // Splay the bow in a random direction per thread so they read as an airy web, not a parallel cord.
+    const mag = 1.0 + rnd(i * 6.3) * 2.4;
+    const cx = (ax + bx) / 2 + (rnd(i * 9.1) - 0.5) * mag * 1.3;
+    const cy = (ay + by) / 2 + (rnd(i * 11.7) - 0.5) * mag * 1.7;
+    const cz = (az + bz) / 2 + (rnd(i * 13.3) - 0.5) * mag * 1.7;
     const phase = model.bridgePhase[i];
     let px = 0, py = 0, pz = 0, pt = 0;
     for (let k = 0; k <= SEG; k++) {
@@ -194,60 +156,10 @@ function buildLineGeo(model: FieldModel, count: number, mode: 'center' | 'splay'
   return { positions, colors, ts, phases };
 }
 
-/** Points sampled along splayed threads → traveling packets (Pulses style). */
-function buildPulseGeo(model: FieldModel, count: number, M: number): Geo {
-  const N = Math.min(count, model.bridgeN);
-  const positions = new Float32Array(N * M * 3);
-  const colors = new Float32Array(N * M * 3);
-  const ts = new Float32Array(N * M);
-  const phases = new Float32Array(N * M);
-  let w = 0, v = 0;
-  for (let i = 0; i < N; i++) {
-    const ax = model.bridgeA[i * 3], ay = model.bridgeA[i * 3 + 1], az = model.bridgeA[i * 3 + 2];
-    const bx = model.bridgeB[i * 3], by = model.bridgeB[i * 3 + 1], bz = model.bridgeB[i * 3 + 2];
-    const mag = 1.0 + rnd(i * 6.3) * 2.2;
-    const cx = (ax + bx) / 2 + (rnd(i * 9.1) - 0.5) * mag * 1.3;
-    const cy = (ay + by) / 2 + (rnd(i * 11.7) - 0.5) * mag * 1.7;
-    const cz = (az + bz) / 2 + (rnd(i * 13.3) - 0.5) * mag * 1.7;
-    const phase = model.bridgePhase[i];
-    for (let k = 0; k < M; k++) {
-      const t = k / (M - 1), m = 1 - t;
-      positions[w] = m * m * ax + 2 * m * t * cx + t * t * bx;
-      positions[w + 1] = m * m * ay + 2 * m * t * cy + t * t * by;
-      positions[w + 2] = m * m * az + 2 * m * t * cz + t * t * bz;
-      colors[w] = grad(t, 0); colors[w + 1] = grad(t, 1); colors[w + 2] = grad(t, 2);
-      ts[v] = t; phases[v] = phase;
-      w += 3; v += 1;
-    }
-  }
-  return { positions, colors, ts, phases };
-}
-
-/** One coherent particle river between the two cores (Stream style). */
-function buildStreamGeo(): Geo {
-  const n = 2600;
-  const positions = new Float32Array(n * 3);
-  const colors = new Float32Array(n * 3);
-  const ts = new Float32Array(n);
-  const phases = new Float32Array(n);
-  for (let k = 0; k < n; k++) {
-    const u = rnd(k * 1.7);
-    const rad = 0.1 + 0.5 * Math.sin(Math.PI * u); // taper into the cores
-    const ang = rnd(k * 2.1) * Math.PI * 2;
-    const rr = Math.pow(rnd(k * 3.3), 0.5) * rad;
-    positions[k * 3] = POLY_CENTER[0] + (KALSHI_CENTER[0] - POLY_CENTER[0]) * u;
-    positions[k * 3 + 1] = Math.sin(Math.PI * u) * 0.5 + Math.cos(ang) * rr; // gentle arc + radial spread
-    positions[k * 3 + 2] = Math.sin(ang) * rr;
-    colors[k * 3] = grad(u, 0); colors[k * 3 + 1] = grad(u, 1); colors[k * 3 + 2] = grad(u, 2);
-    ts[k] = u; phases[k] = rnd(k * 5.1);
-  }
-  return { positions, colors, ts, phases };
-}
-
-function FlowLines({ geo, opacity }: { geo: Geo; opacity: number }) {
+function Bridge({ model }: { model: FieldModel }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uOpacity: { value: opacity } }), []); // eslint-disable-line react-hooks/exhaustive-deps
-  uniforms.uOpacity.value = opacity;
+  const geo = useMemo(() => buildArcGeo(model, 30), [model]);
+  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uOpacity: { value: 0.22 } }), []);
   useFrame((s) => { if (matRef.current) matRef.current.uniforms.uTime.value = s.clock.elapsedTime; });
   return (
     <lineSegments>
@@ -262,54 +174,14 @@ function FlowLines({ geo, opacity }: { geo: Geo; opacity: number }) {
   );
 }
 
-function FlowPoints({ geo, size, opacity, gate }: { geo: Geo; size: number; opacity: number; gate: number }) {
-  const matRef = useRef<THREE.ShaderMaterial>(null);
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uSize: { value: size }, uOpacity: { value: opacity }, uGate: { value: gate } }), []); // eslint-disable-line react-hooks/exhaustive-deps
-  useFrame((s) => { if (matRef.current) matRef.current.uniforms.uTime.value = s.clock.elapsedTime; });
-  return (
-    <points>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[geo.positions, 3]} />
-        <bufferAttribute attach="attributes-aColor" args={[geo.colors, 3]} />
-        <bufferAttribute attach="attributes-aT" args={[geo.ts, 1]} />
-        <bufferAttribute attach="attributes-aPhase" args={[geo.phases, 1]} />
-      </bufferGeometry>
-      <shaderMaterial ref={matRef} uniforms={uniforms} vertexShader={FLOWPT_VERT} fragmentShader={FLOWPT_FRAG} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-    </points>
-  );
-}
-
-function Connections({ model, style }: { model: FieldModel; style: ConnStyle }) {
-  const geo = useMemo(() => {
-    if (style === 'waist') return buildLineGeo(model, model.bridgeN, 'center');
-    if (style === 'arcs') return buildLineGeo(model, 30, 'splay');
-    if (style === 'pulses') return buildPulseGeo(model, 90, 26);
-    return buildStreamGeo();
-  }, [model, style]);
-
-  if (style === 'pulses') return <FlowPoints geo={geo} size={0.18} opacity={1} gate={1} />;
-  if (style === 'stream') return <FlowPoints geo={geo} size={0.1} opacity={0.9} gate={0} />;
-  return (
-    <>
-      <FlowLines geo={geo} opacity={style === 'waist' ? 0.12 : 0.22} />
-      {style === 'waist' && (
-        <mesh>
-          <sphereGeometry args={[0.16, 20, 20]} />
-          <meshBasicMaterial color={THREAD_COLOR} transparent opacity={0.9} blending={THREE.AdditiveBlending} depthWrite={false} />
-        </mesh>
-      )}
-    </>
-  );
-}
-
-function Scene({ model, style, onPhase }: { model: FieldModel; style: ConnStyle; onPhase: (p: 'scanning' | 'resolved') => void }) {
+function Scene({ model, onPhase }: { model: FieldModel; onPhase: (p: 'scanning' | 'resolved') => void }) {
   return (
     <>
       <color attach="background" args={['#04060e']} />
       <Stars radius={60} depth={40} count={1400} factor={3} saturation={0} fade speed={0.4} />
       <PointCloud positions={model.polyPos} center={POLY_CENTER} color={POLY_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
       <PointCloud positions={model.kalshiPos} center={KALSHI_CENTER} color={KALSHI_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
-      <Connections model={model} style={style} />
+      <Bridge model={model} />
       <Gaps positions={model.gapPos} onPhase={onPhase} />
       <OrbitControls autoRotate autoRotateSpeed={0.35} enablePan={false} enableZoom minDistance={6} maxDistance={13} target={[0.15, 0, 0]} />
       <EffectComposer>
@@ -319,16 +191,8 @@ function Scene({ model, style, onPhase }: { model: FieldModel; style: ConnStyle;
   );
 }
 
-const STYLES: { key: ConnStyle; label: string }[] = [
-  { key: 'waist', label: 'Waist' },
-  { key: 'arcs', label: 'Arcs' },
-  { key: 'pulses', label: 'Pulses' },
-  { key: 'stream', label: 'Stream' },
-];
-
 export function ConsensusField3D({ study, apparentCount }: { study: EfficiencyStudy; apparentCount?: number }) {
   const model = useFieldModel(study, apparentCount);
-  const [style, setStyle] = useState<ConnStyle>('arcs');
   const [phase, setPhase] = useState<'scanning' | 'resolved'>('scanning');
 
   const f = study.funnel;
@@ -341,7 +205,7 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
   return (
     <div className="relative border-y border-[#1E293B] bg-[#04060e] overflow-hidden" style={{ height: '62vh' }}>
       <Canvas camera={{ position: [0.5, 3.6, 7.0], fov: 52 }} dpr={[1, 2]} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-        <Scene model={model} style={style} onPhase={setPhase} />
+        <Scene model={model} onPhase={setPhase} />
       </Canvas>
 
       {/* Readout — the thesis is legible without motion. */}
@@ -363,26 +227,15 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
         </div>
       </div>
 
-      {/* Connection-style switcher + triage state */}
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <div className="flex rounded border border-[#1E293B] overflow-hidden bg-[#0B0F1D]/70">
-          {STYLES.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setStyle(s.key)}
-              className={`text-[10px] font-mono px-2.5 py-1 transition-colors ${style === s.key ? 'bg-[#0E7490]/40 text-[#67E8F9]' : 'text-[#64748B] hover:text-[#94A3B8]'}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      {/* Triage state */}
+      <div className="absolute top-4 right-4">
         <span className={`text-[10px] font-mono px-2 py-1 rounded border ${phase === 'resolved' ? 'bg-[#7F1D1D]/30 text-[#FCA5A5] border-[#991B1B]/40' : 'bg-[#0B0F1D]/70 text-[#94A3B8] border-[#1E293B]'}`}>
           {phase === 'resolved' ? 'post-triage · 0 confirmed' : 'verifying…'}
         </span>
       </div>
 
       <div className="absolute bottom-3 right-4 text-[10px] text-[#475569] pointer-events-none font-mono">
-        drag to orbit · scroll to zoom · connection: {style}
+        drag to orbit · scroll to zoom
       </div>
     </div>
   );
