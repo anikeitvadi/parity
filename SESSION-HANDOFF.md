@@ -1,96 +1,77 @@
-# Session Handoff — 2026-07-01 → 07-02 (Opus / ultracode)
+# Session Handoff — 3D Consensus Field (2026-07-02)
 
-Branch: `infra/harden-batch-verification`. Everything below is **committed** (8 commits on top of the pre-session tip `dcda5bb`). `npm run check` is GREEN (typecheck ×3, Vite build, 435 tests). Dev server run: `npm run dev:web` → http://localhost:5173.
+## TL;DR
+The Lab's signature visual was rebuilt from a flat Canvas2D point-field into a **true 3D WebGL scene**
+(react-three-fiber + bloom). It renders the market universe **to scale as two galaxies** — Polymarket
+a **ring galaxy**, Kalshi a **4-arm spiral** — connected by the verified same-contract links. The chosen
+connection style is **Arcs**. Everything is **green** (`npm run check` passes) but **NOTHING IS COMMITTED YET**
+— committing is the #1 next step.
 
-This session took the project from "green but presentation lagged the data" to a coherent, honest, more-polished product, and resolved several real bugs surfaced by actually clicking through the app for the first time.
+## The decision trail (why it looks like it does)
+- Two blind Canvas2D iterations were rejected as "rudimentary" and for **misrepresenting proportion**
+  (a fake 820-point 50/50 split; gap-flares that visually rivaled a 65k universe). Root lesson saved in
+  memory `viz-proportion-honesty`: **research the delivery first; never ship a proportion-dishonest viz.**
+- A research workflow produced the honest reframe (Tufte lie-factor≈1, ISOTYPE, edge-bundling, atmospheric
+  depth, FUI motion economy). Canvas2D was then rejected as a medium ("rudimentary" is inherent to flat
+  additive dots) → pivoted to **react-three-fiber** for volumetric particles + GPU bloom.
+- User chose **Nebula** look (dropped Hologram/Network directions) and, for the connections, **Arcs**
+  (after comparing Waist / Arcs / Pulses / Stream live via a switcher).
 
----
+## What's REAL vs DECORATIVE (the honesty line — this is the whole thesis)
+**Real (bound to `study`):**
+- 1 point = 1 market. Poly galaxy = `universe.polymarket` (26,930); Kalshi = `universe.kalshi` (65,360).
+- Kalshi radius = Poly × ∛(count ratio) → volume is exactly 2.43× (uniform density).
+- 215 orange gap beacons = `apparentCount` = real 0.23% of 92,290. `0` confirmed → **red never drawn** (its absence is the argument).
+- Every readout number read straight from `study` (poly ≥26,930 / kalshi 65,360 / total 92,290 / same-contract 3,791 / gaps 215 / confirmed 0).
 
-## Commits this session (oldest → newest)
+**Decorative (arrangement, not a data claim):**
+- Point *positions* (ring/spiral shape) — not tied to per-market attributes.
+- Gap speck locations (scattered ~29/71 by universe share, not the true per-platform split).
+- The bridge draws a **sample of 150 threads** (endpoints procedural); the real **3,791** is in the readout.
+- Rationale: it's honest the way an ISOTYPE/unit chart is — magnitudes/proportions exact, layout aesthetic.
 
-1. `83f70f6` **baseline + county-scope integrity fix** — committed the whole 49-file working tree; dossier "audit document" upgrade (word-diff on contracts, `causeOfDeath()` banner, provenance footer); added a **county-vs-statewide scope detector** to `suspiciousReason()` in BOTH `web/src/lib/pairStatus.ts` and `scripts/build-corrections.ts` (kept in sync per their invariant).
-2. `07209a2` **font + queue + consistent funnel** — Inter + JetBrains Mono; queue rebuilt as a decision list (verdict rail, gap anchor, blue/green prices, ★/⚠, price flash); the corrected-funnel consistency work (see Decisions §2).
-3. `09c50ba` **honest price freshness + two clocks + cut briefs + consistent strip** — the Merab fix.
-4. `079efb5` **strip reframe + page refresh + restore & fix briefs** — briefs un-cut, lookup bug fixed.
-5. `3bebfee` **fix brief newline rendering** — SSE JSON-encoding.
-6. `7a39bd5` **Parity branding + land-on-Lab + top-bar cleanup**.
-7. `a734dee` **full-bleed + bolder hologram**.
-8. `afe33d5` **hologram reworked into two glowing galaxies** (current tip).
+## Files
+- `web/src/components/lab/consensus3d/useFieldModel.ts` — honest data model. Builds galaxy point arrays
+  (ring for Poly via `RING_RADIUS/RING_WIDTH`; spiral for Kalshi via `KALSHI_BRANCHES/KALSHI_SPIN`), 215
+  gap positions, and 150 bridge endpoint pairs (`bridgeA`/`bridgeB`/`bridgePhase`). Counts come from `study`.
+- `web/src/components/lab/consensus3d/ConsensusField3D.tsx` — the scene. Custom GLSL for soft round point
+  sprites (galaxies + gaps), flowing lines (Arcs/Waist), and flowing points (Pulses/Stream). Bloom via
+  `@react-three/postprocessing`. Orbit camera. HTML overlay = honest readout + connection switcher + triage badge.
+- `web/src/pages/LabPage.tsx` — swapped `<ConsensusField>` → `<ConsensusField3D study={s} apparentCount={correctedSemantic} />` (line ~343).
+- `web/src/components/lab/ConsensusField.tsx` — the OLD Canvas2D version. **Now unused/dead** — delete after commit (it lives in git history via this session's edits once committed).
+- Deps added: `three@0.185.1 @react-three/fiber@9.6.1 @react-three/drei@10.7.7 @react-three/postprocessing@3.0.4 @types/three@0.185.0`.
 
----
+## Current visual params (dials)
+- Galaxies: `POLY_R=1.85`, `KALSHI_R=POLY_R*∛2.43`, centers `POLY_CENTER=[-3.9,0,0]` / `KALSHI_CENTER=[4.5,0,0]`, point `size 0.08`, `twinkle 0.4`.
+- Connection = **Arcs**: `buildLineGeo(model, 30, 'splay')`, opacity 0.22, blue→teal→green gradient with a flow pulse (`LINE_VERT` `uTime*0.11`).
+- Gaps: `uSize 0.36`, `uTwinkle 0.75`, orange `#FF8A1E`; 12s triage breath fades them to 0 (badge flips to "post-triage · 0 confirmed").
+- Camera `[0.5,3.6,7.0]` fov 52, orbit `minDistance 6 / maxDistance 13`, bloom `intensity 1.3 / threshold 0.2`.
+- Frame height `62vh`. Colors LOCKED: blue=Poly `#5AA2FF`, green=Kalshi `#22C55E`, cyan=consensus `#22D3EE`, orange=gaps, red=confirmed(reserved).
 
-## Key decisions made this session (with rationale)
+## How to run / verify
+- `npm run dev:web` (5173) — **the dev server was killed; restart it.** New deps mean if it errors on
+  `@react-three/fiber`, a full restart (not just refresh) is required so Vite pre-bundles them.
+- `npm run check` — typecheck (3 tsconfigs) + build + tests. **Currently GREEN.**
 
-### 1. Branding & IA
-- Product is now **"Parity"** (tagline "prediction-market efficiency"), two-dot mark (blue Poly + green Kalshi overlapping = cross-listed set). Replaces the old "Scanner" brand that collided with the "Scanner" tab.
-- Tabs are **`Lab`** and **`Terminal`** (was "Efficiency Lab" / "Scanner").
-- **Default landing is the Lab** (story-first: funnel + hologram + finding). Terminal is one click away. `App.tsx` default tab = `'lab'`.
-
-### 2. The number-consistency model (IMPORTANT — this changed a headline number)
-The old "221 apparent gaps → 180 after correction" was **double-counting**. Two kinds of corrections exist in `corrections.json`:
-- **39 `strict_reverify`** corrections = EXACTLY the 39 `strict_survivor=false` pairs = the funnel's own 7-point cull (`liquid 83 → strict 44`). Already in the funnel.
-- **6 `deterministic` scope corrections** (incl. 4 county) = genuine semantic-level false positives.
-
-The old 180 subtracted all 45 from the apparent-gap total, but the 39 are already represented as the strict cull → double count. The **consistent model** (implemented in `web/src/lib/funnel.ts::correctedFunnelCounts`):
-- `semanticSurvivors = 221 − (deterministic semantic corrections only) = 215`
-- `liquidSurvivors = 83 − (corrected pairs that were strict_survivor=true, i.e. county) = 79`
-- `strictSpecSurvivors = 44 − 4 county = 40`
-- `deepStrictSurvivors = 4` (county are <$10k tier, unchanged)
-- **Funnel now reconciles everywhere: `215 → 79 → 40 → 4 → 0`.** EvidenceWall shows `79 = 40 strict + 39 mismatch`.
-
-`correctedFunnelCounts(study, strictPairs, correctionKeys, semanticFalsePositives)` is the single source; LabPage + (formerly) TerminalPage compute `semanticFalsePositives = corrections.filter(c => c.correction_source !== 'strict_reverify' && c.original_verdict === 'semantic_survivor').length`.
-
-**KNOWN residual inconsistency (not yet resolved):** the Scanner's filter **chips** come from the server's per-pair status counts (`/api/opportunities/pairs` meta.counts), where `survivor = 176` (server flips ALL corrections, including the 39, to spec_mismatch). So the Lab says "215 apparent gaps" while the Scanner chip says "Apparent gaps 176". They're different metrics (study funnel stage vs live-survivor count). The **Terminal verdict strip deliberately no longer shows an apparent-gaps number** (it shows `52,858 tradeable → 3,791 cross-listed → 0 executable`) to avoid an on-page contradiction. If you want full cross-page consistency, either relabel the chip or reconcile the server count — flagged, not done.
-
-### 3. County-scope corrections were regenerated into the data
-Ran `npm run corrections` (safe: no LLM, deterministic, writes only `corrections.json`). Now **128 corrections** (was 115); `survivorsReclassified` 41→45; the 4 county strict-survivors are baked in. `docs/data/corrections.json` is updated & committed. The study funnel JSON (`efficiency-study.json`) still has raw `semanticSurvivors=221, strictSpecSurvivors=44` — the correction is applied at the display/derivation layer, NOT baked into the study artifact (deliberate — avoids the risky `retriage.ts`/`efficiency-study.ts` regen).
-
-### 4. Live vs. batch architecture (framing the user landed on)
-The 9-hour job is **AI verification** (cached corpus = the moat, 11,138 verdicts). It is NOT re-run on demand. "Live" = **re-pricing** the cached corpus (seconds). Incremental keep-fresh only verifies NEW markets (cache covers the rest) → minutes, not hours. For the portfolio: run once, re-run incrementally before interviews, keep prices live. The UI now reflects this: **two clocks** (`corpus · verified Jun 30` + live `prices` freshness) and a **`↻ refresh prices`** control (re-prices; does not re-scan).
-
-### 5. Briefs kept (not cut)
-It IS a research terminal. The brief is **grounded synthesis** (cross-platform prices + 7-day history + cached news + Metaculus forecasts) — NOT agentic (no live web/tool reach; see `research.ts:49-50`). User may want it made truly agentic later (open item).
-
-### 6. Hologram = point-field (NOT pretext)
-User confirmed: keep the data-driven point-field (it carries meaning — points = real markets, threads = matches, flares = gaps), make it genuinely impressive. Pretext-as-hero was considered and rejected. The market-question wave text is REMOVED for good.
-
----
-
-## Bugs fixed this session (all real, all surfaced by clicking through)
-
-- **Merab/Khamzat "prices don't match live":** these Dec-2026 futures fall out of the live feed and/or have no Kalshi order book, but the app stamped them "prices live." Fixed: `kalshi.getMarket()` now returns `hasBook` (a real live ask vs a stale `last_price` fallback), plumbed `hasBook` through `LiveSide` → `/pair-live` → `PairDossier`. Dossier now shows per-side `POLY·live / KAL·no book / settled / snapshot` and the cause-of-death says "Stale-price artifact — the Kalshi side has no live order book."
-- **Brief "Market not found" 404:** resolved study markets aren't in `getActiveMarkets()`. `research.ts` now falls back to reconstructing a minimal `Market` from `loadVerifiedPairs()` (the frozen corpus). Verified live.
-- **Brief rendered as a run-together blob:** newline-only LLM tokens collapsed over SSE's newline framing. Fixed by JSON-encoding each streamed token server-side (`research.ts`) and JSON-parsing client-side (`client.ts streamResearch`). Verified: reconstructed brief carries `\n\n` section breaks.
-- **"Best verified" chip included spec_mismatch** (trust bug) — removed. **Keyboard-nav effect had no deps array** — fixed.
-
----
-
-## Current UI state (what a visitor sees)
-
-- **Land on the Lab:** full-bleed hologram (85vh, two glowing galaxies blue/green, dense cores, threads bridging, depth falloff, NO words), the `scale of one scan` strip, the reconciled funnel (`215 → 79 → 40 → 4 → 0`) in the waterfall + ledger, EvidenceWall survivor cards, DeepSurvivors word-diff, Experiment scatter plots.
-- **Terminal tab:** verdict strip `52,858 tradeable → 3,791 cross-listed → 0 executable` (count-up), `↻ refresh prices`, decision-list queue (verdict rail, gap anchor, ★/⚠, price flash), auto-opened top pair, rich dossier (two clocks, per-side freshness, word-diff contracts, cause-of-death, verifier checklist, research brief, provenance footer).
-
----
-
-## Open items / next steps
-
-1. **Iterate the hologram** — it was just reworked BLIND (agent can't see pixels). Dials in `web/src/components/lab/ConsensusField.tsx`: `lobe()` cx separation (±1.28) + core concentration (`pow(rnd, 1.8)`); `bg` count (820); point size (`2.3`), brightness (`pow(q.s,1.35)*1.6`); thread/flare alphas. Have the user say warmer/colder.
-2. **Second hero visual for the Terminal** — its own wow moment (never built).
-3. **Make the brief agentic** (optional) — real live web search + tool-use / multi-step. Currently grounded synthesis only.
-4. **Reconcile the chip-vs-strip number** (176 vs 215) if desired — see Decisions §2.
-5. **Static-snapshot regen + docs** before publishing: `npm run dev:server` → `npm run snapshot` → stop → `VITE_STATIC=true npm run build:web`. Docs still tell the OLD 2,219→7→0 story. Root markdown handoffs should be archived to `docs/archive/` (this file too, once consumed).
-6. **Truth-layer script cleanup** (from the pre-session mission brief, still valid): `retriage.ts`/`efficiency-study.ts` still use the old `confirmed_arbitrage` taxonomy + would clobber the 11-stage funnel if run. Not touched this session (we avoided regenerating the study artifact).
-
----
-
-## How to continue
-
-- Verify: `npm run check` (typecheck ×3 + build + 435 tests). Web-only changes: `npm run typecheck && npm run build:web`.
-- Dev: `npm run dev:web` → localhost:5173 (Lab loads first). The Hono server hot-reloads on `server/` changes; `src/services/kalshi.ts` change (added `hasBook`) is core-engine, covered by tests.
-- Regenerate county corrections (safe, no LLM): `npm run corrections`.
-- Key files: `web/src/lib/funnel.ts` (correctedFunnelCounts), `web/src/pages/LabPage.tsx` (derivation + full-bleed layout), `web/src/components/lab/ConsensusField.tsx` (hologram), `web/src/pages/TerminalPage.tsx` (strip + refresh), `web/src/components/PairDossier.tsx` (freshness/clocks/brief/cause-of-death), `server/src/routes/research.ts` (brief + lookup fallback + SSE JSON), `server/src/routes/opportunities.ts` (hasBook + /pairs meta), `src/services/kalshi.ts` (getMarket hasBook), `scripts/build-corrections.ts` (county detector).
+## Immediate next steps (in order)
+1. **COMMIT** — nothing is committed. On branch `infra/harden-batch-verification`; consider a fresh branch
+   `feat/consensus-field-3d`. Suggested: commit deps + `consensus3d/` + LabPage swap together.
+2. **Prune** — after committing, delete the unused styles (Waist/Pulses/Stream + their builders/shaders +
+   the switcher) if you want Arcs-only shipped, and **delete the dead `ConsensusField.tsx`**. (Kept for now
+   so nothing is lost pre-commit.)
+3. **Code-split** — the Lab is the landing page and three.js adds ~360 KB gz. Lazy-load the canvas:
+   `const ConsensusField3D = lazy(() => import('.../ConsensusField3D.js'))` + `<Suspense fallback>` in
+   LabPage, so the page shell + readout paint instantly.
+4. **Static snapshot** — re-run `npm run snapshot` if the frozen public bundle needs the new visual (see memory `static-portfolio-mode`).
 
 ## Gotchas
-- **Static mode** (`VITE_STATIC=true`): `snap()` never throws; briefs degrade to a note (no server); `hasBook`/freshness need the live server.
-- **suspiciousReason()** is duplicated in `pairStatus.ts` (app) and `build-corrections.ts` (offline) with a MUST-stay-in-sync invariant.
-- The **corrections overlay is a display/derivation layer**, not baked into `efficiency-study.json`'s funnel. Everything visible is consistent at 215/79/40/4/0; the raw artifact still says 221/44.
+- **npm cache is broken**: `~/.npm/_cacache` has a root-owned locked file → `npm install` fails with EACCES.
+  Workaround used: `npm install <pkgs> --cache <tmpdir>` (a fresh cache dir). Fix properly with
+  `sudo chown -R $(whoami) ~/.npm` when convenient.
+- Don't manage the user's 5173 server processes (they drive it).
+- R3F v9 requires React 19 (project is on 19.2) — versions above are the compatible set; don't bump blindly.
+- Bundle-size warning on build is just advisory (chunk > 500 KB), not an error.
+
+## Related memory
+`consensus-field-honest` (the design + this pivot), `viz-proportion-honesty` (research-first rule),
+`lab-visual-elevation` (color lock), `endgame-punch-list` (the broader finish plan), `static-portfolio-mode`.

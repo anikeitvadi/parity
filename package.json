@@ -52,6 +52,10 @@
     "@ladjs/graceful": "^5.0.0",
     "@observablehq/plot": "^0.6.17",
     "@polymarket/clob-client": "^5.2.1",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@react-three/postprocessing": "^3.0.4",
+    "@types/three": "^0.185.0",
     "axios-retry": "^4.5.0",
     "better-sqlite3": "^12.6.2",
     "bree": "^9.2.8",
@@ -69,6 +73,7 @@
     "react": "^19.2.4",
     "sqlite-vec": "^0.1.9",
     "string-similarity": "^4.0.4",
+    "three": "^0.185.1",
     "tsx": "^4.22.2",
     "zod": "^4.3.6"
   },
