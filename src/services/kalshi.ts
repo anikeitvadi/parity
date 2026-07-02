@@ -550,7 +550,7 @@ export class KalshiClient {
    * current YES price (dollars), dollar volume, and whether the market is still trading; null if the
    * market is delisted / unfetchable. Prices use the same *_dollars fields the events path parses.
    */
-  async getMarket(ticker: string): Promise<{ yes: number; volume: number; active: boolean } | null> {
+  async getMarket(ticker: string): Promise<{ yes: number; volume: number; active: boolean; hasBook: boolean } | null> {
     try {
       const response = await this.publicRequest<{ market?: unknown }>(`/markets/${ticker}`);
       const parsed = KalshiMarketSchema.safeParse(response?.market);
@@ -571,6 +571,8 @@ export class KalshiClient {
         yes: price,
         volume: Number.isFinite(contracts) ? contracts * price : 0,
         active: m.status === 'active' || m.status === 'open',
+        // A live ask means a real order book; falling back to last_price means the quote is stale.
+        hasBook: Number.isFinite(ask) && ask > 0,
       };
     } catch {
       return null;

@@ -252,6 +252,7 @@ export interface LiveSide {
   active: boolean; // still trading (not closed/settled)
   yes: number | null; // current YES (raw, as the venue quotes it — orient client-side)
   volume: number | null;
+  hasBook: boolean; // a live order book (real ask); false ⇒ the quote is a stale last-trade
 }
 export interface PairLive {
   polymarket: LiveSide | null;

@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
-import Markdown from 'react-markdown';
-import { fetchPairLive, fetchPairHistory, type PairRow, type PairLive, type PairHistory, type HistoryPoint, type PairsVerification } from '../api/client.js';
-import { useResearch } from '../hooks/useResearch.js';
+import { useCallback, useEffect, useState } from 'react';
+import { fetchPairLive, fetchPairHistory, type PairRow, type PairLive, type PairHistory, type HistoryPoint, type PairsVerification, type LiveSide } from '../api/client.js';
 import { verdictDisplay, CHECKS, actionability, causeOfDeath, usd, pp, POLY, KALSHI, FEE } from '../lib/pairStatus.js';
 import { DiffText } from './lab/DeepSurvivors.js';
 
@@ -138,28 +136,20 @@ function Checklist({ checklist }: { checklist: Record<string, boolean | string> 
   );
 }
 
-function Brief({ polyId }: { polyId: string }) {
-  const { content, isStreaming, error, start, stop } = useResearch('polymarket', polyId);
-  useEffect(() => stop, [stop, polyId]);
+/** Honest per-side price freshness for the header line: live (real book), no book (stale last-trade),
+ *  settled, or snapshot. Distinct from the hero-badge FreshTag — this one is order-book aware. */
+function SideFreshTag({ label, fresh, side, refreshing }: { label: string; fresh: string; side: LiveSide | null; refreshing: boolean }) {
+  let text = 'snapshot';
+  let tone = '#64748B';
+  if (refreshing) { text = '…'; tone = '#06B6D4'; }
+  else if (fresh === 'live') {
+    if (side?.hasBook) { text = 'live'; tone = '#22C55E'; }
+    else { text = 'no book'; tone = '#F59E0B'; }
+  } else if (fresh === 'inactive') { text = 'settled'; tone = '#64748B'; }
   return (
-    <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3">
-      {error && <div className="text-[11px] text-[#EF4444] mb-2">{error}</div>}
-      {content ? (
-        <div className="prose prose-invert max-w-none text-[12px] leading-relaxed [&_h1]:text-[13px] [&_h2]:text-[12px] [&_h3]:text-[12px] [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_p]:mb-1.5 [&_ul]:mb-1.5 [&_li]:mb-0.5 [&_strong]:text-[#F8FAFC]">
-          <Markdown>{content}</Markdown>
-          {isStreaming && <span className="text-[#06B6D4] animate-pulse">|</span>}
-        </div>
-      ) : isStreaming ? (
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] text-[#64748B] animate-pulse">Generating research brief…</span>
-          <button onClick={stop} className="text-[10px] text-[#64748B] hover:text-[#EF4444]">Stop</button>
-        </div>
-      ) : (
-        <button onClick={start} className="w-full py-2 text-[11px] font-medium text-[#06B6D4] border border-[#06B6D4]/30 rounded hover:bg-[#06B6D4]/10 transition-colors">
-          Generate brief
-        </button>
-      )}
-    </div>
+    <span className="font-mono tabular-nums" style={{ color: tone }} title={`${label}: ${text}`}>
+      {label}·{text}
+    </span>
   );
 }
 
@@ -204,6 +194,15 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
     return () => { alive = false; };
   }, [polyId, kalshiId]);
 
+  const refreshPrices = useCallback(() => {
+    if (!polyId || !kalshiId) return;
+    setRefreshing(true);
+    fetchPairLive(polyId, kalshiId)
+      .then((r) => setLive(r))
+      .catch(() => { /* keep prior prices */ })
+      .finally(() => setRefreshing(false));
+  }, [polyId, kalshiId]);
+
   if (!pair) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-2">
@@ -240,11 +239,14 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
     kalshi: { ...pair.kalshi, yes: k.yes, volume: kalshiVol },
   };
 
-  const priceState = refreshing
-    ? 'refreshing prices…'
-    : p.fresh === 'live' || k.fresh === 'live'
-      ? `prices live${live?.fetchedAt ? ` · ${new Date(live.fetchedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : ''}`
-      : 'study-snapshot prices (markets not live)';
+  // A side whose live quote has no order book (a stale last-trade) makes the whole gap an artifact.
+  const staleSide =
+    k.fresh === 'live' && live?.kalshi && !live.kalshi.hasBook ? 'Kalshi'
+    : p.fresh === 'live' && live?.polymarket && !live.polymarket.hasBook ? 'Polymarket'
+    : null;
+  const pricesAt = live?.fetchedAt && !refreshing
+    ? new Date(live.fetchedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    : null;
 
   // Orient the Kalshi history the same way as the prices, so both lines share a YES basis.
   const polyHist = history?.polymarket ?? [];
@@ -261,13 +263,23 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
               {v.label}{v.strict ? ' · 7/7' : ''}
             </span>
           </div>
-          <div className="text-[10px] text-[#64748B] mt-1 flex items-center gap-1.5 flex-wrap">
-            <span className={refreshing ? 'text-[#06B6D4] animate-pulse' : ''}>{priceState}</span>
+          <div className="text-[10px] text-[#64748B] mt-1 flex items-center gap-x-1.5 gap-y-1 flex-wrap">
+            {/* Clock 1 — the cached verification corpus (the expensive batch; the moat). */}
+            <span>corpus · verified {verifiedDate}</span>
             <span className="text-[#334155]">·</span>
-            <span>verdict cached {verifiedDate}</span>
+            {/* Clock 2 — live price freshness, per side, honest about no-book / snapshot. */}
+            <span className="flex items-center gap-1">
+              prices
+              <SideFreshTag label="POLY" fresh={p.fresh} side={live?.polymarket ?? null} refreshing={refreshing} />
+              <SideFreshTag label="KAL" fresh={k.fresh} side={live?.kalshi ?? null} refreshing={refreshing} />
+              {pricesAt && <span className="text-[#475569]">{pricesAt}</span>}
+            </span>
+            <button onClick={refreshPrices} disabled={refreshing} className="text-[#06B6D4] hover:underline disabled:text-[#475569] disabled:no-underline">
+              ↻ refresh
+            </button>
             <span className="text-[#334155]">·</span>
             <button onClick={onOpenLab} className="text-[#06B6D4] hover:underline disabled:no-underline disabled:text-[#64748B]" disabled={!onOpenLab}>
-              same verifier as the Efficiency Lab
+              methodology
             </button>
           </div>
         </div>
@@ -289,7 +301,11 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
         {/* Cause of death — the one-line answer to "why isn't this free money" */}
         <div className="rounded-md border border-[#1E293B] bg-[#0E1223] px-3 py-2.5">
           <div className="text-[9px] text-[#64748B] uppercase tracking-wider mb-1">Why this isn't free money</div>
-          <div className="text-[11.5px] leading-snug text-[#E2E8F0]">{causeOfDeath(eff)}</div>
+          <div className="text-[11.5px] leading-snug text-[#E2E8F0]">
+            {staleSide
+              ? `Stale-price artifact — the ${staleSide} side has no live order book, so its quote is a last trade, not a tradeable price. The gap isn't executable.`
+              : causeOfDeath(eff)}
+          </div>
         </div>
 
         {/* 30-day price history, both venues */}
@@ -345,11 +361,6 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
         {/* Actionability */}
         <Section title="Is this actionable?">
           <div className={`text-[11px] leading-snug rounded px-3 py-2 border ${v.chip}`}>{actionability(eff)}</div>
-        </Section>
-
-        {/* AI brief — support, not centerpiece */}
-        <Section title="Research brief">
-          <Brief key={pair.polymarket.id} polyId={pair.polymarket.id} />
         </Section>
 
         {/* Provenance — one glance = the whole reliability story */}

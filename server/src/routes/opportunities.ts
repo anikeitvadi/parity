@@ -507,27 +507,28 @@ opportunityRoutes.get('/pairs', async (c) => {
   });
 });
 
-interface LiveSide { found: boolean; active: boolean; yes: number | null; volume: number | null }
+interface LiveSide { found: boolean; active: boolean; yes: number | null; volume: number | null; hasBook: boolean }
 
 async function livePolySide(conditionId: string): Promise<LiveSide> {
   try {
     const d = await polyClient.getMarketDetails(conditionId);
-    if (!d) return { found: false, active: false, yes: null, volume: null };
+    if (!d) return { found: false, active: false, yes: null, volume: null, hasBook: false };
     const yesTok = d.tokens?.find((t) => (t.outcome ?? '').toLowerCase() === 'yes');
     const active = d.active !== false && d.closed !== true;
-    return { found: true, active, yes: typeof yesTok?.price === 'number' ? yesTok.price : null, volume: null };
+    const yes = typeof yesTok?.price === 'number' ? yesTok.price : null;
+    return { found: true, active, yes, volume: null, hasBook: active && yes != null };
   } catch {
-    return { found: false, active: false, yes: null, volume: null };
+    return { found: false, active: false, yes: null, volume: null, hasBook: false };
   }
 }
 
 async function liveKalshiSide(ticker: string): Promise<LiveSide> {
   try {
     const m = await kalshiClient.getMarket(ticker);
-    if (!m) return { found: false, active: false, yes: null, volume: null };
-    return { found: true, active: m.active, yes: m.yes, volume: m.volume };
+    if (!m) return { found: false, active: false, yes: null, volume: null, hasBook: false };
+    return { found: true, active: m.active, yes: m.yes, volume: m.volume, hasBook: m.hasBook };
   } catch {
-    return { found: false, active: false, yes: null, volume: null };
+    return { found: false, active: false, yes: null, volume: null, hasBook: false };
   }
 }
 

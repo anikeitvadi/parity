@@ -241,7 +241,6 @@ function FunnelNum({ value, label, color, hero }: { value: number; label: string
  */
 function VerdictStrip({ funnel, universeTotal, corrected }: { funnel?: EfficiencyStudy['funnel']; universeTotal?: number; corrected?: CorrectedCounts }) {
   const audited = funnel?.tradeable ?? universeTotal ?? 0;
-  const apparent = corrected?.semanticSurvivors ?? funnel?.semanticSurvivors ?? 0;
   const verified = corrected?.strictSpecSurvivors ?? funnel?.strictSpecSurvivors ?? 0;
   const executable = funnel?.clearExecutableArb ?? 0;
   const Arrow = () => <span className="text-[#334155] text-[15px] shrink-0 px-0.5">→</span>;
@@ -249,8 +248,6 @@ function VerdictStrip({ funnel, universeTotal, corrected }: { funnel?: Efficienc
     <div className="shrink-0 border-b border-[#1E293B] bg-gradient-to-r from-[#0B1120] via-[#111a30] to-[#0B1120] px-4 py-2.5">
       <div className="flex items-center gap-3">
         <FunnelNum value={audited} label="tradeable markets" />
-        <Arrow />
-        <FunnelNum value={apparent} label="apparent gaps" color="#FBBF24" />
         <Arrow />
         <FunnelNum value={verified} label="verified same-contract" color="#38BDF8" />
         <Arrow />
