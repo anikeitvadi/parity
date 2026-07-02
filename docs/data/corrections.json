@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T19:25:23.552Z",
+  "generatedAt": "2026-07-02T01:37:05.549Z",
   "corrections": [
     {
       "polymarketId": "0x2e8c007f0524f4c0df0937e0dcdd19552ae67462de7c2ed2f4c58fd014a7eceb",
@@ -353,6 +353,87 @@
       "affects_funnel_stage": "semantic_survivor"
     },
     {
+      "polymarketId": "0x84caa288224388b485a7bc6c56f1e81dd26bdd199120f14962237fa3f38a7418",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+      "original_verdict": "validated_same_contract",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "validated_same_contract"
+    },
+    {
+      "polymarketId": "0x38faea71b9df9b4062912ae03431d1e241c5a1245df0c5628d5ca335f53258e9",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+      "original_verdict": "validated_same_contract",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "validated_same_contract"
+    },
+    {
+      "polymarketId": "0xdfeeecd0196880851857100e0454f0c954dacaf032a21697d8bd00b0ac1815e7",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+      "original_verdict": "dropped_degenerate",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "dropped_degenerate"
+    },
+    {
+      "polymarketId": "0x460418ad9f25bef4d5f1852a521e8ad6a94c8f40dd2f233831c1697364907351",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+      "original_verdict": "validated_same_contract",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "validated_same_contract"
+    },
+    {
+      "polymarketId": "0xffdb828fad17e8dff69cc956bb32a016c022e3b16bb3585988a840ca1f9abf29",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+      "original_verdict": "validated_same_contract",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "validated_same_contract"
+    },
+    {
+      "polymarketId": "0x53214771041446bc2dac71f0c06dde947f5c438421c0dbb499aad85d891a4464",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+      "original_verdict": "semantic_survivor",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "semantic_survivor"
+    },
+    {
+      "polymarketId": "0x4c91c8e140b8f4d9de109c4327bef2d1aa700ec36a0f7d045f10b9bfa7a4da31",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+      "original_verdict": "semantic_survivor",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "semantic_survivor"
+    },
+    {
+      "polymarketId": "0xa7bc9066ef012175ff82b5ab8cd8309e0686ec7e02d4e70f13c1b2c01f4b6278",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+      "original_verdict": "semantic_survivor",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "semantic_survivor"
+    },
+    {
+      "polymarketId": "0x2f9c88e3dcbd016a7fe314a78e6f2532f59742663a6b4247053a7cf265cf68a1",
+      "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+      "original_verdict": "semantic_survivor",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "semantic_survivor"
+    },
+    {
       "polymarketId": "0xabe572cb5aa6814e99f71822fb0b5aea9f02d89c4ab74b16c0e636a24adf692f",
       "kalshiId": "KXWCTEAMLEADGOAL-26MAR-ISAIBA34",
       "original_verdict": "dropped_degenerate",
@@ -632,6 +713,15 @@
       "affects_funnel_stage": "topical_overlap"
     },
     {
+      "polymarketId": "0x0339922c1a66aba713d38df7b3d7f71cc834a65dc26a66fbfad465c8f286d59e",
+      "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+      "original_verdict": "topical_overlap",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "topical_overlap"
+    },
+    {
       "polymarketId": "0x09a56bdae699fada0a5c696a50f4d765d26dd1aa28f9a469f34b3a8b0f7fcd65",
       "kalshiId": "KXWCTEAMLEADGOAL-26POR-GRAMOS9",
       "original_verdict": "topical_overlap",
@@ -673,6 +763,24 @@
       "original_verdict": "topical_overlap",
       "corrected_verdict": "spec_mismatch",
       "correction_reason": "Full-match total vs a half-only total",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "topical_overlap"
+    },
+    {
+      "polymarketId": "0x47e4087e2d9a012cc2e81234f452b59dbaa9e8a44034f0a09a4f96fcb4195028",
+      "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+      "original_verdict": "topical_overlap",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "topical_overlap"
+    },
+    {
+      "polymarketId": "0xe22a29f7fa0e03a81ecda420b52dc153285042640bbf3d79b5aec95a3529d009",
+      "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+      "original_verdict": "topical_overlap",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
       "correction_source": "deterministic_rule",
       "affects_funnel_stage": "topical_overlap"
     },
@@ -745,6 +853,15 @@
       "original_verdict": "topical_overlap",
       "corrected_verdict": "spec_mismatch",
       "correction_reason": "Score-a-goal vs a country’s goal leader",
+      "correction_source": "deterministic_rule",
+      "affects_funnel_stage": "topical_overlap"
+    },
+    {
+      "polymarketId": "0x750d7c4d9e05b6cfb51a6fe084873354559f228f36dc99b60f4b6b365b460a5b",
+      "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+      "original_verdict": "topical_overlap",
+      "corrected_verdict": "spec_mismatch",
+      "correction_reason": "County-level scope vs a statewide race — different geographic contract",
       "correction_source": "deterministic_rule",
       "affects_funnel_stage": "topical_overlap"
     },
@@ -1038,19 +1155,19 @@
     }
   ],
   "summary": {
-    "total": 115,
+    "total": 128,
     "bySource": {
       "strict_reverify": 39,
-      "deterministic_rule": 76
+      "deterministic_rule": 89
     },
     "byOriginalStatus": {
-      "semantic_survivor": 41,
-      "dropped_degenerate": 8,
-      "validated_same_contract": 5,
-      "topical_overlap": 61
+      "semantic_survivor": 45,
+      "validated_same_contract": 9,
+      "dropped_degenerate": 9,
+      "topical_overlap": 65
     },
-    "survivorsReclassified": 41,
-    "correctedSemanticSurvivors": 180,
+    "survivorsReclassified": 45,
+    "correctedSemanticSurvivors": 176,
     "clearExecutableArbChanged": false
   }
 }

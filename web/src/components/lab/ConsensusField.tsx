@@ -48,7 +48,7 @@ function lobe(i: number, side: 0 | 1, bright: number): Pt {
   return { x: cx + Math.cos(a) * ce * r * 0.85, y: Math.sin(el) * r * 0.72, z: Math.sin(a) * ce * r * 0.85, side, bright };
 }
 
-export function ConsensusField({ study, apparentCount, reclassified = 0 }: { study: EfficiencyStudy; apparentCount?: number; reclassified?: number }) {
+export function ConsensusField({ study, apparentCount }: { study: EfficiencyStudy; apparentCount?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const tpRef = useRef(0);
@@ -114,7 +114,7 @@ export function ConsensusField({ study, apparentCount, reclassified = 0 }: { stu
       const sinr = Math.sin(rot);
       const rx = x * cosr - z * sinr;
       const rz = x * sinr + z * cosr;
-      const S = Math.min(w * 0.5, h * 1.7) * 0.3;
+      const S = Math.min(w * 0.5, h * 1.7) * 0.46;
       const persp = 2.6 / (2.6 + rz);
       return { sx: w / 2 + rx * S * persp, sy: h * 0.54 - y * S * persp - rz * S * 0.12, s: persp };
     };
@@ -223,7 +223,7 @@ export function ConsensusField({ study, apparentCount, reclassified = 0 }: { stu
   const num = (n?: number) => (n ?? 0).toLocaleString();
 
   return (
-    <div className="relative rounded-lg border border-[#1E293B] bg-[#060912] overflow-hidden" style={{ height: 460 }}>
+    <div className="relative rounded-lg border border-[#1E293B] bg-[#060912] overflow-hidden" style={{ height: 'min(72vh, 720px)' }}>
       <div ref={wrapRef} className="absolute inset-0">
         <canvas ref={canvasRef} className="w-full h-full block" />
       </div>
@@ -240,11 +240,6 @@ export function ConsensusField({ study, apparentCount, reclassified = 0 }: { stu
           <Row color={rgba(THREAD, 1)} label="Candidate pairs (cached)" value={num(f?.sameContract)} />
           <Row color={rgba(AMBER, 1)} label="Apparent gaps (flares)" value={num(apparentCount ?? f?.semanticSurvivors)} />
           <Row color={rgba(RED, 1)} label="Confirmed executable arb" value={String(f?.clearExecutableArb ?? 0)} bright />
-          {reclassified > 0 && (
-            <div className="text-[9px] text-[#7DD3FC] pt-1 leading-snug max-w-[280px]">
-              ↺ correction overlay reclassified {reclassified} apparent-gap false positives ({num(f?.semanticSurvivors)} → {num(apparentCount)}). Strict {num(f?.strictSpecSurvivors)} / deep {num(f?.deepStrictSurvivors)} / arb {f?.clearExecutableArb ?? 0} unchanged.
-            </div>
-          )}
         </div>
       </div>
 

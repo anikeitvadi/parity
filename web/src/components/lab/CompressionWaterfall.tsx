@@ -1,5 +1,5 @@
 import type { EfficiencyStudy } from '../../api/client';
-import { funnelStages } from '../../lib/funnel';
+import { funnelStages, type CorrectedCounts } from '../../lib/funnel';
 
 /**
  * The compression waterfall (DESIGN.md §10 proof layer) — the locked 11-stage funnel made
@@ -16,8 +16,8 @@ function logWidth(n: number, max: number): number {
   return Math.max(3, Math.min(100, (Math.log10(n) / Math.log10(max)) * 100));
 }
 
-export function CompressionWaterfall({ study }: { study: EfficiencyStudy }) {
-  const stages = funnelStages(study);
+export function CompressionWaterfall({ study, corrected }: { study: EfficiencyStudy; corrected?: CorrectedCounts }) {
+  const stages = funnelStages(study, corrected);
   if (stages.length === 0) return null;
   const max = stages[0].value || 1;
   const enumerated = study.pairSpace?.enumerated;

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchPairs, type PairsResponse, type PairRow, type PairStatus } from '../api/client.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchPairs, fetchEfficiencyStudy, fetchCorrections, fetchStrictSurvivors, type PairsResponse, type PairRow, type PairStatus, type EfficiencyStudy, type Corrections, type StrictSurvivors } from '../api/client.js';
 import { PairQueue } from '../components/PairQueue.js';
 import { PairDossier } from '../components/PairDossier.js';
 import { PAIR_STATUS } from '../lib/pairStatus.js';
+import { useCountUp } from '../lib/useCountUp.js';
+import { correctedFunnelCounts, type CorrectedCounts } from '../lib/funnel.js';
 
 type StatusFilter = 'curated' | 'strict' | PairStatus;
 type SortKey = 'opportunity' | 'gap' | 'liquidity';
@@ -20,6 +22,10 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('curated');
   const [sort, setSort] = useState<SortKey>('opportunity');
   const [search, setSearch] = useState('');
+  const [study, setStudy] = useState<EfficiencyStudy | null>(null);
+  const [corrections, setCorrections] = useState<Corrections | null>(null);
+  const [strict, setStrict] = useState<StrictSurvivors | null>(null);
+  const autoSelected = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -34,6 +40,23 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
     const t = setInterval(load, 120_000);
     return () => { alive = false; clearInterval(t); };
   }, []);
+
+  // The funnel headline (52,858 → … → 0) + the corrections/strict data behind it; fetched once so the
+  // verdict strip shows the SAME corrected numbers as the Lab (apparent 176, verified 40).
+  useEffect(() => {
+    fetchEfficiencyStudy().then((r) => setStudy(r.study ?? null)).catch(() => {});
+    fetchCorrections().then((r) => setCorrections(r.data ?? null)).catch(() => {});
+    fetchStrictSurvivors().then((r) => setStrict(r.data ?? null)).catch(() => {});
+  }, []);
+
+  const correctedFunnel = useMemo<CorrectedCounts | undefined>(() => {
+    if (!study) return undefined;
+    const keys = new Set((corrections?.corrections ?? []).map((c) => `${c.polymarketId}::${c.kalshiId}`));
+    const semanticFalsePositives = (corrections?.corrections ?? []).filter(
+      (c) => c.correction_source !== 'strict_reverify' && c.original_verdict === 'semantic_survivor'
+    ).length;
+    return correctedFunnelCounts(study, strict?.pairs ?? [], keys, semanticFalsePositives);
+  }, [study, corrections, strict]);
 
   const pairs = data?.pairs ?? [];
   const counts = data?.meta.counts;
@@ -62,6 +85,14 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
   );
 
   const onSelect = useCallback((id: string) => setSelectedId(id), []);
+
+  // Open the top pair on first load so the dossier is never a blank pane.
+  useEffect(() => {
+    if (!autoSelected.current && filtered.length > 0) {
+      autoSelected.current = true;
+      setSelectedId(filtered[0].id);
+    }
+  }, [filtered]);
 
   // Keyboard nav through the filtered list.
   useEffect(() => {
@@ -102,11 +133,14 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header: identity + freshness + search + status chips + sort */}
+      {/* The thesis, stated before a click: the whole funnel from tradeable universe to 0 executable. */}
+      <VerdictStrip funnel={study?.funnel} universeTotal={study?.universe.total} corrected={correctedFunnel} />
+
+      {/* Header: freshness + search + status chips + sort */}
       <div className="shrink-0 border-b border-[#1E293B] bg-[#0E1223]">
         <div className="h-11 flex items-center gap-2.5 px-4">
           <div className="shrink-0">
-            <div className="text-[12px] font-semibold text-[#F8FAFC] leading-none">Cross-platform pairs</div>
+            <div className="text-[11px] font-semibold text-[#E2E8F0] leading-none">Live cross-platform pairs</div>
             <div className="text-[9px] text-[#64748B] mt-0.5">
               {verifiedDate ? `cached verifier run · ${verifiedDate}` : 'loading…'}
               {data ? ` · ${data.meta.total.toLocaleString()} pairs · open one for live prices` : ''}
@@ -180,6 +214,51 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
           <PairDossier pair={selected} onOpenLab={onOpenLab} verification={data?.meta.verification ?? null} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FunnelNum({ value, label, color, hero }: { value: number; label: string; color?: string; hero?: boolean }) {
+  const shown = useCountUp(value);
+  return (
+    <div className="flex flex-col leading-none shrink-0">
+      <span
+        className={`font-mono tabular-nums font-bold ${hero ? 'text-[22px]' : 'text-[18px]'}`}
+        style={{ color: color ?? '#F8FAFC' }}
+      >
+        {shown.toLocaleString()}
+      </span>
+      <span className="text-[9px] text-[#64748B] uppercase tracking-wider mt-1">{label}</span>
+    </div>
+  );
+}
+
+/**
+ * The verdict strip — the funnel from tradeable universe to zero executable arbitrage, stated as the
+ * Scanner's headline before any click. Numbers count up on load; the terminal-green 0 is the finding.
+ */
+function VerdictStrip({ funnel, universeTotal, corrected }: { funnel?: EfficiencyStudy['funnel']; universeTotal?: number; corrected?: CorrectedCounts }) {
+  const audited = funnel?.tradeable ?? universeTotal ?? 0;
+  const apparent = corrected?.semanticSurvivors ?? funnel?.semanticSurvivors ?? 0;
+  const verified = corrected?.strictSpecSurvivors ?? funnel?.strictSpecSurvivors ?? 0;
+  const executable = funnel?.clearExecutableArb ?? 0;
+  const Arrow = () => <span className="text-[#334155] text-[15px] shrink-0 px-0.5">→</span>;
+  return (
+    <div className="shrink-0 border-b border-[#1E293B] bg-gradient-to-r from-[#0B1120] via-[#111a30] to-[#0B1120] px-4 py-2.5">
+      <div className="flex items-center gap-3">
+        <FunnelNum value={audited} label="tradeable markets" />
+        <Arrow />
+        <FunnelNum value={apparent} label="apparent gaps" color="#FBBF24" />
+        <Arrow />
+        <FunnelNum value={verified} label="verified same-contract" color="#38BDF8" />
+        <Arrow />
+        <FunnelNum value={executable} label="executable arbitrage" color="#22C55E" hero />
+        <div className="flex-1" />
+        <div className="hidden lg:block text-right shrink-0">
+          <div className="text-[12px] text-[#E2E8F0] font-semibold leading-tight">Easy to find. Hard to execute.</div>
+          <div className="text-[9px] text-[#64748B] leading-tight mt-0.5">every apparent edge, run to ground</div>
         </div>
       </div>
     </div>

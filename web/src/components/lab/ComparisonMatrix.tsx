@@ -1,5 +1,5 @@
 import type { EfficiencyStudy } from '../../api/client';
-import { funnelStages } from '../../lib/funnel';
+import { funnelStages, type CorrectedCounts } from '../../lib/funnel';
 
 /**
  * The funnel ledger (DESIGN.md §10 proof layer) — the exact numeric companion to the
@@ -11,8 +11,8 @@ import { funnelStages } from '../../lib/funnel';
 
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-export function ComparisonMatrix({ study }: { study: EfficiencyStudy }) {
-  const stages = funnelStages(study);
+export function ComparisonMatrix({ study, corrected }: { study: EfficiencyStudy; corrected?: CorrectedCounts }) {
+  const stages = funnelStages(study, corrected);
   if (stages.length === 0) return null;
 
   return (

@@ -40,7 +40,7 @@ export function drawWaveText(
   y: number,
   o: WaveTextOpts
 ): { width: number; height: number } {
-  const family = o.family ?? 'Georgia, "Times New Roman", serif';
+  const family = o.family ?? "'Inter', system-ui, sans-serif";
   const speed = o.speed ?? 0.0016;
   const wave = o.wave ?? 0.5;
   const sizeAmp = o.sizeAmp ?? 0.16;

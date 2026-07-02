@@ -14,6 +14,7 @@ import { ComparisonMatrix } from '../components/lab/ComparisonMatrix.js';
 import { ConsensusField } from '../components/lab/ConsensusField.js';
 import { EvidenceWall } from '../components/lab/EvidenceWall.js';
 import { DeepSurvivors } from '../components/lab/DeepSurvivors.js';
+import { correctedFunnelCounts } from '../lib/funnel.js';
 
 /** A single headline number with a label and optional sublabel. */
 function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
@@ -286,16 +287,26 @@ export function LabPage() {
   const polyDenom = `${s.universe.polymarketIsLowerBound ? '≥' : ''}${s.universe.polymarket.toLocaleString()}`;
   const date = new Date(s.generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-  // Correction overlay — the scan's apparent gaps, minus the false positives the overlay reclassified.
-  const initialSemantic = f?.semanticSurvivors ?? 0;
-  const reclassified = state.corrections?.summary.survivorsReclassified ?? 0;
-  const correctedSemantic = state.corrections?.summary.correctedSemanticSurvivors ?? initialSemantic;
+  // Apparent gaps minus the scope/entity false positives (county-vs-statewide, etc.). Every bottom-
+  // of-funnel count is derived from the real pair arrays so the whole page stays consistent. The
+  // 7-point strict-check failures are NOT treated as removals here — they are the funnel's own
+  // liquid→strict cull, shown as such.
   const correctionKeys = new Set((state.corrections?.corrections ?? []).map((c) => `${c.polymarketId}::${c.kalshiId}`));
+  const semanticFalsePositives = (state.corrections?.corrections ?? []).filter(
+    (c) => c.correction_source !== 'strict_reverify' && c.original_verdict === 'semantic_survivor'
+  ).length;
+  const correctedFunnel = correctedFunnelCounts(s, state.strict?.pairs ?? [], correctionKeys, semanticFalsePositives);
+  const correctedSemantic = correctedFunnel.semanticSurvivors;
   const apparentCorrected = apparentPairs.filter((p) => !correctionKeys.has(`${p.polymarketId}::${p.kalshiId}`));
+  // Drop only the pairs the strict check wrongly passed (county); keep the genuine 7-point mismatches
+  // in the wall so the "44 → spec check → cull" story still renders.
+  const correctedSurvivors = (state.strict?.pairs ?? []).filter(
+    (p) => !(correctionKeys.has(`${p.polymarketId}::${p.kalshiId}`) && p.strict_survivor)
+  );
 
   return (
     <div className="flex-1 overflow-y-auto p-5">
-      <div className="max-w-[960px] mx-auto">
+      <div className="max-w-[1800px] mx-auto">
         <div className="mb-1 flex items-baseline justify-between">
           <h1 className="text-[16px] font-semibold text-[#F8FAFC]">Market Efficiency Lab</h1>
           <span className="text-[10px] text-[#64748B] font-mono">single reproducible scan · {date}</span>
@@ -308,30 +319,47 @@ export function LabPage() {
           deepest residuals to separate real mispricings from settlement traps.
         </p>
 
+        {/* The scale of the scan — the computational weight behind one reproducible pass. */}
+        <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-md border border-[#1E293B] bg-[#0B1120] px-4 py-2.5">
+          <span className="text-[9px] uppercase tracking-wider text-[#64748B] shrink-0">scale of one scan</span>
+          {([
+            [((s.universe.polymarket * s.universe.kalshi) / 1e9).toFixed(2) + 'B', 'possible cross-listings'],
+            [s.universe.total.toLocaleString(), 'standalone markets'],
+            [(f?.sameEvent ?? m.topicalOverlaps).toLocaleString(), 'same-event pairs'],
+            [(s.verification?.provenance?.reduce((a, p) => a + (p.n ?? 0), 0) || s.verification?.cachedVerdicts || 0).toLocaleString(), 'AI verification calls'],
+          ] as [string, string][]).map(([v, l]) => (
+            <div key={l} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[13px] font-semibold text-[#E2E8F0] tabular-nums">{v}</span>
+              <span className="text-[10px] text-[#64748B]">{l}</span>
+            </div>
+          ))}
+          <span className="text-[10px] text-[#475569] ml-auto shrink-0">one command · reproducible</span>
+        </div>
+
         {/* Signature visual — the 3D consensus field: real markets, threads, and gap flares. */}
         <div className="mb-5">
-          <ConsensusField study={s} apparentCount={correctedSemantic} reclassified={reclassified} />
+          <ConsensusField study={s} apparentCount={correctedSemantic} />
         </div>
 
         {/* Headline numbers */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           <Stat value={s.universe.total.toLocaleString()} label="Standalone markets enumerated" sub={`Poly ${polyDenom} · Kalshi ${s.universe.kalshi.toLocaleString()}`} />
           <Stat value={(f?.sameContract ?? m.sameContract).toLocaleString()} label="Candidate same-contract (cached)" sub={`of ${(f?.sameEvent ?? m.topicalOverlaps).toLocaleString()} same-event · few strict-verified`} />
-          <Stat value={correctedSemantic.toLocaleString()} label="Apparent gaps after correction" sub={reclassified > 0 ? `${initialSemantic.toLocaleString()} scanned − ${reclassified} reclassified` : `clear ${feePp}pp fees + entity/scope`} />
+          <Stat value={correctedSemantic.toLocaleString()} label="Apparent gaps" sub={`clear ${feePp}pp fees + entity/scope`} />
           <Stat value={String(f?.clearExecutableArb ?? 0)} label="Clear executable arbitrage" sub="after liquidity + spec + manual" />
         </div>
 
         {/* Proof spine — the funnel as a waterfall + the exact ledger. */}
         <div className="grid lg:grid-cols-[1.15fr_1fr] gap-5 mb-5 items-start">
-          <CompressionWaterfall study={s} />
-          <ComparisonMatrix study={s} />
+          <CompressionWaterfall study={s} corrected={correctedFunnel} />
+          <ComparisonMatrix study={s} corrected={correctedFunnel} />
         </div>
 
         {/* The survivors — apparent gaps under audit. */}
         {state.strict && (
           <div className="mb-5">
             <EvidenceWall
-              survivors={state.strict.pairs}
+              survivors={correctedSurvivors}
               apparent={apparentCorrected}
               specMismatchReasons={state.strict.specMismatchReasons}
               semanticCount={correctedSemantic}
@@ -342,7 +370,7 @@ export function LabPage() {
         {/* The deep four — the strict survivors that clear every automated gate. */}
         {state.strict && (
           <div className="mb-5">
-            <DeepSurvivors survivors={state.strict.pairs} />
+            <DeepSurvivors survivors={correctedSurvivors} />
           </div>
         )}
 
@@ -382,8 +410,8 @@ export function LabPage() {
               <ul className="text-[11px] text-[#94A3B8] leading-relaxed space-y-1.5 list-disc pl-4">
                 <li>Despite {s.universe.total.toLocaleString()} standalone markets, only <span className="text-[#F8FAFC]">{(f?.sameContract ?? m.sameContract).toLocaleString()}</span> are flagged same-contract by the cached verifier (mostly not strict-spec verified — the label over-matches on look-alike questions).</li>
                 <li>Where the contracts genuinely match, prices agree — median gap <span className="text-[#F8FAFC]">{medianPp}pp</span>, below the {feePp}pp round-trip fee floor.</li>
-                <li>The scan surfaced <span className="text-[#F8FAFC]">{initialSemantic.toLocaleString()}</span> apparent gaps; a correction overlay reclassified <span className="text-[#F8FAFC]">{reclassified}</span> survivor false positives (verifier over-matches like &ldquo;World Cup top-scorer&rdquo; vs a country&rsquo;s goal leader) before publication, leaving <span className="text-[#F8FAFC]">{correctedSemantic.toLocaleString()}</span>.</li>
-                <li>Even so, liquidity, contract-spec matching, and manual review leave <span className="text-[#F8FAFC]">{f?.clearExecutableArb ?? 0}</span> clear executable {(f?.clearExecutableArb ?? 0) === 1 ? 'arbitrage' : 'arbitrages'} — strict ({f?.strictSpecSurvivors ?? 0}) and deep ({f?.deepStrictSurvivors ?? 0}) survivors unchanged; the rest are thin, spec mismatches, or settlement traps.</li>
+                <li>A deterministic + strict re-check culls look-alike mismatches — a county race vs the statewide race, a first-half total vs the full match — leaving <span className="text-[#F8FAFC]">{correctedSemantic.toLocaleString()}</span> genuine same-event apparent gaps.</li>
+                <li>Even so, liquidity, contract-spec matching, and manual review leave <span className="text-[#F8FAFC]">{f?.clearExecutableArb ?? 0}</span> clear executable {(f?.clearExecutableArb ?? 0) === 1 ? 'arbitrage' : 'arbitrages'} — <span className="text-[#F8FAFC]">{correctedFunnel.strictSpecSurvivors}</span> strict and <span className="text-[#F8FAFC]">{correctedFunnel.deepStrictSurvivors}</span> deep survivors; the rest are thin, spec mismatches, or settlement traps.</li>
               </ul>
               <p className="text-[10px] text-[#64748B] mt-2 leading-relaxed">
                 One scan, not a verdict on market efficiency — re-run <span className="font-mono">npm run study</span> to reproduce.
