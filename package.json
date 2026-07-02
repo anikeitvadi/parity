@@ -20,6 +20,9 @@
     "check": "npm run typecheck && npm run build:web && npm run test:run",
     "seed": "tsx scripts/seed-demo.ts",
     "study": "tsx scripts/efficiency-study.ts",
+    "snapshot": "tsx scripts/snapshot.ts",
+    "strict-survivors": "tsx scripts/strict-survivors.ts",
+    "corrections": "tsx scripts/build-corrections.ts",
     "retriage": "tsx scripts/retriage.ts",
     "verify:batch:create": "VERIFY_TRANSPORT=batch tsx scripts/efficiency-study.ts",
     "verify:batch:poll": "tsx scripts/verify-batch.ts",
@@ -42,7 +45,7 @@
     "test": "tests"
   },
   "dependencies": {
-    "@chenglou/pretext": "^0.0.5",
+    "@chenglou/pretext": "^0.0.8",
     "@ethersproject/wallet": "^5.8.0",
     "@hono/node-server": "^1.19.13",
     "@inkjs/ui": "^2.0.0",

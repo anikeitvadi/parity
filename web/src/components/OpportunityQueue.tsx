@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { FeedItem } from '../api/client.js';
 import { formatClosing, formatVolume, groupFeed, marketEntity, type QueueRow, type FeedGroupRow } from '../lib/utils.js';
+import { useVerifierIndex } from '../lib/useVerifierIndex.js';
+import { STATE_META, TONE_CLASS, type VerifierRecord } from '../lib/verifier.js';
 
 interface Props {
   items: FeedItem[];
@@ -16,8 +18,23 @@ function PlatBadge({ platform }: { platform: string }) {
   }
   const poly = platform === 'polymarket';
   return (
-    <span className={`w-10 shrink-0 text-center text-[9px] font-semibold rounded px-1 py-0.5 ${poly ? 'bg-blue-500/10 text-blue-400' : 'bg-violet-500/10 text-violet-400'}`}>
+    <span className={`w-10 shrink-0 text-center text-[9px] font-semibold rounded px-1 py-0.5 ${poly ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'}`}>
       {poly ? 'POLY' : 'KAL'}
+    </span>
+  );
+}
+
+/** The verifier state from the frozen study — only when this live market joined the study (~19%);
+ *  otherwise a faint dot, never a green "verified" claim on an unstudied market. */
+function VerifChip({ rec }: { rec?: VerifierRecord }) {
+  if (!rec) return <span className="w-[68px] shrink-0 text-center text-[10px] text-[#334155]">·</span>;
+  const m = STATE_META[rec.state];
+  return (
+    <span
+      className={`w-[68px] shrink-0 text-center text-[8px] font-semibold rounded px-1 py-0.5 ${TONE_CLASS[m.tone]}`}
+      title={`${m.label} — ${m.blurb}`}
+    >
+      {m.short}
     </span>
   );
 }
@@ -36,11 +53,13 @@ function MarketRow({
   item,
   selected,
   onSelect,
+  verifier,
   indent = false,
 }: {
   item: FeedItem;
   selected: boolean;
   onSelect: (platform: string, id: string) => void;
+  verifier?: VerifierRecord;
   indent?: boolean;
 }) {
   const closing = item.closeDate ? formatClosing(item.closeDate) : null;
@@ -58,6 +77,7 @@ function MarketRow({
       <span className={`flex-1 min-w-0 px-1 truncate text-[#F8FAFC] ${indent ? 'pl-4 text-[#CBD5E1]' : ''}`}>
         {indent ? marketEntity(item.marketQuestion) : item.marketQuestion}
       </span>
+      <VerifChip rec={verifier} />
       <PlatBadge platform={item.platform} />
       <span className="w-12 shrink-0 text-right font-mono text-[#64748B] tabular-nums">
         {item.volume > 0 ? formatVolume(item.volume) : '·'}
@@ -92,6 +112,7 @@ function GroupRow({ group, expanded, onToggle }: { group: FeedGroupRow; expanded
           {group.members.length} outcomes · {top}
         </div>
       </div>
+      <span className="w-[68px] shrink-0" />
       <PlatBadge platform={group.platform} />
       <span className="w-12 shrink-0 text-right font-mono text-[#64748B] tabular-nums">{formatVolume(group.totalVolume)}</span>
       <span className={`w-9 shrink-0 text-right tabular-nums ${closing?.urgent ? 'text-[#F59E0B]' : 'text-[#64748B]'}`}>
@@ -103,6 +124,7 @@ function GroupRow({ group, expanded, onToggle }: { group: FeedGroupRow; expanded
 }
 
 export function OpportunityQueue({ items, selectedId, onSelect, loading }: Props) {
+  const { index: verifierIndex } = useVerifierIndex();
   const rows = useMemo<QueueRow[]>(() => groupFeed(items), [items]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
@@ -150,6 +172,7 @@ export function OpportunityQueue({ items, selectedId, onSelect, loading }: Props
       <div className="sticky top-0 z-10 flex items-center gap-1 px-2 py-1 text-[10px] uppercase tracking-wider text-[#64748B] bg-[#020617] border-b border-[#1E293B]">
         <span className="w-10 shrink-0 text-right">Price</span>
         <span className="flex-1 px-1">Market</span>
+        <span className="w-[68px] shrink-0 text-center">Verif</span>
         <span className="w-10 shrink-0 text-center">Plat</span>
         <span className="w-12 shrink-0 text-right">Vol</span>
         <span className="w-9 shrink-0 text-right">Close</span>
@@ -165,12 +188,12 @@ export function OpportunityQueue({ items, selectedId, onSelect, loading }: Props
               <GroupRow group={row} expanded={isExp} onToggle={() => toggle(row.key)} />
               {isExp &&
                 row.members.map((m) => (
-                  <MarketRow key={m.id} item={m} selected={isSelected(m)} onSelect={onSelect} indent />
+                  <MarketRow key={m.id} item={m} selected={isSelected(m)} onSelect={onSelect} verifier={verifierIndex.get(m.marketId)} indent />
                 ))}
             </React.Fragment>
           );
         }
-        return <MarketRow key={row.item.id} item={row.item} selected={isSelected(row.item)} onSelect={onSelect} />;
+        return <MarketRow key={row.item.id} item={row.item} selected={isSelected(row.item)} onSelect={onSelect} verifier={verifierIndex.get(row.item.marketId)} />;
       })}
     </div>
   );

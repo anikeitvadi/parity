@@ -40,6 +40,31 @@ app.get('/api/lab/efficiency', (c) => {
   }
 });
 
+app.get('/api/lab/strict-survivors', (c) => {
+  const path = 'docs/data/strict-survivors.json';
+  if (!existsSync(path)) {
+    return c.json({ available: false });
+  }
+  try {
+    return c.json({ available: true, data: JSON.parse(readFileSync(path, 'utf-8')) });
+  } catch {
+    return c.json({ available: false });
+  }
+});
+
+// The correction overlay — the false-positive verdicts reclassified after the scan.
+app.get('/api/lab/corrections', (c) => {
+  const path = 'docs/data/corrections.json';
+  if (!existsSync(path)) {
+    return c.json({ available: false });
+  }
+  try {
+    return c.json({ available: true, data: JSON.parse(readFileSync(path, 'utf-8')) });
+  } catch {
+    return c.json({ available: false });
+  }
+});
+
 // System status — no self-fetch, uses direct DB queries and cache checks
 app.get('/api/status', (c) => {
   const db = getDatabase();

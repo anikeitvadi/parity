@@ -1,0 +1,202 @@
+<!doctype html>
+<!--
+  THROWAWAY MOCKUP — Efficiency Lab signature hero. Not wired to the app.
+  Open: `open docs/mockups/lab-hero.html`. Iterate the look here, then port the
+  approved direction into the real Lab once the batch freezes the funnel numbers.
+  Palette = DESIGN.md ground truth (system-first): Polymarket=cyan, Kalshi=violet,
+  gap severity ramps cyan→amber→red. Top-of-funnel numbers are REAL (this run's
+  preflight); same-contract / confirmed-arb are placeholders until publish.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Efficiency Lab — signature hero (mockup)</title>
+<style>
+  :root {
+    --surface: #020617; --card: #0E1223; --border: #1E293B;
+    --text: #F8FAFC; --muted: #64748B;
+    --poly: #06B6D4; --kalshi: #8B5CF6;      /* platform fields */
+    --warn: #F59E0B; --bad: #EF4444; --good: #22C55E; /* gap severity ramp */
+    --accent: #22D3EE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--surface); color: var(--text);
+    font-family: "IBM Plex Sans", -apple-system, system-ui, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 56px 28px 80px; }
+  .kicker { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 40px; line-height: 1.08; font-weight: 600; margin: 14px 0 10px; max-width: 18ch; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { color: var(--muted); font-size: 16px; max-width: 60ch; line-height: 1.5; }
+
+  .stage { position: relative; margin: 36px 0 8px; border: 1px solid var(--border);
+    border-radius: 14px; background: linear-gradient(180deg, #0a0f1f 0%, #05080f 100%);
+    overflow: hidden; }
+  canvas { display: block; width: 100%; height: 420px; }
+  .legend { position: absolute; left: 16px; bottom: 14px; display: flex; gap: 16px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px;
+    transform: translateY(1px); }
+  .phase { position: absolute; right: 16px; top: 14px; font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+  .phase b { color: var(--text); font-weight: 500; }
+
+  .funnel { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 26px; }
+  .step { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px 16px; }
+  .step .n { font-family: "IBM Plex Mono", monospace; font-size: 20px; font-weight: 500; letter-spacing: -.02em; }
+  .step .l { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+  .step.pending .n { color: var(--warn); }
+  .step.pending .l::after { content: " · verifying"; color: var(--warn); }
+  .bignum { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  .foot { margin-top: 22px; color: var(--muted); font-size: 12px; font-family: "IBM Plex Mono", monospace; }
+  @media (prefers-reduced-motion: reduce) { .phase { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Prediction-market efficiency · cross-platform</div>
+  <h1>The hard part wasn't finding gaps. It was <em>proving they're real.</em></h1>
+  <p class="sub">A billion-scale comparison space, compressed to the handful of contracts that are
+    genuinely the same — then watched as the apparent arbitrage evaporates under fees, liquidity,
+    orientation, settlement wording, and entity checks.</p>
+
+  <div class="stage">
+    <canvas id="surface"></canvas>
+    <div class="phase">stage: <b id="phaseLabel">apparent gaps</b></div>
+    <div class="legend">
+      <span><i style="background:var(--poly)"></i>Polymarket</span>
+      <span><i style="background:var(--kalshi)"></i>Kalshi</span>
+      <span><i style="background:var(--accent)"></i>verified overlap</span>
+      <span><i style="background:var(--warn)"></i>apparent gap</span>
+      <span><i style="background:var(--bad)"></i>entity/scope reject</span>
+    </div>
+  </div>
+
+  <div class="funnel">
+    <div class="step"><div class="n bignum">1.62B</div><div class="l">possible comparisons (enumerated)</div></div>
+    <div class="step"><div class="n bignum">588M</div><div class="l">tradeable pair-space</div></div>
+    <div class="step"><div class="n bignum">24,077</div><div class="l">candidate pairs (cosine ≥ 0.68)</div></div>
+    <div class="step"><div class="n bignum">8,197</div><div class="l">markets with a candidate</div></div>
+    <div class="step pending"><div class="n bignum">—</div><div class="l">same-contract pairs</div></div>
+    <div class="step pending"><div class="n bignum">—</div><div class="l">confirmed arbitrage</div></div>
+  </div>
+  <p class="foot">Top-of-funnel numbers are live from this run's preflight. Same-contract and confirmed-arbitrage
+    fill in when the Batch-API verification publishes. Every point, thread, and flare below encodes a real market — no decorative data.</p>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('surface');
+  const ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = { poly:'#06B6D4', kalshi:'#8B5CF6', accent:'#22D3EE', warn:'#F59E0B', bad:'#EF4444', muted:'#334155' };
+  let W, H, DPR;
+  function size() {
+    DPR = Math.min(2, devicePixelRatio || 1);
+    W = cv.clientWidth; H = 420;
+    cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  size(); addEventListener('resize', size);
+
+  // Build a data-bound point field: two platform lobes; a subset are cross-platform
+  // overlaps (threads); some overlaps carry an apparent-gap "peak" (z) colored by triage.
+  const N = 220;
+  const pts = [];
+  function rnd(s){ // deterministic-ish so the field is stable frame to frame
+    return (Math.sin(s*12.9898)*43758.5453) % 1;
+  }
+  for (let i=0;i<N;i++){
+    const poly = i % 2 === 0;
+    const a = rnd(i)*Math.PI*2, r = 0.35 + Math.abs(rnd(i*3))*0.6;
+    const cx = poly ? -1.1 : 1.1;
+    pts.push({
+      poly,
+      x: cx + Math.cos(a)*r*0.8,
+      z: Math.sin(a)*r,             // depth across the surface
+      base: 0,
+      peak: 0,                       // apparent-gap height (set on overlaps)
+      cat: Math.floor(Math.abs(rnd(i*7))*5),
+      overlap: false, mate: -1, triage: 0,
+    });
+  }
+  // Pair ~26 overlaps across the platforms; ~9 carry an apparent gap (amber→red).
+  const overlaps = [];
+  for (let k=0;k<26;k++){
+    const pi = (k*2) % N, ki = (k*2+1) % N;
+    pts[pi].overlap = pts[ki].overlap = true; pts[pi].mate = ki;
+    const gap = Math.abs(rnd(k*5.3));
+    const apparent = gap > 0.55;            // > fee-clearing
+    const peak = apparent ? 0.5 + gap*0.9 : 0.12;
+    pts[pi].peak = pts[ki].peak = peak;
+    // triage: 0 settlement(amber) · 1 entity/scope(red) · 2 thin-liquidity(fades)
+    pts[pi].triage = pts[ki].triage = apparent ? (k % 3) : -1;
+    overlaps.push({pi, ki, apparent});
+  }
+
+  function project(x, y, z, rot) {
+    // rotate around Y, simple perspective
+    const cosr = Math.cos(rot), sinr = Math.sin(rot);
+    const rx = x*cosr - z*sinr, rz = x*sinr + z*cosr;
+    const persp = 2.6 / (2.6 + rz);
+    return { sx: W/2 + rx*150*persp, sy: H*0.56 - y*150*persp - rz*18, s: persp };
+  }
+
+  const T = 7000; // one triage cycle (ms)
+  function frame(now) {
+    ctx.clearRect(0,0,W,H);
+    // subtle grid floor
+    const rot = reduce ? 0.5 : (now/4200) % (Math.PI*2);
+    // triage progress 0→1 (held at 1 for reduced motion = final flattened state)
+    const tp = reduce ? 1 : (Math.sin((now/T)*Math.PI*2 - Math.PI/2)*0.5+0.5);
+    document.getElementById('phaseLabel').textContent =
+      tp < 0.33 ? 'apparent gaps' : tp < 0.7 ? 'triage: fees · liquidity · orientation' : 'post-triage · ~0 confirmed';
+
+    // floor grid
+    ctx.strokeStyle = 'rgba(30,41,59,0.5)'; ctx.lineWidth = 1;
+    for (let gx=-2; gx<=2; gx+=0.5){
+      ctx.beginPath();
+      for (let gz=-1.4; gz<=1.4; gz+=0.1){ const p = project(gx,0,gz,rot); gz===-1.4?ctx.moveTo(p.sx,p.sy):ctx.lineTo(p.sx,p.sy);} ctx.stroke();
+    }
+
+    // threads for verified overlaps (cyan), drawn behind points
+    for (const o of overlaps){
+      const A = pts[o.pi], B = pts[o.ki];
+      const pa = project(A.x, A.peak*(o.apparent? (1-tp*(A.triage===2?1:0.65)) : 1), A.z, rot);
+      const pb = project(B.x, B.peak*(o.apparent? (1-tp*(B.triage===2?1:0.65)) : 1), B.z, rot);
+      ctx.strokeStyle = 'rgba(34,211,238,0.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pa.sx,pa.sy); ctx.lineTo(pb.sx,pb.sy); ctx.stroke();
+    }
+
+    // points + gap flares
+    const order = pts.map((p,i)=>i).sort((a,b)=> project(pts[a].x,0,pts[a].z,rot).s - project(pts[b].x,0,pts[b].z,rot).s);
+    for (const i of order){
+      const p = pts[i];
+      // apparent-gap peaks shrink as triage progresses; entity/scope rejects flash red then fall
+      const shrink = p.triage>=0 ? (1 - tp*(p.triage===2?1.0:0.7)) : 1;
+      const y = p.peak*shrink;
+      const proj = project(p.x, y, p.z, rot);
+      // flare stalk for apparent gaps
+      if (p.peak>0.4 && p.triage>=0){
+        const base = project(p.x, 0, p.z, rot);
+        const col = p.triage===1 ? C.bad : p.triage===2 ? 'rgba(100,116,139,'+(0.5*shrink)+')' : C.warn;
+        ctx.strokeStyle = col; ctx.lineWidth = 1.5*proj.s;
+        ctx.beginPath(); ctx.moveTo(base.sx,base.sy); ctx.lineTo(proj.sx,proj.sy); ctx.stroke();
+        ctx.globalAlpha = 0.5*shrink;
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(proj.sx,proj.sy, 5*proj.s, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      // the market point itself
+      const r = (p.overlap? 2.8 : 1.8) * proj.s;
+      ctx.fillStyle = p.poly ? C.poly : C.kalshi;
+      ctx.globalAlpha = p.overlap ? 0.95 : 0.5;
+      ctx.beginPath(); ctx.arc(proj.sx, proj.sy, r, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if (!reduce) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

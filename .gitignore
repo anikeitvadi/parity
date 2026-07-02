@@ -39,6 +39,10 @@ coverage/
 # and goes stale — the schema lives in the dir's README.
 docs/data/research-context/*.json
 
+# Efficiency-study checkpoint: one JSON per Kalshi event so an interrupted
+# `npm run study` resumes instead of re-fetching ~7k events. Ephemeral.
+.cache/
+
 # Local tooling (Serena MCP workspace)
 .serena/
 

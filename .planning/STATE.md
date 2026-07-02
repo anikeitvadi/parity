@@ -1,3 +1,18 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: completed
+last_updated: "2026-07-01T22:09:36.455Z"
+last_activity: 2026-02-04 - Completed 04-06-PLAN.md (Dashboard MetaculusView)
+progress:
+  total_phases: 6
+  completed_phases: 4
+  total_plans: 26
+  completed_plans: 26
+  percent: 67
+---
+
 # Project State: Prediction Market Edge Scanner
 
 **Last Updated:** 2026-02-04T22:26:14Z
@@ -10,6 +25,7 @@
 **Current Focus:** Phase 4 Complete - Ready for Phase 5
 
 **Tech Stack:**
+
 - Node.js 20+ & TypeScript 5.5+
 - SQLite (better-sqlite3) for market snapshots
 - Polymarket CLOB client (official package)
@@ -27,6 +43,7 @@
 **Last activity:** 2026-02-04 - Completed 04-06-PLAN.md (Dashboard MetaculusView)
 
 **Progress Bar:**
+
 ```
 Phase 1: Data Foundation & Infrastructure
 [████████████████████] 100% (10/10 plans)
@@ -45,6 +62,7 @@ Overall Roadmap:
 ```
 
 **What's Next:**
+
 - Phase 5: Longshot bias detection
 
 ## Performance Metrics
@@ -52,12 +70,14 @@ Overall Roadmap:
 **Phase Velocity:** N/A (no phases completed)
 
 **Requirements Completion:**
+
 - Completed: 0
 - In Progress: 0
 - Blocked: 0
 - Remaining: 42
 
 **Quality Indicators:**
+
 - Build failures: 0
 - Rollbacks: 0
 - Blocked days: 0
@@ -151,22 +171,26 @@ Overall Roadmap:
 ### Active Constraints
 
 **Capital:**
+
 - $500 starting capital (impacts position sizing, risk tolerance)
 - 5-10% max per trade (Kelly fractional for safety)
 
 **APIs:**
+
 - Polymarket CLOB: 60 orders/min, 3,500/10s burst
 - Polymarket Data: 200 requests/10s
 - Kalshi rate limits: TBD (test in Phase 1)
 - Metaculus API: Verified working with METACULUS_TOKEN
 
 **Safety Gates:**
+
 - EDGE-02 (cross-platform arb) stays disabled until EDGE-07 (settlement parser) operational
 - EDGE-06 (whale tracking) requires on-chain infrastructure (Phase 6)
 
 ### Todos & Blockers
 
 **Immediate Todos:**
+
 - [x] Plan Phase 1 execution
 - [x] Plan Phase 2 execution
 - [x] Test Metaculus API integration
@@ -177,15 +201,18 @@ Overall Roadmap:
 - [x] Test dashboard: npm run dashboard
 
 **Known Blockers:**
+
 - 01-09 Tasks 2-3 blocked on VPS provisioning and hot wallet creation
 
 **Research Needed During Planning:**
+
 - Phase 3: Settlement rule extraction methodology (Polymarket UMA oracle vs Kalshi resolution)
 - Phase 4: Metaculus superforecaster API endpoint verification - VERIFIED WORKING
 
 ### Patterns & Anti-Patterns
 
 **Working Well:**
+
 - Research-driven roadmap (pitfall prevention built into phases)
 - Explicit safety gates (disabled features until dependencies met)
 - Observable success criteria (no implementation tasks, only user behaviors)
@@ -193,6 +220,7 @@ Overall Roadmap:
 - Helper function pattern for type-safe raw extraction (getMetaculusRaw, getSettlementForOpportunity)
 
 **Watch Out For:**
+
 - API rate limiting (implement shared limiter in Phase 1)
 - Wash trading volume inflation (use order book depth, not 24h volume)
 - Settlement rule divergence (highest severity risk for cross-platform arb)
@@ -201,12 +229,14 @@ Overall Roadmap:
 ### Notes
 
 **From Research:**
+
 - Polycule bot hacked for $230K (Jan 2026) due to reversible key storage -> INFR-02 critical
 - Sports bot made $8M exploiting time lag -> we can't compete on speed with $500 capital
 - Columbia study: 25-60% of Polymarket volume is wash trading -> use order book depth exclusively
 - Cross-platform arb extracted $40M+ in 2024-2025 but settlement divergence causes double losses
 
 **Phase Rationale:**
+
 - Phase 1-2: Table stakes (data collection, scoring, alerts)
 - Phase 3: Critical safety feature (settlement verification before enabling arb)
 - Phase 4-5: Competitive differentiators (Metaculus divergence, longshot bias)
@@ -214,7 +244,8 @@ Overall Roadmap:
 
 ## Session Continuity
 
-**Last Session:** 2026-02-04T22:26:14Z
+**Last Session:** 2026-07-01T22:09:36.451Z
+
 - Completed 04-06-PLAN.md (Dashboard MetaculusView)
   - Created MetaculusView component with staleness color coding
   - Integrated into OpportunityDetail with type-safe helper
@@ -222,6 +253,7 @@ Overall Roadmap:
   - 401 total tests passing
 
 **Phase 3 Complete:**
+
 - 03-01: Settlement types + database schema
 - 03-02: Platform-specific parsers (Polymarket, Kalshi)
 - 03-03: Settlement comparator with TDD (26 tests)
@@ -229,6 +261,7 @@ Overall Roadmap:
 - 03-05: Dashboard settlement view
 
 **Phase 4 Complete:**
+
 - 04-01: ✅ Metaculus foundation types
 - 04-02: ✅ Metaculus API client
 - 04-03: ✅ Question-to-market matcher
@@ -239,11 +272,13 @@ Overall Roadmap:
 **Resume Point:** Ready for Phase 5 (Longshot bias detection)
 
 **Next Session Should:**
+
 - Plan Phase 5 if continuing
 - Monitor Metaculus divergence opportunities for FP rate assessment
 - Consider periodic review of match quality once sufficient data accumulated
 
 **Outstanding from Phase 1:**
+
 - VPS provisioning still pending (01-09 Tasks 2-3)
 - Hot wallet creation still pending
 

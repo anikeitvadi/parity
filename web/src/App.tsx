@@ -1,5 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { TerminalPage } from './pages/TerminalPage.js';
+import { SnapshotBadge } from './components/SnapshotBadge.js';
+import { IS_STATIC } from './api/client.js';
 
 // The Lab is the only consumer of Observable Plot (~270KB) — load it on demand
 // so the default Scanner view stays lean.
@@ -45,21 +47,24 @@ export function App() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <SnapshotBadge />
           <Clock />
-          <a
-            href="/api/status"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[10px] text-[#64748B] hover:text-[#94A3B8] transition-colors"
-          >
-            Diagnostics
-          </a>
+          {!IS_STATIC && (
+            <a
+              href="/api/status"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-[#64748B] hover:text-[#94A3B8] transition-colors"
+            >
+              Diagnostics
+            </a>
+          )}
         </div>
       </header>
 
       {/* Active view fills the rest */}
       {tab === 'scanner' ? (
-        <TerminalPage />
+        <TerminalPage onOpenLab={() => setTab('lab')} />
       ) : (
         <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[12px] text-[#64748B]">Loading lab…</div>}>
           <LabPage />

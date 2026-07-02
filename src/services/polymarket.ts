@@ -89,6 +89,23 @@ const ClobMarketSchema = z.object({
 type ClobMarketResponse = z.infer<typeof ClobMarketSchema>;
 
 /**
+ * Counts + samples describing the Polymarket standalone-market universe, for the
+ * efficiency study's methodology artifact. Gamma's core feed already returns
+ * individual standalone binaries (multi-candidate events arrive pre-split into
+ * negRisk binaries), so standalone ≈ raw; the excluded bucket only catches
+ * malformed rows with no id or price.
+ */
+export interface PolymarketIngestStats {
+  rawMarketCount: number;
+  standaloneMarketCount: number;
+  excludedCount: number;
+  includedSamples: { id: string; title: string }[];
+  excludedSamples: { id: string; title: string; reason?: string }[];
+  /** Distinct sort orders unioned during enumeration (provenance for the lower-bound count). */
+  enumerationSorts?: string[];
+}
+
+/**
  * Polymarket client for fetching market data and order books.
  * Uses the official @polymarket/clob-client for CLOB operations
  * and the Gamma API for market data.
@@ -211,9 +228,14 @@ export class PolymarketClient {
    * which under-samples the universe. This walks `offset` until a short page
    * signals the end (or `maxPages` is hit). Used by the efficiency study.
    *
-   * @param maxPages - Safety cap on pages fetched (default: 15 → up to 1500)
+   * @param opts.maxPages - Safety cap on pages fetched (default: 20 → up to 2000)
+   * @param opts.stats - Optional methodology counters (raw vs standalone).
    */
-  async getAllActiveMarkets(maxPages: number = 15): Promise<Market[]> {
+  async getAllActiveMarkets(
+    opts: { maxPages?: number; stats?: PolymarketIngestStats } = {}
+  ): Promise<Market[]> {
+    const maxPages = opts.maxPages ?? 20;
+    const stats = opts.stats;
     const pageSize = 100;
     const all: Market[] = [];
 
@@ -221,7 +243,10 @@ export class PolymarketClient {
       const offset = page * pageSize;
       const response = await this.rateLimiter.execute(async () => {
         const res = await fetch(
-          `${GAMMA_API_HOST}/markets?closed=false&active=true&limit=${pageSize}&offset=${offset}`
+          // Order by volume desc: Gamma caps offset at ~2000, and the DEFAULT
+          // ordering buries liquid markets past that ceiling (e.g. the Clarity Act
+          // market). Volume-ordering surfaces the arbitrage-relevant universe.
+          `${GAMMA_API_HOST}/markets?closed=false&active=true&order=volumeNum&ascending=false&limit=${pageSize}&offset=${offset}`
         );
         if (!res.ok) {
           throw new Error(`Gamma API error: ${res.status} ${res.statusText}`);
@@ -234,10 +259,30 @@ export class PolymarketClient {
         throw new Error('API validation failed');
       }
 
-      const markets = parseResult.data
-        .filter((m) => m.active !== false && m.closed !== true)
-        .map((m) => this.transformMarket(m));
-      all.push(...markets);
+      const active = parseResult.data.filter((m) => m.active !== false && m.closed !== true);
+      for (const raw of active) {
+        const market = this.transformMarket(raw);
+        if (stats) stats.rawMarketCount++;
+        // Standalone = its own id and at least one price. Gamma's feed has no
+        // parlay/composite rows, so this only screens out malformed entries.
+        const isStandalone = !!market.id && Object.keys(market.prices).length > 0;
+        if (!isStandalone) {
+          if (stats) {
+            stats.excludedCount++;
+            if (stats.excludedSamples.length < 8) {
+              stats.excludedSamples.push({ id: market.id, title: market.question, reason: 'no id or price' });
+            }
+          }
+          continue;
+        }
+        all.push(market);
+        if (stats) {
+          stats.standaloneMarketCount++;
+          if (stats.includedSamples.length < 8) {
+            stats.includedSamples.push({ id: market.id, title: market.question });
+          }
+        }
+      }
 
       // A short page means we've reached the end.
       if (parseResult.data.length < pageSize) break;
@@ -246,6 +291,79 @@ export class PolymarketClient {
     logger.info(
       { marketCount: all.length, source: 'gamma', paginated: true },
       'Fetched full active-market universe from Gamma API'
+    );
+    return all;
+  }
+
+  /**
+   * Enumerate the full active **standalone-market** universe via Gamma `/events`.
+   *
+   * `getAllActiveMarkets` paginates `/markets`, but Gamma hard-caps offset at
+   * ~2000 (offset 2100+ → HTTP 422), so it can only ever see the top ~2000
+   * markets by a single sort. This instead walks `/events` under several sort
+   * orders and unions the embedded child markets — each multi-candidate event
+   * (e.g. "World Cup Winner") already arrives pre-split into individual negRisk
+   * binaries, which are standalone. Because the offset cap applies per sort, the
+   * union is a documented LOWER BOUND on the true universe, not a complete
+   * enumeration (`stats.enumerationSorts` records the sorts used).
+   */
+  async getStandaloneUniverse(
+    opts: { sorts?: string[]; maxOffset?: number; stats?: PolymarketIngestStats } = {}
+  ): Promise<Market[]> {
+    const sorts = opts.sorts ?? ['volume', 'liquidity', 'startDate'];
+    const maxOffset = opts.maxOffset ?? 2000;
+    const stats = opts.stats;
+    const pageSize = 100;
+    const byId = new Map<string, Market>();
+
+    for (const order of sorts) {
+      for (let offset = 0; offset <= maxOffset; offset += pageSize) {
+        const response = await this.rateLimiter.execute(async () => {
+          const res = await fetch(
+            `${GAMMA_API_HOST}/events?closed=false&active=true&order=${order}&ascending=false&limit=${pageSize}&offset=${offset}`
+          );
+          if (res.status === 422) return null; // offset ceiling — stop this sort
+          if (!res.ok) throw new Error(`Gamma events error: ${res.status} ${res.statusText}`);
+          return res.json();
+        });
+        if (!response || !Array.isArray(response) || response.length === 0) break;
+
+        for (const ev of response as { markets?: unknown[] }[]) {
+          for (const rawMarket of ev.markets ?? []) {
+            const parsed = PolymarketMarketSchema.safeParse(rawMarket);
+            if (!parsed.success) continue;
+            if (parsed.data.active === false || parsed.data.closed === true) continue;
+            const market = this.transformMarket(parsed.data);
+            if (stats) stats.rawMarketCount++;
+            const isStandalone = !!market.id && Object.keys(market.prices).length > 0;
+            if (!isStandalone) {
+              if (stats) {
+                stats.excludedCount++;
+                if (stats.excludedSamples.length < 8) {
+                  stats.excludedSamples.push({ id: market.id, title: market.question, reason: 'no id or price' });
+                }
+              }
+              continue;
+            }
+            if (byId.has(market.id)) continue; // dedup across sorts
+            byId.set(market.id, market);
+            if (stats && stats.includedSamples.length < 8) {
+              stats.includedSamples.push({ id: market.id, title: market.question });
+            }
+          }
+        }
+        if (response.length < pageSize) break;
+      }
+    }
+
+    const all = [...byId.values()];
+    if (stats) {
+      stats.standaloneMarketCount = all.length;
+      stats.enumerationSorts = sorts;
+    }
+    logger.info(
+      { marketCount: all.length, sorts, source: 'gamma-events', lowerBound: true },
+      'Enumerated Polymarket standalone universe (multi-sort /events union)'
     );
     return all;
   }
@@ -280,6 +398,45 @@ export class PolymarketClient {
   }
 
   /**
+   * Real price history for a binary market from the CLOB /prices-history endpoint — the data the
+   * platform tracks but we don't persist. Resolves the YES token via getMarketDetails, then returns
+   * the same `{ timestamp, data.prices }` shape as the DB-backed history so the detail route can swap
+   * it in. Empty array on demo mode / failure (honest empty state — never fabricated).
+   */
+  async getPriceHistory(
+    conditionId: string,
+    days = 7
+  ): Promise<{ timestamp: number; data: { prices: Record<string, number> } }[]> {
+    // Resolve the YES token, then hit the PUBLIC /prices-history endpoint directly — no wallet /
+    // authenticated CLOB client needed (this works in demo mode), matching getMarketDetails' pattern.
+    const details = await this.getMarketDetails(conditionId);
+    if (!details) return [];
+    const yes = details.tokens.find((t) => t.outcome.toLowerCase() === 'yes') ?? details.tokens[0];
+    const no = details.tokens.find((t) => t !== yes);
+    if (!yes) return [];
+
+    // The CLOB history endpoint returns nothing for a bare startTs/endTs window; the `interval` form
+    // is what actually serves data. Map the requested days to the nearest supported interval.
+    const interval = days <= 1 ? '1d' : days <= 7 ? '1w' : days <= 31 ? '1m' : 'max';
+    try {
+      const url = `${CLOB_HOST}/prices-history?market=${yes.token_id}&interval=${interval}&fidelity=1440`;
+      const res = await this.rateLimiter.execute(() => fetch(url));
+      if (!res.ok) return [];
+      const json = (await res.json()) as { history?: { t: number; p: number }[] };
+      return (json.history ?? []).map((pt) => {
+        const p = Number(pt.p);
+        return {
+          timestamp: Number(pt.t) * 1000,
+          data: { prices: { [yes.outcome]: p, ...(no ? { [no.outcome]: 1 - p } : {}) } },
+        };
+      });
+    } catch (error) {
+      logger.debug({ conditionId, error }, 'CLOB price history fetch failed');
+      return [];
+    }
+  }
+
+  /**
    * Transform CLOB API market to normalized Market format
    */
   private transformClobMarket(raw: ClobMarketResponse): Market {
@@ -305,6 +462,8 @@ export class PolymarketClient {
           price: t.price,
         })),
         acceptingOrders: raw.accepting_orders,
+        // Resolution text — used by the rules-aware cross-platform matcher.
+        description: (raw as { description?: string | null }).description ?? undefined,
       },
     };
   }

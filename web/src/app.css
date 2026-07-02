@@ -17,6 +17,15 @@
   --color-accent: #06B6D4;
   --color-accent-hover: #22D3EE;
   --color-warning: #F59E0B;
+  /* Platform identity — low-saturation tints, never used for direction (green/red = direction). */
+  --color-poly: #60A5FA;   /* Polymarket = blue */
+  --color-kalshi: #22C55E; /* Kalshi = green (user's explicit lock; overrides the design-system export's violet) */
+  /* Motion (DESIGN §7) — information, never decoration; all one-shot. */
+  --ease-out: cubic-bezier(.22,.61,.36,1);
+  --dur-fast: 240ms;
+  --dur-base: 480ms;
+  --dur-slow: 900ms;
+  --stagger: 60ms;
 }
 
 body {
