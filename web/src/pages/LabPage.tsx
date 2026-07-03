@@ -457,9 +457,13 @@ export function LabPage() {
               </div>
             )}
 
-            <ExperimentCard status="running" title="Experiment 2 — Metaculus vs. market" body="When superforecasters disagree with the market by 10+ points, who's right? A backtest that needs resolved outcomes over time — the harness is collecting them now." />
-            <ExperimentCard status="running" title="Experiment 3 — Personal calibration" body="Log your probability calls, score them with Brier, and see where you're overconfident. The method works; the sample is still thin." />
           </div>
+        </div>
+
+        {/* Future experiments in their own full-width row so the two columns above end flush. */}
+        <div className="grid sm:grid-cols-2 gap-3 mt-3">
+          <ExperimentCard status="running" title="Experiment 2 — Metaculus vs. market" body="When superforecasters disagree with the market by 10+ points, who's right? A backtest that needs resolved outcomes over time — the harness is collecting them now." />
+          <ExperimentCard status="running" title="Experiment 3 — Personal calibration" body="Log your probability calls, score them with Brier, and see where you're overconfident. The method works; the sample is still thin." />
         </div>
       </div>
     </div>
