@@ -7,8 +7,13 @@ as of HH:MM' tick, server pairs cache 60s->900s (12.5s cold -> 23ms warm), snaps
 (static build VERIFIED: zero /api calls, Lab + 2,626-pair Terminal render). npm run check GREEN.
 STILL OPEN before publish: (1) README/docs rewrite (P0 — old 2,219→7→0 story), (2) retriage.ts
 taxonomy fix + pair-audit.csv regen (regression warning below), (3) push + PR, (4) repo hygiene
-(.planning/, old handoffs, LICENSE). Known non-blocker: bulk live-map matches nothing (why the
-header once showed 44,572/3,197 — investigate ID mapping in getActiveMarkets vs corpus ids).
+(.planning/, old handoffs, LICENSE). Known non-blocker — ROOT CAUSE FOUND (2026-07-03): the pairs route's live map uses
+polyClient.getActiveMarkets(), which fetches ONLY the first Gamma page (limit cap 100 markets);
+the study uses the paginating getAllActiveMarkets(). So the bulk map holds ~100 newest Poly markets
+and matches ~0 corpus pairs (Kalshi side may partially match). Correct fix when wanted: on pairs
+cache build, probe the ~400 corpus polymarketIds directly (concurrency-limited per-id fetch, like
+/pair-live does) instead of intersecting with a first-page pull. Harmless today: nothing
+user-visible trusts bulk flags anymore (settled badges/demotion use per-pair probes only).
 
 > Supersedes the previous 3D-consensus-field handoff (recoverable at git `c76b1d9^`).
 > READ THIS FIRST next session. Companion file: `REVIEW-FINDINGS.md` (all 59 verified findings, severity-sorted, with fixes).

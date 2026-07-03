@@ -136,15 +136,15 @@ async function main() {
     p.funnel_stage = 'apparent_fee_clearing_gap';
   }
   apparent.forEach((p, i) => {
-    p.triage_label = verdicts[i].label;
+    p.triage_label = verdicts[i].label === 'confirmed_arbitrage' ? 'semantic_survivor' : verdicts[i].label;
     p.reason = verdicts[i].reason || p.reason;
     // confirmed_arbitrage is its own terminal funnel stage, not just an apparent gap.
-    if (verdicts[i].label === 'confirmed_arbitrage') p.funnel_stage = 'confirmed_arbitrage';
+    if (verdicts[i].label === 'confirmed_arbitrage') p.funnel_stage = 'semantic_survivor';
   });
 
   const triageCounts: Record<string, number> = {};
   for (const v of verdicts) triageCounts[v.label] = (triageCounts[v.label] || 0) + 1;
-  const confirmedArb = triageCounts['confirmed_arbitrage'] || 0;
+  const confirmedArb = triageCounts['semantic_survivor'] || 0;
 
   // The canonical funnel (counts that sum cleanly down the waterfall).
   const funnel = {
@@ -163,7 +163,7 @@ async function main() {
     for (const row of study.sensitivity) {
       const floor = row.floor as number;
       row.confirmedArb = apparent.filter(
-        (p) => p.triage_label === 'confirmed_arbitrage' && (p.polyVolume ?? 0) >= floor && (p.kalshiVolume ?? 0) >= floor
+        (p) => p.triage_label === 'semantic_survivor' && (p.polyVolume ?? 0) >= floor && (p.kalshiVolume ?? 0) >= floor
       ).length;
     }
   }
@@ -177,7 +177,7 @@ async function main() {
     tradeable: (t.polymarket ?? 0) * (t.kalshi ?? 0),
   };
 
-  study.funnel = funnel;
+  study.triageFunnel = funnel; // never clobber study.funnel — the web app reads its shape
   study.triage = { counts: triageCounts, confirmedArb };
   study.actionable = { ...study.actionable, confirmedArbAfterTriage: confirmedArb };
   study.retriagedAt = study.generatedAt; // stamped from the source artifact (no Date in scripts)
