@@ -62,28 +62,34 @@ interface ChartPair {
  * re-plots when the width or the render function changes. `render` is given the
  * measured pixel width and returns a Plot node.
  */
-function PlotFigure({ render }: { render: (width: number) => SVGSVGElement | HTMLElement }) {
+function PlotFigure({ render, fill }: { render: (width: number, height?: number) => SVGSVGElement | HTMLElement; fill?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
+  const [dims, setDims] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      setWidth(Math.floor(entries[0]?.contentRect.width ?? 0));
+      const r = entries[0]?.contentRect;
+      if (!r) return;
+      setDims((d) => (Math.abs(d.w - r.width) > 4 || Math.abs(d.h - r.height) > 4 ? { w: Math.floor(r.width), h: Math.floor(r.height) } : d));
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
   useEffect(() => {
     const el = ref.current;
-    if (!el || width === 0) return;
-    const node = render(width);
+    if (!el || dims.w === 0) return;
+    const node = render(dims.w, fill ? dims.h : undefined);
     el.append(node);
     return () => node.remove();
-  }, [render, width]);
-
+  }, [render, dims, fill]);
+  if (fill) {
+    return (
+      <div className="flex-1 min-h-[240px] relative">
+        <div ref={ref} className="absolute inset-0 overflow-hidden" />
+      </div>
+    );
+  }
   return <div ref={ref} className="w-full" />;
 }
 
@@ -160,10 +166,10 @@ function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
   const simDomain: [number, number] = [Number.isFinite(minSim) ? minSim : 0.55, 1];
   const simTicks = [0.55, 0.6, 0.7, 0.8, 0.9, 1.0].filter((t) => t >= simDomain[0]);
   const render = useCallback(
-    (width: number) =>
+    (width: number, height?: number) =>
       Plot.plot({
         width,
-        height: 240,
+        height: height && height > 200 ? height : 240,
         marginTop: 16,
         marginBottom: 42,
         marginLeft: 44,
@@ -204,7 +210,7 @@ function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
       }),
     [pairs, maxGap, simDomain, simTicks]
   );
-  return <PlotFigure render={render} />;
+  return <PlotFigure render={render} fill />;
 }
 
 function ExperimentCard({ status, title, body }: { status: 'done' | 'running'; title: string; body: string }) {
@@ -391,9 +397,9 @@ export function LabPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-[1fr_320px] gap-5 items-start">
+        <div className="grid md:grid-cols-[1fr_320px] gap-5 items-stretch">
           {/* Experiment 1: the two charts */}
-          <div className="border border-[#1E293B] rounded-md p-3 bg-[#020617] space-y-4">
+          <div className="h-full flex flex-col border border-[#1E293B] rounded-md p-3 bg-[#020617] space-y-4">
             <div>
               <div className="text-[12px] font-semibold text-[#F8FAFC]">Experiment 1 — Cross-platform efficiency</div>
               <div className="text-[10px] text-[#64748B]">
@@ -407,7 +413,7 @@ export function LabPage() {
               <GapDistribution pairs={chartPairs} />
             </div>
 
-            <div>
+            <div className="flex-1 flex flex-col min-h-[280px]">
               <div className="text-[10px] text-[#94A3B8] uppercase tracking-wider mb-1">Match confidence vs gap</div>
               <SimilarityVsGap pairs={chartPairs} />
             </div>
