@@ -75,11 +75,13 @@ const ORB_VERT = /* glsl */ `
   attribute vec3 aEnd;
   attribute float aPhase;
   attribute float aSpeed;
+  attribute float aDir;
   uniform float uTime;
   uniform float uSize;
   varying float vT;
   void main() {
-    float t = fract(uTime * aSpeed + aPhase);
+    float travel = fract(uTime * aSpeed + aPhase);
+    float t = mix(1.0 - travel, travel, aDir);
     vT = t;
     float m = 1.0 - t;
     vec3 p = m * m * position + 2.0 * m * t * aCtrl + t * t * aEnd;
@@ -142,6 +144,7 @@ function buildArcGeo(
   const ends = new Float32Array(N * 3);
   const orbPhases = new Float32Array(N);
   const speeds = new Float32Array(N);
+  const dirs = new Float32Array(N);
   let w = 0;
   for (let i = 0; i < N; i++) {
     const ax = A[i * 3], ay = A[i * 3 + 1], az = A[i * 3 + 2];
@@ -157,6 +160,7 @@ function buildArcGeo(
     ends[i * 3] = bx; ends[i * 3 + 1] = by; ends[i * 3 + 2] = bz;
     orbPhases[i] = phase;
     speeds[i] = 1 / (7 + rnd(i * 3.7) * 5); // one crossing every 7-12s
+    dirs[i] = i % 2; // alternate direction: a comparison flows both ways
     let px = 0, py = 0, pz = 0, pt = 0;
     for (let k = 0; k <= SEG; k++) {
       const t = k / SEG, m = 1 - t;
@@ -176,7 +180,7 @@ function buildArcGeo(
       px = x; py = y; pz = z; pt = t;
     }
   }
-  return { positions, colors, ts, phases, starts, ctrls, ends, orbPhases, speeds };
+  return { positions, colors, ts, phases, starts, ctrls, ends, orbPhases, speeds, dirs };
 }
 
 function ThreadSet({ geo, opacity }: { geo: ReturnType<typeof buildArcGeo>; opacity: number }) {
@@ -210,6 +214,7 @@ function Orbs({ geo, colorA, colorB, size = 0.55 }: { geo: ReturnType<typeof bui
         <bufferAttribute attach="attributes-aEnd" args={[geo.ends, 3]} />
         <bufferAttribute attach="attributes-aPhase" args={[geo.orbPhases, 1]} />
         <bufferAttribute attach="attributes-aSpeed" args={[geo.speeds, 1]} />
+        <bufferAttribute attach="attributes-aDir" args={[geo.dirs, 1]} />
       </bufferGeometry>
       <shaderMaterial ref={matRef} uniforms={uniforms} vertexShader={ORB_VERT} fragmentShader={ORB_FRAG} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
