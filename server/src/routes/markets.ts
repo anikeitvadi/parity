@@ -252,10 +252,15 @@ marketRoutes.get('/:id', async (c) => {
     }
   }
 
-  // Price history (last 7 days)
+  // Price history (last 7 days). DB snapshots are sparse, so for Polymarket fall back to the
+  // platform's own CLOB price-history — real data the platform tracks but we don't persist.
   const now = Date.now();
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-  const history = getMarketHistory(id, weekAgo, now);
+  let history = getMarketHistory(id, weekAgo, now);
+  if (history.length < 2 && market.platform === 'polymarket') {
+    const live = await polyClient.getPriceHistory(id).catch(() => []);
+    if (live.length >= 2) history = live as unknown as typeof history;
+  }
   enrichments.priceHistory = history;
 
   // Metaculus superforecaster data (best-effort, non-blocking)

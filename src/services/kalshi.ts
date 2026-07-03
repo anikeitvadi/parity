@@ -6,6 +6,8 @@
 
 import { z } from 'zod';
 import crypto from 'crypto';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { createKalshiLimiter, RateLimiter } from '../utils/rate-limiter.js';
 import { kalshiLogger } from '../utils/logger.js';
 import { env } from '../config/env.js';
@@ -93,6 +95,51 @@ const KalshiOrderBookSchema = z.object({
 type KalshiMarket = z.infer<typeof KalshiMarketSchema>;
 
 /**
+ * A "standalone market" is a single forecastable proposition with its own price
+ * and settlement criteria. Kalshi's `/markets` endpoint is dominated by MULTI-LEG
+ * combination contracts (MVE — "multi-variate event" parlays: `yes Brazil advances,
+ * yes Germany advances, ...`) which require several unrelated legs to all resolve a
+ * given way. Those are NOT directly comparable cross-platform forecast propositions,
+ * so they are excluded structurally (not by category). Single-outcome markets and the
+ * individual priced children of a mutually-exclusive event (each candidate's binary)
+ * are standalone and kept.
+ */
+function isCompositeMarket(m: KalshiMarket): boolean {
+  const raw = m as KalshiMarket & {
+    mve_collection_ticker?: string;
+    mve_selected_legs?: unknown[];
+  };
+  return (
+    /KXMVE/i.test(m.ticker) || // MVE parlay families, e.g. KXMVESPORTSMULTIGAMEEXTENDED
+    !!raw.mve_collection_ticker ||
+    (Array.isArray(raw.mve_selected_legs) && raw.mve_selected_legs.length > 0)
+  );
+}
+
+/** One example row for the methodology output (included or excluded, with reason). */
+export interface IngestSample {
+  id: string;
+  title: string;
+  reason?: string;
+}
+
+/**
+ * Counts + samples describing how raw Kalshi API rows were reduced to the
+ * standalone-market universe. Filled in by `getAllActiveMarkets` for the
+ * efficiency study's methodology artifact.
+ */
+export interface KalshiIngestStats {
+  eventCount: number; // open events walked via /events
+  rawChildCount: number; // child markets seen across all events (pre-filter)
+  standaloneMarketCount: number; // children kept as standalone markets
+  excludedCompositeCount: number; // children dropped as MVE/multi-leg
+  excludedUnpricedCount: number; // children dropped for having no usable price
+  cachedEvents: number; // events served from the on-disk checkpoint
+  includedSamples: IngestSample[];
+  excludedSamples: IngestSample[];
+}
+
+/**
  * Kalshi REST API client
  *
  * Features:
@@ -108,6 +155,7 @@ export class KalshiClient {
   private apiKey: string | undefined;
   private apiSecret: string | undefined;
   private rateLimiter: RateLimiter;
+  private publicLimiter: RateLimiter;
   private hasAuth: boolean;
 
   constructor() {
@@ -117,6 +165,10 @@ export class KalshiClient {
     this.apiKey = env.KALSHI_API_KEY;
     this.apiSecret = env.KALSHI_API_SECRET;
     this.rateLimiter = createKalshiLimiter();
+    // Public reads (events/markets/orderbook) are unauthenticated and 429 easily.
+    // Throttle to 5 req/s with a 200ms floor; backoff handles bursts. A separate
+    // limiter so bulk study walks can't starve the authenticated request budget.
+    this.publicLimiter = new RateLimiter(5, 1_000, 200, 'kalshi-public');
 
     kalshiLogger.info(
       { baseUrl: this.baseUrl, authenticated: this.hasAuth },
@@ -129,16 +181,20 @@ export class KalshiClient {
    */
   private async publicRequest<T>(endpoint: string): Promise<T> {
     const url = `${this.publicUrl}${endpoint}`;
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json' },
+    // Every public read goes through the rate limiter, which also retries with
+    // exponential backoff on 429. The thrown error carries `.status` so the
+    // limiter's retry predicate recognizes a rate-limit response.
+    return this.publicLimiter.execute(async () => {
+      const response = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => 'Unknown error');
+        throw Object.assign(
+          new Error(`Kalshi API error: ${response.status} ${errorBody}`),
+          { status: response.status }
+        );
+      }
+      return response.json() as Promise<T>;
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Kalshi API error: ${response.status} ${errorBody}`);
-    }
-
-    return response.json() as Promise<T>;
   }
 
   /**
@@ -255,101 +311,183 @@ export class KalshiClient {
    */
   async getActiveMarkets(): Promise<Market[]> {
     const startTime = Date.now();
+    kalshiLogger.debug('Fetching active events');
 
-    return this.rateLimiter.execute(async () => {
-      kalshiLogger.debug('Fetching active events');
+    // Step 1: Get the first page of open events (clean titles + categories).
+    const eventsResponse = await this.publicRequest<unknown>(
+      '/events?status=open&limit=100'
+    );
 
-      // Step 1: Get all open events (clean titles + categories)
-      const eventsResponse = await this.publicRequest<unknown>(
-        '/events?status=open&limit=100'
-      );
+    const eventsResult = KalshiEventsResponseSchema.safeParse(eventsResponse);
+    if (!eventsResult.success) {
+      kalshiLogger.error({ error: eventsResult.error.message }, 'Invalid Kalshi events response');
+      throw new Error('Invalid Kalshi events response');
+    }
 
-      const eventsResult = KalshiEventsResponseSchema.safeParse(eventsResponse);
-      if (!eventsResult.success) {
-        kalshiLogger.error({ error: eventsResult.error.message }, 'Invalid Kalshi events response');
+    // Step 2: Expand each event to its standalone child markets.
+    const events = eventsResult.data.events;
+    const markets = await this.expandEventsToMarkets(events);
+
+    kalshiLogger.info(
+      { events: events.length, markets: markets.length, durationMs: Date.now() - startTime },
+      'Fetched Kalshi events and markets'
+    );
+    return markets;
+  }
+
+  /**
+   * Fetch the full active **standalone-market** universe.
+   *
+   * Walks every open event via `/events` (cursor-paginated), then expands each
+   * to its child markets, keeping only standalone propositions and dropping
+   * multi-leg / composite (MVE) contracts — see {@link isCompositeMarket}. Used
+   * by the efficiency study; the live feed uses {@link getActiveMarkets}.
+   *
+   * Each event costs one detail request, so the expansion is the slow part. It
+   * is checkpointed to `opts.cacheDir` (one JSON per event) so an interrupted
+   * run resumes instead of re-fetching, and every request is rate-limited.
+   */
+  async getAllActiveMarkets(
+    opts: {
+      maxEvents?: number;
+      cacheDir?: string;
+      cacheTtlMs?: number;
+      onProgress?: (done: number, total: number) => void;
+      stats?: KalshiIngestStats;
+    } = {}
+  ): Promise<Market[]> {
+    const maxEvents = opts.maxEvents ?? 8000;
+
+    // 1. Walk every open event (cheap: ~36 requests for ~7k events).
+    const events: z.infer<typeof KalshiEventsResponseSchema>['events'] = [];
+    let cursor: string | undefined;
+    do {
+      const query = `/events?status=open&limit=200${cursor ? `&cursor=${cursor}` : ''}`;
+      const response = await this.publicRequest<unknown>(query);
+      const parsed = KalshiEventsResponseSchema.safeParse(response);
+      if (!parsed.success) {
+        kalshiLogger.error({ error: parsed.error.message }, 'Invalid Kalshi events response');
         throw new Error('Invalid Kalshi events response');
       }
+      events.push(...parsed.data.events);
+      cursor = parsed.data.cursor;
+    } while (cursor && events.length < maxEvents);
 
-      // Step 2: Fetch market details for each event (batched)
-      const events = eventsResult.data.events;
-      const markets = await this.expandEventsToMarkets(events);
-
-      const duration = Date.now() - startTime;
-      kalshiLogger.info(
-        { events: events.length, markets: markets.length, durationMs: duration },
-        'Fetched Kalshi events and markets'
-      );
-
-      return markets;
-    });
+    // 2. Expand to standalone child markets (checkpointed, rate-limited).
+    const markets = await this.expandEventsToMarkets(events, opts);
+    kalshiLogger.info(
+      { events: events.length, standaloneMarkets: markets.length, paginated: true },
+      'Fetched full Kalshi standalone-market universe'
+    );
+    return markets;
   }
 
   /**
-   * Fetch the full active-market universe by paginating `/events` via cursor.
-   *
-   * `getActiveMarkets` fetches only the first 100 events. This walks the
-   * cursor until exhausted (or `maxEvents` is reached), then expands every
-   * event to its markets. Used by the efficiency study. Note: each event
-   * costs a detail request, so this is intentionally bounded.
-   *
-   * @param maxEvents - Safety cap on events fetched (default: 500)
+   * Fetch one event's detail (event + its markets), via the on-disk checkpoint
+   * when present and fresh. Returns null if the request fails (the caller skips
+   * that event rather than aborting the whole run).
    */
-  async getAllActiveMarkets(maxEvents: number = 500): Promise<Market[]> {
-    return this.rateLimiter.execute(async () => {
-      const events: z.infer<typeof KalshiEventsResponseSchema>['events'] = [];
-      let cursor: string | undefined;
-
-      do {
-        const query = `/events?status=open&limit=100${cursor ? `&cursor=${cursor}` : ''}`;
-        const response = await this.publicRequest<unknown>(query);
-        const parsed = KalshiEventsResponseSchema.safeParse(response);
-        if (!parsed.success) {
-          kalshiLogger.error({ error: parsed.error.message }, 'Invalid Kalshi events response');
-          throw new Error('Invalid Kalshi events response');
+  private async fetchEventDetail(
+    ticker: string,
+    opts: { cacheDir?: string; cacheTtlMs?: number; stats?: KalshiIngestStats }
+  ): Promise<unknown | null> {
+    const ttl = opts.cacheTtlMs ?? 24 * 60 * 60 * 1000;
+    let cacheFile: string | undefined;
+    if (opts.cacheDir) {
+      cacheFile = join(opts.cacheDir, `${ticker.replace(/[^A-Za-z0-9_-]/g, '_')}.json`);
+      try {
+        if (existsSync(cacheFile) && Date.now() - statSync(cacheFile).mtimeMs < ttl) {
+          if (opts.stats) opts.stats.cachedEvents++;
+          return JSON.parse(readFileSync(cacheFile, 'utf8'));
         }
-        events.push(...parsed.data.events);
-        cursor = parsed.data.cursor;
-      } while (cursor && events.length < maxEvents);
+      } catch {
+        // Unreadable/expired cache — fall through to a live fetch.
+      }
+    }
 
-      const markets = await this.expandEventsToMarkets(events);
-      kalshiLogger.info(
-        { events: events.length, markets: markets.length, paginated: true },
-        'Fetched full Kalshi market universe'
-      );
-      return markets;
-    });
+    let detail: unknown;
+    try {
+      detail = await this.publicRequest<unknown>(`/events/${ticker}`);
+    } catch (err) {
+      kalshiLogger.warn({ ticker, err: (err as Error).message }, 'event detail fetch failed');
+      return null;
+    }
+
+    if (cacheFile && opts.cacheDir) {
+      try {
+        mkdirSync(opts.cacheDir, { recursive: true });
+        writeFileSync(cacheFile, JSON.stringify(detail));
+      } catch (err) {
+        kalshiLogger.debug({ ticker, err: (err as Error).message }, 'event detail cache write failed');
+      }
+    }
+    return detail;
   }
 
   /**
-   * Expand a list of events to their normalized markets (batched detail fetch).
+   * Expand events to their normalized standalone child markets. Drops multi-leg
+   * (MVE) and unpriced children, and (when `opts.stats` is provided) tallies the
+   * raw→standalone reduction with included/excluded samples for the methodology.
    */
   private async expandEventsToMarkets(
-    events: z.infer<typeof KalshiEventsResponseSchema>['events']
+    events: z.infer<typeof KalshiEventsResponseSchema>['events'],
+    opts: {
+      cacheDir?: string;
+      cacheTtlMs?: number;
+      onProgress?: (done: number, total: number) => void;
+      stats?: KalshiIngestStats;
+    } = {}
   ): Promise<Market[]> {
     const markets: Market[] = [];
-    const batchSize = 10;
+    const stats = opts.stats;
+    if (stats) stats.eventCount = events.length;
+    const batchSize = 8;
+    let done = 0;
 
     for (let i = 0; i < events.length; i += batchSize) {
       const batch = events.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map((event) =>
-          this.publicRequest<unknown>(`/events/${event.event_ticker}`)
-        )
+      const details = await Promise.all(
+        batch.map((event) => this.fetchEventDetail(event.event_ticker, opts))
       );
 
-      for (const result of results) {
-        if (result.status !== 'fulfilled') continue;
+      for (const detail of details) {
+        done++;
+        if (!detail) continue;
 
-        const detailResult = KalshiEventDetailSchema.safeParse(result.value);
+        const detailResult = KalshiEventDetailSchema.safeParse(detail);
         if (!detailResult.success) continue;
 
         const { event, markets: eventMarkets } = detailResult.data;
 
-        // For single-market events, use the one market
-        // For multi-market events (e.g. "Who will win?"), include each option
+        // Single-market events → the one market. Multi-outcome events (e.g.
+        // "Who will win?") → each option as its own standalone binary.
         for (const market of eventMarkets) {
-          // Skip inactive markets
           if (market.status !== 'active' && market.status !== 'open') continue;
+          if (stats) stats.rawChildCount++;
+
+          // Structural exclusion: multi-leg / composite (MVE) contracts are not
+          // directly comparable cross-platform forecast propositions.
+          if (isCompositeMarket(market)) {
+            if (stats) {
+              stats.excludedCompositeCount++;
+              if (stats.excludedSamples.length < 8) {
+                stats.excludedSamples.push({ id: market.ticker, title: market.title, reason: 'multi-leg / composite (MVE) contract' });
+              }
+            }
+            continue;
+          }
+
+          // A standalone market has its own price.
+          const hasPrice = !!(market.yes_ask_dollars || market.last_price_dollars || market.yes_bid_dollars);
+          if (!hasPrice) {
+            if (stats) {
+              stats.excludedUnpricedCount++;
+              if (stats.excludedSamples.length < 8) {
+                stats.excludedSamples.push({ id: market.ticker, title: market.title, reason: 'no own price' });
+              }
+            }
+            continue;
+          }
 
           const normalized = this.normalizeMarket(market);
           // Use event title + category for cleaner display. For multi-outcome
@@ -364,11 +502,107 @@ export class KalshiClient {
             eventTicker: event.event_ticker,
           };
           markets.push(normalized);
+
+          if (stats) {
+            stats.standaloneMarketCount++;
+            if (stats.includedSamples.length < 8) {
+              stats.includedSamples.push({ id: normalized.id, title: normalized.question });
+            }
+          }
         }
       }
+      opts.onProgress?.(Math.min(done, events.length), events.length);
     }
 
     return markets;
+  }
+
+  /**
+   * Sample the raw `/markets` endpoint to quantify how much of it is multi-leg
+   * (MVE) parlay noise. Documents why the standalone universe is sourced via
+   * `/events` instead of `/markets`. Counts over the first `maxPages` of 1000.
+   */
+  async sampleMarketsEndpoint(
+    maxPages: number = 5
+  ): Promise<{ sampled: number; composite: number; cursorExhausted: boolean }> {
+    let cursor: string | undefined;
+    let sampled = 0;
+    let composite = 0;
+    let pages = 0;
+    do {
+      const r = await this.publicRequest<unknown>(
+        `/markets?status=open&limit=1000${cursor ? `&cursor=${cursor}` : ''}`
+      );
+      const parsed = KalshiMarketsResponseSchema.safeParse(r);
+      if (!parsed.success) break;
+      for (const m of parsed.data.markets) {
+        sampled++;
+        if (isCompositeMarket(m)) composite++;
+      }
+      cursor = parsed.data.cursor;
+      pages++;
+    } while (cursor && pages < maxPages);
+    return { sampled, composite, cursorExhausted: !cursor };
+  }
+
+  /**
+   * Live single-market fetch by ticker — for the dossier's on-demand price refresh. Returns the
+   * current YES price (dollars), dollar volume, and whether the market is still trading; null if the
+   * market is delisted / unfetchable. Prices use the same *_dollars fields the events path parses.
+   */
+  async getMarket(ticker: string): Promise<{ yes: number; volume: number; active: boolean; hasBook: boolean } | null> {
+    try {
+      const response = await this.publicRequest<{ market?: unknown }>(`/markets/${ticker}`);
+      const parsed = KalshiMarketSchema.safeParse(response?.market);
+      if (!parsed.success) return null;
+      const m = parsed.data as {
+        yes_ask_dollars?: string;
+        last_price_dollars?: string;
+        volume_fp?: string;
+        status?: string;
+      };
+      const num = (s?: string): number => (s ? parseFloat(s) : NaN);
+      const ask = num(m.yes_ask_dollars);
+      const last = num(m.last_price_dollars);
+      const price = Number.isFinite(ask) && ask > 0 ? ask : last;
+      if (!Number.isFinite(price)) return null;
+      const contracts = num(m.volume_fp);
+      return {
+        yes: price,
+        volume: Number.isFinite(contracts) ? contracts * price : 0,
+        active: m.status === 'active' || m.status === 'open',
+        // A live ask means a real order book; falling back to last_price means the quote is stale.
+        hasBook: Number.isFinite(ask) && ask > 0,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Daily YES-price history for a market via the candlesticks endpoint. The series ticker is the
+   * first segment of the market ticker (e.g. KXHORMUZNORM-26MAR17-B270101 → KXHORMUZNORM). Returns
+   * ascending {timestamp(ms), yes(0..1)} points, or [] if unavailable (illiquid / no series).
+   */
+  async getPriceHistory(ticker: string, days = 30): Promise<{ timestamp: number; yes: number }[]> {
+    try {
+      const series = ticker.split('-')[0];
+      if (!series) return [];
+      const end = Math.floor(Date.now() / 1000);
+      const start = end - days * 86400;
+      const resp = await this.publicRequest<{
+        candlesticks?: { end_period_ts?: number; price?: { close_dollars?: string; mean_dollars?: string } }[];
+      }>(`/series/${series}/markets/${ticker}/candlesticks?start_ts=${start}&end_ts=${end}&period_interval=1440`);
+      return (resp?.candlesticks ?? [])
+        .map((c) => {
+          const px = c.price?.close_dollars ?? c.price?.mean_dollars;
+          return { timestamp: (c.end_period_ts ?? 0) * 1000, yes: px ? parseFloat(px) : NaN };
+        })
+        .filter((p) => p.timestamp > 0 && Number.isFinite(p.yes) && p.yes > 0 && p.yes < 1)
+        .sort((a, b) => a.timestamp - b.timestamp);
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -475,6 +709,9 @@ export class KalshiClient {
       liquidity,
       metadata: {
         eventTicker: market.event_ticker,
+        // Resolution text + outcome label — used by the rules-aware matcher.
+        rules: (market as { rules_primary?: string }).rules_primary ?? undefined,
+        subtitle: market.yes_sub_title ?? (market as { subtitle?: string }).subtitle ?? undefined,
         marketType: market.market_type,
         status: market.status,
         result: market.result,

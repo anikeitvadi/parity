@@ -1,6 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Plot from '@observablehq/plot';
-import { fetchEfficiencyStudy, type EfficiencyStudy, type EfficiencyPair } from '../api/client.js';
+import {
+  fetchEfficiencyStudy,
+  fetchStrictSurvivors,
+  fetchCorrections,
+  type EfficiencyStudy,
+  type EfficiencyPair,
+  type StrictSurvivors,
+  type Corrections,
+} from '../api/client.js';
+import { CompressionWaterfall } from '../components/lab/CompressionWaterfall.js';
+import { ComparisonMatrix } from '../components/lab/ComparisonMatrix.js';
+// Code-split the WebGL canvas (three.js ~360 KB gz) so the Lab shell + readout paint immediately.
+const ConsensusField3D = lazy(() =>
+  import('../components/lab/consensus3d/ConsensusField3D.js').then((m) => ({ default: m.ConsensusField3D }))
+);
+import { EvidenceWall } from '../components/lab/EvidenceWall.js';
+import { DeepSurvivors } from '../components/lab/DeepSurvivors.js';
+import { correctedFunnelCounts } from '../lib/funnel.js';
 
 /** A single headline number with a label and optional sublabel. */
 function Stat({ value, label, sub }: { value: string; label: string; sub?: string }) {
@@ -28,6 +45,10 @@ const THRESHOLDS = [
   { pp: 19, label: '19pp detector', color: '#EF4444' },
 ];
 
+// The priceable same-contract pairs (the legitimate comparison set) by funnel stage — same
+// resolution criteria, live price both sides. Excludes topical-only and degenerate-price pairs.
+const PRICEABLE_STAGES = new Set(['validated_same_contract', 'semantic_survivor', 'apparent_fee_clearing_gap']);
+
 interface ChartPair {
   question: string;
   gapPp: number;
@@ -41,37 +62,44 @@ interface ChartPair {
  * re-plots when the width or the render function changes. `render` is given the
  * measured pixel width and returns a Plot node.
  */
-function PlotFigure({ render }: { render: (width: number) => SVGSVGElement | HTMLElement }) {
+function PlotFigure({ render, fill }: { render: (width: number, height?: number) => SVGSVGElement | HTMLElement; fill?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
+  const [dims, setDims] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      setWidth(Math.floor(entries[0]?.contentRect.width ?? 0));
+      const r = entries[0]?.contentRect;
+      if (!r) return;
+      setDims((d) => (Math.abs(d.w - r.width) > 4 || Math.abs(d.h - r.height) > 4 ? { w: Math.floor(r.width), h: Math.floor(r.height) } : d));
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
   useEffect(() => {
     const el = ref.current;
-    if (!el || width === 0) return;
-    const node = render(width);
+    if (!el || dims.w === 0) return;
+    const node = render(dims.w, fill ? dims.h : undefined);
     el.append(node);
     return () => node.remove();
-  }, [render, width]);
-
+  }, [render, dims, fill]);
+  if (fill) {
+    return (
+      <div className="flex-1 min-h-[240px] relative">
+        <div ref={ref} className="absolute inset-0 overflow-hidden" />
+      </div>
+    );
+  }
   return <div ref={ref} className="w-full" />;
 }
 
 /**
- * Experiment 1, chart 1 — every matched pair's gap on one axis, with the three
- * decision lines overlaid. The whole point reads in a glance: all seven gaps sit
- * left of the fee line, and the single largest doesn't reach the detector line.
+ * Experiment 1, chart 1 — each priceable same-contract pair's gap on one axis,
+ * with the three decision lines overlaid. The point reads in a glance: the mass
+ * of gaps sits left of the fee line.
  */
 function GapDistribution({ pairs }: { pairs: ChartPair[] }) {
+  const maxGap = Math.max(22, Math.ceil(Math.max(0, ...pairs.map((p) => p.gapPp)) + 1));
   const render = useCallback(
     (width: number) =>
       Plot.plot({
@@ -83,9 +111,9 @@ function GapDistribution({ pairs }: { pairs: ChartPair[] }) {
         marginRight: 16,
         style: PLOT_STYLE,
         x: {
-          domain: [0, 22],
+          domain: [0, maxGap],
           label: 'Absolute YES-price gap (pp) →',
-          ticks: [0, 3, 9, 19],
+          ticks: [0, 3, 9, 19].filter((t) => t <= maxGap),
           tickFormat: (d: number) => `${d}`,
           grid: false,
         },
@@ -108,7 +136,7 @@ function GapDistribution({ pairs }: { pairs: ChartPair[] }) {
             x: 'gapPp',
             y: () => 0,
             r: 'volume',
-            fill: (d: ChartPair) => (d.beatsFees ? '#EF4444' : '#22D3EE'),
+            fill: (d: ChartPair) => (d.beatsFees ? '#FF8A1E' : '#22D3EE'),
             fillOpacity: 0.85,
             stroke: '#020617',
             strokeWidth: 1,
@@ -122,22 +150,26 @@ function GapDistribution({ pairs }: { pairs: ChartPair[] }) {
         ],
         r: { range: [4, 15] },
       }),
-    [pairs]
+    [pairs, maxGap]
   );
   return <PlotFigure render={render} />;
 }
 
 /**
  * Experiment 1, chart 2 — semantic similarity (how confident the match is) vs the
- * absolute gap, sized by volume. Shows the seven survivors clustered just above
- * the 0.85 match floor, with gaps that mostly stay under the fee line.
+ * absolute gap, sized by volume. The same-contract pairs cluster at high
+ * similarity with gaps that mostly stay under the fee line.
  */
 function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
+  const maxGap = Math.max(22, Math.ceil(Math.max(0, ...pairs.map((p) => p.gapPp)) + 1));
+  const minSim = Math.floor(Math.min(1, ...pairs.map((p) => p.similarity)) * 20) / 20;
+  const simDomain: [number, number] = [Number.isFinite(minSim) ? minSim : 0.55, 1];
+  const simTicks = [0.55, 0.6, 0.7, 0.8, 0.9, 1.0].filter((t) => t >= simDomain[0]);
   const render = useCallback(
-    (width: number) =>
+    (width: number, height?: number) =>
       Plot.plot({
         width,
-        height: 240,
+        height: height && height > 200 ? height : 240,
         marginTop: 16,
         marginBottom: 42,
         marginLeft: 44,
@@ -146,14 +178,14 @@ function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
         grid: true,
         x: {
           label: 'Semantic similarity (cosine) →',
-          domain: [0.85, 0.88],
-          ticks: [0.85, 0.86, 0.87, 0.88],
+          domain: simDomain,
+          ticks: simTicks,
           tickFormat: (d: number) => d.toFixed(2),
         },
         y: {
           label: '↑ Gap (pp)',
-          domain: [0, 22],
-          ticks: [0, 3, 9, 19],
+          domain: [0, maxGap],
+          ticks: [0, 3, 9, 19].filter((t) => t <= maxGap),
           tickFormat: (d: number) => `${d}`,
         },
         marks: [
@@ -163,7 +195,7 @@ function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
             x: 'similarity',
             y: 'gapPp',
             r: 'volume',
-            fill: (d: ChartPair) => (d.beatsFees ? '#EF4444' : '#22D3EE'),
+            fill: (d: ChartPair) => (d.beatsFees ? '#FF8A1E' : '#22D3EE'),
             fillOpacity: 0.85,
             stroke: '#020617',
             strokeWidth: 1,
@@ -176,9 +208,9 @@ function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
         ],
         r: { range: [4, 15] },
       }),
-    [pairs]
+    [pairs, maxGap, simDomain, simTicks]
   );
-  return <PlotFigure render={render} />;
+  return <PlotFigure render={render} fill />;
 }
 
 function ExperimentCard({ status, title, body }: { status: 'done' | 'running'; title: string; body: string }) {
@@ -196,27 +228,56 @@ function ExperimentCard({ status, title, body }: { status: 'done' | 'running'; t
 }
 
 export function LabPage() {
-  const [state, setState] = useState<{ loading: boolean; study?: EfficiencyStudy; error?: string }>({ loading: true });
+  const [state, setState] = useState<{
+    loading: boolean;
+    study?: EfficiencyStudy;
+    strict?: StrictSurvivors;
+    corrections?: Corrections;
+    error?: string;
+  }>({ loading: true });
 
   useEffect(() => {
-    fetchEfficiencyStudy()
-      .then((r) => {
-        if (!r.available || !r.study) setState({ loading: false, error: 'No study artifact yet. Run `npm run study`.' });
-        else setState({ loading: false, study: r.study });
+    Promise.all([
+      fetchEfficiencyStudy(),
+      fetchStrictSurvivors().catch(() => ({ available: false as const })),
+      fetchCorrections().catch(() => ({ available: false as const })),
+    ])
+      .then(([study, strict, corrections]) => {
+        if (!study.available || !study.study) {
+          setState({ loading: false, error: 'No study artifact yet. Run `npm run study`.' });
+          return;
+        }
+        setState({
+          loading: false,
+          study: study.study,
+          strict: 'data' in strict ? strict.data : undefined,
+          corrections: 'data' in corrections ? corrections.data : undefined,
+        });
       })
       .catch((e) => setState({ loading: false, error: e instanceof Error ? e.message : 'Failed to load' }));
   }, []);
 
   const s = state.study;
+  // The legitimate comparison set: priceable same-contract pairs (live price both sides),
+  // identified by funnel stage so it's robust to which per-pair flags are populated.
   const chartPairs: ChartPair[] = useMemo(
     () =>
-      (s?.pairs ?? []).map((p: EfficiencyPair) => ({
-        question: p.question,
-        gapPp: p.gap * 100,
-        similarity: p.similarity,
-        volume: Math.max(p.volume, 1),
-        beatsFees: p.gap > s!.fees.roundTrip,
-      })),
+      (s?.pairs ?? [])
+        .filter((p: EfficiencyPair) => p.funnel_stage != null && PRICEABLE_STAGES.has(p.funnel_stage))
+        .map((p: EfficiencyPair) => ({
+          question: p.question,
+          gapPp: p.gap * 100,
+          similarity: p.similarity,
+          volume: Math.max(p.volume, 1),
+          beatsFees: p.gap > (s?.fees.roundTrip ?? 0.09),
+        })),
+    [s]
+  );
+
+  // The 221 apparent gaps (semantic survivors) as real question pairs, for the evidence wall's
+  // "all apparent" view.
+  const apparentPairs: EfficiencyPair[] = useMemo(
+    () => (s?.pairs ?? []).filter((p) => p.triage_label === 'semantic_survivor'),
     [s]
   );
 
@@ -227,38 +288,123 @@ export function LabPage() {
     return <div className="flex-1 flex items-center justify-center text-[12px] text-[#64748B]">{state.error}</div>;
   }
 
-  const overlapPct = ((s.matching.matchedPairs / s.universe.total) * 100).toFixed(1);
+  const f = s.funnel;
+  const m = s.matching;
+  const feePp = (s.fees.roundTrip * 100).toFixed(0);
+  const medianPp = (s.gapDistribution.medianGap * 100).toFixed(1);
+  const slices = (s.categorySlices ?? []).slice(0, 6);
+  const polyDenom = `${s.universe.polymarketIsLowerBound ? '≥' : ''}${s.universe.polymarket.toLocaleString()}`;
   const date = new Date(s.generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
+  // Apparent gaps minus the scope/entity false positives (county-vs-statewide, etc.). Every bottom-
+  // of-funnel count is derived from the real pair arrays so the whole page stays consistent. The
+  // 7-point strict-check failures are NOT treated as removals here — they are the funnel's own
+  // liquid→strict cull, shown as such.
+  const correctionKeys = new Set((state.corrections?.corrections ?? []).map((c) => `${c.polymarketId}::${c.kalshiId}`));
+  const semanticFalsePositives = (state.corrections?.corrections ?? []).filter(
+    (c) => c.correction_source !== 'strict_reverify' && c.original_verdict === 'semantic_survivor'
+  ).length;
+  const correctedFunnel = correctedFunnelCounts(s, state.strict?.pairs ?? [], correctionKeys, semanticFalsePositives);
+  const correctedSemantic = correctedFunnel.semanticSurvivors;
+  const apparentCorrected = apparentPairs.filter((p) => !correctionKeys.has(`${p.polymarketId}::${p.kalshiId}`));
+  // Drop only the pairs the strict check wrongly passed (county); keep the genuine 7-point mismatches
+  // in the wall so the "44 → spec check → cull" story still renders.
+  const correctedSurvivors = (state.strict?.pairs ?? []).filter(
+    (p) => !(correctionKeys.has(`${p.polymarketId}::${p.kalshiId}`) && p.strict_survivor)
+  );
+
   return (
-    <div className="flex-1 overflow-y-auto p-5">
-      <div className="max-w-[920px] mx-auto">
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[1800px] mx-auto px-5 pt-5">
         <div className="mb-1 flex items-baseline justify-between">
           <h1 className="text-[16px] font-semibold text-[#F8FAFC]">Market Efficiency Lab</h1>
-          <span className="text-[10px] text-[#64748B] font-mono">latest recorded scan · {date} · npm run study</span>
+          <span className="text-[10px] text-[#64748B] font-mono">single reproducible scan · {date}</span>
         </div>
-        <p className="text-[12px] text-[#94A3B8] mb-4 max-w-[640px]">
+        <p className="text-[12px] text-[#94A3B8] mb-5 max-w-[720px]">
           Does a retail trader have a cross-platform edge between Polymarket and Kalshi? This is the
-          measurement, not a verdict — a single reproducible scan of every live market on both platforms,
-          regenerated from live data with one command.
+          measurement, not a verdict. It enumerates every active <span className="text-[#CBD5E1]">standalone</span> market on
+          both platforms (parlay / multi-leg contracts excluded — not directly comparable), compares the
+          <span className="text-[#CBD5E1]"> tradeable</span> subset, and audits every fee-clearing gap down to the
+          deepest residuals to separate real mispricings from settlement traps.
         </p>
 
-        {/* Headline numbers */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          <Stat value={s.universe.total.toLocaleString()} label="Live markets scanned" sub={`Poly ${s.universe.polymarket.toLocaleString()} · Kalshi ${s.universe.kalshi.toLocaleString()}`} />
-          <Stat value={String(s.matching.matchedPairs)} label="Same event, both platforms" sub={`${overlapPct}% overlap · cosine ≥ ${s.matching.similarityThreshold}`} />
-          <Stat value={`${(s.gapDistribution.medianGap * 100).toFixed(1)}pp`} label="Median price gap" sub={`fees cost ${(s.fees.roundTrip * 100).toFixed(0)}pp round-trip`} />
-          <Stat value={String(s.actionable.meetsDetectorThreshold_19pp)} label="Met arbitrage threshold" sub="gaps ≥ 19pp net of fees" />
+        {/* The scale of the scan — the computational weight behind one reproducible pass. */}
+        <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-md border border-[#1E293B] bg-[#0B1120] px-4 py-2.5">
+          <span className="text-[9px] uppercase tracking-wider text-[#64748B] shrink-0">scale of one scan</span>
+          {([
+            ['≥' + ((s.universe.polymarket * s.universe.kalshi) / 1e9).toFixed(2) + 'B', 'possible cross-listings'],
+            [s.universe.total.toLocaleString(), 'standalone markets'],
+            [(f?.sameEvent ?? m.topicalOverlaps).toLocaleString(), 'same-event pairs'],
+            [(s.verification?.provenance?.reduce((a, p) => a + (p.n ?? 0), 0) || s.verification?.cachedVerdicts || 0).toLocaleString(), 'AI verification calls'],
+          ] as [string, string][]).map(([v, l]) => (
+            <div key={l} className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[13px] font-semibold text-[#E2E8F0] tabular-nums">{v}</span>
+              <span className="text-[10px] text-[#64748B]">{l}</span>
+            </div>
+          ))}
+          <span className="text-[10px] text-[#475569] ml-auto shrink-0">one command · reproducible</span>
         </div>
 
-        <div className="grid md:grid-cols-[1fr_320px] gap-5 items-start">
+      </div>
+
+      {/* Signature visual — full-bleed 3D consensus field: real markets, threads, gap flares. */}
+      <div className="mb-5">
+        <Suspense
+          fallback={
+            <div className="relative border-y border-[#1E293B] bg-[#04060e]" style={{ height: '62vh' }}>
+              <div className="absolute top-4 left-5 space-y-1">
+                <div className="text-[10px] tracking-[0.25em] text-[#475569] font-mono">CONSENSUS FIELD</div>
+                <div className="text-[12px] text-[#64748B]">rendering the 92,290-market universe…</div>
+              </div>
+            </div>
+          }
+        >
+          <ConsensusField3D study={s} apparentCount={correctedSemantic} />
+        </Suspense>
+      </div>
+
+      <div className="max-w-[1800px] mx-auto px-5 pb-5">
+        {/* Headline numbers */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          <Stat value={s.universe.total.toLocaleString()} label="Standalone markets enumerated" sub={`Poly ${polyDenom} · Kalshi ${s.universe.kalshi.toLocaleString()}`} />
+          <Stat value={(f?.sameContract ?? m.sameContract).toLocaleString()} label="Candidate same-contract (cached)" sub={`of ${(f?.sameEvent ?? m.topicalOverlaps).toLocaleString()} same-event · ${correctedFunnel.strictSpecSurvivors.toLocaleString()} strict-verified`} />
+          <Stat value={correctedSemantic.toLocaleString()} label="Apparent gaps" sub={`clear ${feePp}pp fees + entity/scope`} />
+          <Stat value={String(f?.clearExecutableArb ?? 0)} label="Clear executable arbitrage" sub="after liquidity + spec + manual" />
+        </div>
+
+        {/* Proof spine — the funnel as a waterfall + the exact ledger. */}
+        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-5 mb-5 items-stretch">
+          <CompressionWaterfall study={s} corrected={correctedFunnel} />
+          <ComparisonMatrix study={s} corrected={correctedFunnel} />
+        </div>
+
+        {/* The survivors — apparent gaps under audit. */}
+        {state.strict && (
+          <div className="mb-5">
+            <EvidenceWall
+              survivors={correctedSurvivors}
+              apparent={apparentCorrected}
+              specMismatchReasons={state.strict.specMismatchReasons}
+              semanticCount={correctedSemantic}
+            />
+          </div>
+        )}
+
+        {/* The deep four — the strict survivors that clear every automated gate. */}
+        {state.strict && (
+          <div className="mb-5">
+            <DeepSurvivors survivors={correctedSurvivors} />
+          </div>
+        )}
+
+        <div className="grid md:grid-cols-[1fr_320px] gap-5 items-stretch">
           {/* Experiment 1: the two charts */}
-          <div className="border border-[#1E293B] rounded-md p-3 bg-[#020617] space-y-4">
+          <div className="h-full flex flex-col border border-[#1E293B] rounded-md p-3 bg-[#020617] space-y-4">
             <div>
               <div className="text-[12px] font-semibold text-[#F8FAFC]">Experiment 1 — Cross-platform efficiency</div>
               <div className="text-[10px] text-[#64748B]">
-                {s.matching.matchedPairs} matched pairs out of {s.universe.total.toLocaleString()} live markets.
-                Each dot is one event listed on both platforms; size = volume.
+                {(f?.priceable ?? m.sameContractPriceable).toLocaleString()} same-contract pairs with a live price on
+                both sides. Each dot is one shared contract; size = volume. Gaps use the correctly-oriented YES side.
               </div>
             </div>
 
@@ -267,14 +413,14 @@ export function LabPage() {
               <GapDistribution pairs={chartPairs} />
             </div>
 
-            <div>
+            <div className="flex-1 flex flex-col min-h-[280px]">
               <div className="text-[10px] text-[#94A3B8] uppercase tracking-wider mb-1">Match confidence vs gap</div>
               <SimilarityVsGap pairs={chartPairs} />
             </div>
 
             <div className="flex items-center gap-4 text-[10px] text-[#64748B] pt-1 border-t border-[#1E293B]">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22D3EE]" /> below fee line</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /> gap beats fees</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#FF8A1E]" /> gap beats fees</span>
               <span className="flex-1" />
               <span>○ size = volume</span>
             </div>
@@ -285,17 +431,45 @@ export function LabPage() {
             <div className="border border-[#1E293B] rounded-md p-3 bg-[#0E1223]">
               <div className="text-[12px] font-semibold text-[#F8FAFC] mb-1.5">What this scan says</div>
               <ul className="text-[11px] text-[#94A3B8] leading-relaxed space-y-1.5 list-disc pl-4">
-                <li>The platforms barely list the same events: <span className="text-[#F8FAFC]">{s.matching.matchedPairs} of {s.universe.total.toLocaleString()}</span> ({overlapPct}%).</li>
-                <li>Where they overlap, the median gap ({(s.gapDistribution.medianGap * 100).toFixed(1)}pp) is below the {(s.fees.roundTrip * 100).toFixed(0)}pp round-trip fee floor.</li>
-                <li><span className="text-[#F8FAFC]">{s.actionable.meetsDetectorThreshold_19pp}</span> gaps clear the arbitrage threshold. The largest ({(s.gapDistribution.maxGap * 100).toFixed(1)}pp) is most likely a settlement-definition mismatch, not free money.</li>
+                <li>Despite {s.universe.total.toLocaleString()} standalone markets, only <span className="text-[#F8FAFC]">{(f?.sameContract ?? m.sameContract).toLocaleString()}</span> are flagged same-contract by the cached verifier (mostly not strict-spec verified — the label over-matches on look-alike questions).</li>
+                <li>Where the contracts genuinely match, prices agree — median gap <span className="text-[#F8FAFC]">{medianPp}pp</span>, below the {feePp}pp round-trip fee floor.</li>
+                <li>A deterministic + strict re-check culls look-alike mismatches — a county race vs the statewide race, a first-half total vs the full match — leaving <span className="text-[#F8FAFC]">{correctedSemantic.toLocaleString()}</span> genuine same-event apparent gaps.</li>
+                <li>Even so, liquidity, contract-spec matching, and manual review leave <span className="text-[#F8FAFC]">{f?.clearExecutableArb ?? 0}</span> clear executable {(f?.clearExecutableArb ?? 0) === 1 ? 'arbitrage' : 'arbitrages'} — <span className="text-[#F8FAFC]">{correctedFunnel.strictSpecSurvivors}</span> strict and <span className="text-[#F8FAFC]">{correctedFunnel.deepStrictSurvivors}</span> deep survivors; the rest are thin, spec mismatches, or settlement traps.</li>
               </ul>
               <p className="text-[10px] text-[#64748B] mt-2 leading-relaxed">
                 One scan, not a verdict on market efficiency — re-run <span className="font-mono">npm run study</span> to reproduce.
               </p>
             </div>
-            <ExperimentCard status="running" title="Experiment 2 — Metaculus vs. market" body="When superforecasters disagree with the market by 10+ points, who's right? A backtest that needs resolved outcomes over time — the harness is collecting them now." />
-            <ExperimentCard status="running" title="Experiment 3 — Personal calibration" body="Log your probability calls, score them with Brier, and see where you're overconfident. The method works; the sample is still thin." />
+
+            {slices.length > 0 && (
+              <div className="border border-[#1E293B] rounded-md p-3 bg-[#0E1223]">
+                <div className="text-[12px] font-semibold text-[#F8FAFC] mb-1.5">Overlaps by category</div>
+                <div className="text-[10px] text-[#64748B] mb-2">Analysis slice — &ldquo;is value hiding in sports?&rdquo; — not a filter on the universe.</div>
+                <table className="w-full text-[10px] text-[#94A3B8]">
+                  <thead className="text-[#64748B]">
+                    <tr><th className="text-left font-normal pb-1">Category</th><th className="text-right font-normal pb-1">Pairs</th><th className="text-right font-normal pb-1">Median</th><th className="text-right font-normal pb-1">&gt;fees</th></tr>
+                  </thead>
+                  <tbody className="tabular-nums">
+                    {slices.map((c) => (
+                      <tr key={c.category}>
+                        <td className="text-left text-[#CBD5E1] py-0.5">{c.category}</td>
+                        <td className="text-right">{c.pairs}</td>
+                        <td className="text-right">{c.medianGapPp.toFixed(1)}pp</td>
+                        <td className="text-right">{c.beatsFees}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
           </div>
+        </div>
+
+        {/* Future experiments in their own full-width row so the two columns above end flush. */}
+        <div className="grid sm:grid-cols-2 gap-3 mt-3">
+          <ExperimentCard status="running" title="Experiment 2 — Metaculus vs. market" body="When superforecasters disagree with the market by 10+ points, who's right? A backtest that needs resolved outcomes over time — the harness is collecting them now." />
+          <ExperimentCard status="running" title="Experiment 3 — Personal calibration" body="Log your probability calls, score them with Brier, and see where you're overconfident. The method works; the sample is still thin." />
         </div>
       </div>
     </div>

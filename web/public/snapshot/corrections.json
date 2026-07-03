@@ -1,0 +1,1176 @@
+{
+  "available": true,
+  "data": {
+    "generatedAt": "2026-07-02T01:37:05.549Z",
+    "corrections": [
+      {
+        "polymarketId": "0x2e8c007f0524f4c0df0937e0dcdd19552ae67462de7c2ed2f4c58fd014a7eceb",
+        "kalshiId": "KXATPMATCH-26JUN29LEHPOP-POP",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different resolution outcome",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xc652e64e762f146e084fc52fe5f3c2bc73810ea7841614830d5bc9a9eedf8b21",
+        "kalshiId": "KXWTAMATCH-26JUN30SVISNI-SNI",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different resolution outcome",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x2b782d7114df22fac367fcb592e97eda394ae450759f3141cb04bc220f58b875",
+        "kalshiId": "KXWC1HTOTAL-26JUN30FRASWE-2",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x5f74b5e8492af8a75bcc971e0285b6e4fea82d92d39e32dba1fb4e04db9bc837",
+        "kalshiId": "KXROLEINPRODUCTIONDOOMSDAY-RYA",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different underlying event",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x4926438a8bcd51e07989a94a7efafff86a0c66101a5f0f51dc0a252425c41b4b",
+        "kalshiId": "KXTSLA-26JULDELIV-450000.0",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xaa45db093e4196724e4e35c3758cb66267ab940a313567e35bf3c9212c648671",
+        "kalshiId": "KXMLBWINS-MIL-26-T100",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xac59cc8c47806d20c566284277900dd6f36bc47d60b34dc72544434d31288af2",
+        "kalshiId": "KXWC1HTOTAL-26JUN30CIVNOR-1",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x040bd4f355c2b02b3c800585a64c8ef3f9a17a78025cbbe226867713a0ba11ee",
+        "kalshiId": "KXWC1HTOTAL-26JUN30MEXECU-1",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xc0de4cf969e59d95c13815a0c8d961dee1af770f38b3349c342ca8e069981099",
+        "kalshiId": "KXCS2GAME-26JUN300945SUBJUL-JUL",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x5dd83a021b708ce8ab8693dbd02716069cfb0a4aee89b4ae1639185f89ed9b2f",
+        "kalshiId": "KXWC2HTOTAL-26JUN30CIVNOR-2",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x43330a5c839f2fef2f572f310381d9dbe2be6b917c54f345c24e90776ba28f87",
+        "kalshiId": "KXWCAWARD-26FPA-FRA",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different structure",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x802f7925a1e6eba76508324e2fdbecfab0d5de6424ef581acc8cac496ee924b5",
+        "kalshiId": "KXWC1HTOTAL-26JUN30CIVNOR-1",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xe9f21f3752e963d62932423d02def8a1dbb8039304582047258620e11755da34",
+        "kalshiId": "KXROLEINPRODUCTIONDOOMSDAY-TEY",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different event",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xd710e300d6fe6e644c3820cae42fe72f862c4182135a8abd379ebc76da4c7deb",
+        "kalshiId": "KXWC1HTOTAL-26JUN30CIVNOR-2",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x936ce84654ddd47e32852bb2bc82970437a0a1317f80976783ee53921923b57f",
+        "kalshiId": "KXWC1HSCORE-26JUN30FRASWE-FRA1SWE0",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different time window",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x3c2510fdc6133e98b6110579761a8e03e19046b265f8893cc384f8cb4d0504b0",
+        "kalshiId": "KXWC1HTOTAL-26JUN30MEXECU-1",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xb93a2ac80c5277762cb1034ba5a553486186dfc4dfe947107b7f949594b605cb",
+        "kalshiId": "KXTRUMPWORLDCUP-26-DJT-2",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different structure",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xabba8ac9290358194dcde8f9b6ae89b3d37e5cabd20f9394927e1ef55fa018bc",
+        "kalshiId": "KXWCCORNERS-26JUN30CIVNOR-8",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x6c323e23f8a455c6d115b97f8e46308777848bcb45af0479facd368df9651097",
+        "kalshiId": "KXWCCORNERS-26JUN30CIVNOR-11",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x61992d3a5dbe51794dd3171406df8cd033743466de3242e1cfe65f176a8530ca",
+        "kalshiId": "KXWTI-26JUN3014-T69.99",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line/threshold",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xabc341cc5fefcc1611837576594d131336784fa96210008da4e2004123917a84",
+        "kalshiId": "KXNEXTROMANIAPM-45JAN01-ANAZ",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different structure",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x78df137dd206d5d1de95ef641b3541c77fbd5e7a4b1d8e178e03ebd4b3d2b036",
+        "kalshiId": "KXWCCORNERS-26JUN30CIVNOR-9",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xe094ed65bebd94a8a7d72afaf1656c597f95c572d1a19a5f803062621cda2951",
+        "kalshiId": "KXWCCORNERS-26JUN30MEXECU-9",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xc6e12a019b82d9a99a95ed6daa4ee53315011a0f082fe5c2dd6c0e8b04fed89e",
+        "kalshiId": "KXWC1HSCORE-26JUN30CIVNOR-CIV0NOR1",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different time window",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x1a10f85a8cabfe629d2d23cf6ee05c7688e40aaff7392e6ec4a257834c964401",
+        "kalshiId": "KXITFMATCH-26JUN30MARTIX-MAR",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xcc40eef2c83db2388095d51737dc4575c29687e9bf41f5d22c938cf0ae2a0007",
+        "kalshiId": "KXWCCORNERS-26JUL02ESPAUT-8",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xdef79aab7ed2ea2b1cf53f2c20d353380ff1583eb7e4b29109dc7c667f0d298f",
+        "kalshiId": "KXFIELDS-26-JPAR",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different settlement source / rule",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x0a1b8ccf066022c2dd19c4f9e7bf5ec09d85271a48ef7b70725d46661d2a40e4",
+        "kalshiId": "KXWCCORNERS-26JUN30FRASWE-9",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x4066caa87b3b51869ba3c0c26b59f4b54009149614d7861c8f46740983435ff1",
+        "kalshiId": "KXWC1HTOTAL-26JUN30FRASWE-2",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xe3757f896e94eaefbe6cb6e056a5e9b4b9d46b912429bf2b78f92610f95a389e",
+        "kalshiId": "KXWCGOALCOUNT-26EHAALA9-6",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xd2a19730d665d418c96c64c1c14292b37a3a2d9eef9cce060ac3575f0895e90c",
+        "kalshiId": "KXWCCORNERS-26JUN30MEXECU-11",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xd0b93252e370bd7c88358651eacd64a1a33f87a55a8b6715b7f06443f08ae095",
+        "kalshiId": "KXWC1HTOTAL-26JUN30MEXECU-2",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x699d6ea54f239dedf8ab3820504debeea93854f1f126c8e8d5c6c9d500cd25fa",
+        "kalshiId": "KXBOXING-26SEP19FMAYMPAC-MPAC",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x76415d8735b0e5bf13d2ec0473ead9bd40f07ea8c82487328408db95cb3a602f",
+        "kalshiId": "KXROLEINPRODUCTIONDOOMSDAY-JONF",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different entities",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x1295040186326703b63b9c7d719f8c5bb88ee6fa9672e3924f90ef74ee7b0459",
+        "kalshiId": "KXTORONTOMAYOR-26OCT26-OCHO",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x4d4682a5d6ff2a5444e1ba9a71d6d9bc01f75262d324db7b89846e42e256d02a",
+        "kalshiId": "KXWCCORNERS-26JUN30FRASWE-8",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x40c8ca1aad6bdc2e0522504bf6e9adff313453107d5ecaed03d6200b63dae5f4",
+        "kalshiId": "KXWNBAROY-26-AFUDD35",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x54701be7ec2f8ae91308ef7ca1e28720f74664e3d3dc446ceef76e86a785e579",
+        "kalshiId": "KXTRUMPPARDON-27JAN01-KROD",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different event focus",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x412535c5ddf88d4dd7b488511683a7baf2cbbdaf8401d2ec7c358aafcf6dd334",
+        "kalshiId": "KXWC1HTOTAL-26JUN30FRASWE-1",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "different numeric line",
+        "correction_source": "strict_reverify",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x84caa288224388b485a7bc6c56f1e81dd26bdd199120f14962237fa3f38a7418",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0x38faea71b9df9b4062912ae03431d1e241c5a1245df0c5628d5ca335f53258e9",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0xdfeeecd0196880851857100e0454f0c954dacaf032a21697d8bd00b0ac1815e7",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0x460418ad9f25bef4d5f1852a521e8ad6a94c8f40dd2f233831c1697364907351",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0xffdb828fad17e8dff69cc956bb32a016c022e3b16bb3585988a840ca1f9abf29",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0x53214771041446bc2dac71f0c06dde947f5c438421c0dbb499aad85d891a4464",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-SHIL",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x4c91c8e140b8f4d9de109c4327bef2d1aa700ec36a0f7d045f10b9bfa7a4da31",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xa7bc9066ef012175ff82b5ab8cd8309e0686ec7e02d4e70f13c1b2c01f4b6278",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x2f9c88e3dcbd016a7fe314a78e6f2532f59742663a6b4247053a7cf265cf68a1",
+        "kalshiId": "KXCAGOVPRIMARY1ST-26JUN02-1ST-XBEC",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xabe572cb5aa6814e99f71822fb0b5aea9f02d89c4ab74b16c0e636a24adf692f",
+        "kalshiId": "KXWCTEAMLEADGOAL-26MAR-ISAIBA34",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0x3104fbebac5d1c5921d293ae2f441df208caed7d5060de3d6800cc0a62c3b94b",
+        "kalshiId": "KXWC1HTOTAL-26JUL03AUSEGY-2",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0x7041f6c22dfe491760a4fdb0071612c5951653acf92485207cebc0fc5bd4f5e3",
+        "kalshiId": "KXWC1HTOTAL-26JUN30CIVNOR-1",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0xca259b336810125e17e15874e77ddeed818e961e7214d6eed1d567564c6450ad",
+        "kalshiId": "KXWCTEAMLEADGOAL-26COD-DBATUB5",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0xbba1e9b612f40b4702bf0c2bd2ead6ca0810729a509d8b844a585dedbea18be4",
+        "kalshiId": "KXWC1HTOTAL-26JUN30CIVNOR-2",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0x756ad664b038b54cb36a3a680db97b9d12d7435604dcc99fb7f9bf93c29e61e3",
+        "kalshiId": "KXWC2HTOTAL-26JUN30CIVNOR-3",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0x7f631610811039f03e85106365e1ef4a34dc6bf8329acb700734a7d859dcc5a2",
+        "kalshiId": "KXWC2HTOTAL-26JUN30CIVNOR-3",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0x48648b9400c3150b3f9e789bb8228238aacb2a81f3e1b5695f02850fa6be7565",
+        "kalshiId": "KXWCTEAMLEADGOAL-26SWE-VGYOKE14",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0x9970c7196bee177d705f2b5dfb659204dfc26124b797cf078b80f989af1621d8",
+        "kalshiId": "KXWCTEAMLEADGOAL-26BIH-EDEMIR9",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0x2332d9c0e94d7968cb27dd4150ff786a3a115079a9e5a147e1cac04fa823eeae",
+        "kalshiId": "KXWCTEAMLEADGOAL-26SEN-INDIAY10",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0x66135710406fb193043ec2b40faf6c48e4b3327552b366c4f67e6d4d8d35c7b0",
+        "kalshiId": "KXWCTEAMLEADGOAL-26SUI-DNDOYE14",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0x61a3a5404f788237d6049d8f578799dc50cdbcb14e48f2ad8000316c504a72c0",
+        "kalshiId": "KXWCTEAMLEADGOAL-26GHA-ASEIDU36",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0xc28a6b9da9a853118901950ccffb69caffe21982678be46236b420a42f105ad6",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-PNETO7",
+        "original_verdict": "validated_same_contract",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "validated_same_contract"
+      },
+      {
+        "polymarketId": "0xd2f697fa8bfd2d6e7b6413b44ae408f53f789cbb9a6a7c448462af78acc916f1",
+        "kalshiId": "KXWCTEAMLEADGOAL-26CAN-IKONE90",
+        "original_verdict": "semantic_survivor",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "semantic_survivor"
+      },
+      {
+        "polymarketId": "0xe838b6a44d5ecaa2605ddc5d516679119a1a557b115d930bf73eea2d341fa973",
+        "kalshiId": "KXWCTEAMLEADGOAL-26CIV-ADIALL16",
+        "original_verdict": "dropped_degenerate",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "dropped_degenerate"
+      },
+      {
+        "polymarketId": "0xa7bcd5ac728b7f8afe40fc3e08b65c799d661122243b861110297765084d8731",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ESP-DOLMO20",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x8c7411af7d793b76feebbf7f1dd437f1bc3bfed51021e01183f5be59c3f0c9e0",
+        "kalshiId": "KXWC1HTOTAL-26JUL03COLGHA-1",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xca4c8e1e8b01cfe5cb813d876450efe4aa50fd25b01ded8bd8e181bd0555ed23",
+        "kalshiId": "KXWC1HTOTAL-26JUL03COLGHA-1",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x74ab826996f3c909455311ee5c4fee7faa696988b2c51a4d1d09f81e367ead19",
+        "kalshiId": "KXWC2HTOTAL-26JUL01BELSEN-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x979ace9bbe4befb490753dccce51a8fecd55c51f32e4daec5d0c74f3cb826495",
+        "kalshiId": "KXWC2HTOTAL-26JUL01BELSEN-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x8bad80c8eea77a60a1a868c90ce6bacd29f6632c3fe28a5fbbb00b0101b2aeca",
+        "kalshiId": "KXWCCORNERS-26JUN30CIVNOR-8",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xee74a3f8a02405007d794784fbe54422f59bab577b62da38631022f3b13de8e1",
+        "kalshiId": "KXWC2HTOTAL-26JUL01BELSEN-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x2fa28ee7e79e45479684e5b9f9359504a93427440752f7af8d04d2894193a451",
+        "kalshiId": "KXWC1HTOTAL-26JUL03COLGHA-2",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xb9f246a2379920d1f9405645f88d54e1b1172d434406e31fca353c6d56cdace3",
+        "kalshiId": "KXWCCORNERS-26JUN30MEXECU-8",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x62dddc7fe285a0fa17aa2a043a50eec9c7567ec7ebacf1df8126bc3d4fda2110",
+        "kalshiId": "KXWCCORNERS-26JUN30MEXECU-8",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x4ca4c1466fde09f99346da65226cd3a4c5ab9520fc56cfccd8cbaa72ec4c9d9d",
+        "kalshiId": "KXWCTEAMLEADGOAL-26AUT-CBAUMG14",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x3aff589a606645965abaa8c3afcb0792b38a4f868f2921f2c04108a9dfed0ecc",
+        "kalshiId": "KXWCCORNERS-26JUN30MEXECU-8",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xc670e80dbb80ba2d33afcfa51d8ec385a3ffaadebdcaf8187e6eb5d14f2289bb",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ESP-PEDR8",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x7c2301a75d9041d4b25eca0d80970cf8216619ee38e6a8a506e9ca6a6cfecc7b",
+        "kalshiId": "KXWCTEAMLEADGOAL-26GHA-ASEMEN42",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x9b48fd1871d32162bb612271e2f2b0d38880a07e2c30756ce30204ed0deeb3a8",
+        "kalshiId": "KXWC2HTOTAL-26JUL01ENGCOD-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xe27de8e1abd0884c30489cf222de9506d7dd8eb10a6ced053162bab3a3a6b3e1",
+        "kalshiId": "KXWC1HTOTAL-26JUN30MEXECU-2",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x0339922c1a66aba713d38df7b3d7f71cc834a65dc26a66fbfad465c8f286d59e",
+        "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x09a56bdae699fada0a5c696a50f4d765d26dd1aa28f9a469f34b3a8b0f7fcd65",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-GRAMOS9",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x5760e07494c6a497f6bc6be6fdb7edcb2841679ec22b4e5f84d4dde83266310a",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ESP-DOLMO20",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x072fe0f9ec182a7288cf1e6756d7668bdf438f6d8a289fee599d6748e6116b97",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-PNETO7",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x98173b0b2c8c33289b25ad91ec78fd2583220af0c2df0ac49bc9c978be8c5f05",
+        "kalshiId": "KXWC2HTOTAL-26JUN30MEXECU-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x4423e0f0815644a2464ef34aa2b0757cb654428103678d43c4e76c22512520e2",
+        "kalshiId": "KXWC1HTOTAL-26JUN30CIVNOR-1",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x47e4087e2d9a012cc2e81234f452b59dbaa9e8a44034f0a09a4f96fcb4195028",
+        "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xe22a29f7fa0e03a81ecda420b52dc153285042640bbf3d79b5aec95a3529d009",
+        "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x673660084bc702185ae9537b0cfbbc2800c033a22b08bca758be4a144aed6652",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-RLEAO10",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x213fbe1efcbcf60b996e6d183b0869905cd60d22315aff429fefc9ec128ee0f6",
+        "kalshiId": "KXWCTEAMLEADGOAL-26GHA-ASEMEN42",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x6c10654178d9b6751f2377e37055164636564e4c3e912f2e64e32c4551cd8a86",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ECU-EVALEN13",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x546ddee37dde18e958c08d88048743208989c741b22b8c329fcaf9ccccc7efc6",
+        "kalshiId": "KXWCTEAMLEADGOAL-26SEN-SMANE10",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x4e0f5532f5126f3766e1bb00831303812f63c6b7dc9b95b63c43eca5f6c5c7de",
+        "kalshiId": "KXWCTEAMLEADGOAL-26EGY-MSALAH11",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x6e62d4c9a89e9b86cd8454b38ddc27786c9484a7ad80e3446369447d9538a519",
+        "kalshiId": "KXWC1HTOTAL-26JUL02ESPAUT-2",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x672ffc553ea1895d0925bf8b33c9a65dd9424300f4debdaf092979e690f617ca",
+        "kalshiId": "KXWC2HTOTAL-26JUL02ESPAUT-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x43c01eb91e99114b6a4be936d1ee66cd1cb97f1f6048767adb341e8260624bcc",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-RLEAO10",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x750d7c4d9e05b6cfb51a6fe084873354559f228f36dc99b60f4b6b365b460a5b",
+        "kalshiId": "KXCAGOVOUTPERFORM-26JUN02-TTHU",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "County-level scope vs a statewide race — different geographic contract",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x47fa26259c940255b5cbc6e4904548fde4bf7813dde3ebe9a55fe4af2921cf2f",
+        "kalshiId": "KXWC2HTOTAL-26JUL02ESPAUT-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x3035dc8aee246f10004bde4dee6c2b3eabd29a1e1ea95b4d3d5989ecdbb3ffa4",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-JCANCE20",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x0f78748568ba8860b97076e2f487023fa41e29d9b246bdbbbf79bef44eec3371",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-BSILVA20",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xec6b7fcf6b7ec8b279a9042ad7f4b4c4f00f947fe766045d7b40038833c9791b",
+        "kalshiId": "KXWC1HTOTAL-26JUL02ESPAUT-2",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x1e4f5db832b50bf050680eccd813bf5dd78c8f85a7cb1c8be4d4e18085cebfd2",
+        "kalshiId": "KXWCCORNERS-26JUL01USABIH-11",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xefebc6b5350e6a88732fc41a710a2fd2ac16a738778109e049db1d0b3aee0a06",
+        "kalshiId": "KXWCCORNERS-26JUL01USABIH-11",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xb40720609e41f54ab962789397c0785a270d7c937db0f303851524b902dc0ef4",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ESP-PCUBAR5",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xabb1c640d06e0140adeeed7e9ba8fcd30e145c5d1d786aead0d779d52791549a",
+        "kalshiId": "KXWCTEAMLEADGOAL-26BRA-MARQ5",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x9699b98ddb5f7b4675ccc5a2d4c3199850c81cfb900ff8642b84fe50204cd2a9",
+        "kalshiId": "KXWCTEAMLEADGOAL-26MEX-SGIMEN7",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xeff1b388b792664808adffa31341b1127e2f9419ee9192a744b0abb5b1b475ef",
+        "kalshiId": "KXWCTEAMLEADGOAL-26DZA-RMAHRE7",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x424e181b5f69eb625525bc7c03abda80bea85f7d208dbd557ecc560971aacf06",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ESP-MMERIN23",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xb258d0370d1d409b3fe03ba0d6e0ae88a55b0a179edf8b4a6b0e386542ca0b9c",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ARG-LMESSI10",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x57f88a360914b7100ce8c7a48a4150e103c8de070068a12918bdf3b235e1825c",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ESP-GAVI6",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xe229b2e7c9842e49de4df395be1fb6c2fd5bbb04a4babf1ff9f78a942d2fa4fa",
+        "kalshiId": "KXWCTEAMLEADGOAL-26BRA-GMAGAL6",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x60effd8fc15aa831113ace31915530640606eefb05c2040e77ef54a0c467e845",
+        "kalshiId": "KXWC2HTOTAL-26JUN30FRASWE-3",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x408998eaca3b84b9fb14e3319267e2813e8cdb34a39a7c93807da7903071d785",
+        "kalshiId": "KXWCTEAMLEADGOAL-26PAR-JENCIS19",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xc612c7b25427c3244715c32cf91a5618b8c5a8f1bc00099a417acd9b552f4895",
+        "kalshiId": "KXWCTEAMLEADGOAL-26SEN-SMANE10",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xcba0f3d5b3d9a12cdff6906d0f607acdb4a76cf8ab1c7e4c31b998093beca8a1",
+        "kalshiId": "KXWCTEAMLEADGOAL-26EGY-OMARMO7",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x57685b047d1d71312d1e854863daa04eae3975ed221009360657556ed7bba976",
+        "kalshiId": "KXWCTEAMLEADGOAL-26CRO-LMODRI14",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xeb453784e79163f941f20ee850c55948587d2d44adb4ded9865f4b808719ca2e",
+        "kalshiId": "KXWC1HTOTAL-26JUL03ARGCPV-1",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x5d52e1361127508cc21070b785697ebe81342f4c8b5798f7cfcc224a4313ff60",
+        "kalshiId": "KXWC1HTOTAL-26JUL03ARGCPV-2",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x9c1058d30c9df7c6ef2e9ec84f0ff68ca99bda07341cee311e7fa58ada275f5a",
+        "kalshiId": "KXWCTEAMLEADGOAL-26POR-VITI17",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x0b677dc8740180e37f012c9a643a96591256585eca502a6f318b9d1330b8ff2e",
+        "kalshiId": "KXWCTEAMLEADGOAL-26FRA-ATCHOU14",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x42ac4497829e67ce41b41d3da1a95e6b45a0d1d6ccd68187ce645d2a71a3749a",
+        "kalshiId": "KXWCTEAMLEADGOAL-26AUS-CMETCA24",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xa8aae4584658fae4462008318929564159f44385f37f01e758d31714c00b95fa",
+        "kalshiId": "KXWCTEAMLEADGOAL-26BIH-EDZEKONA",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x412b0b69c2ebff68001118b6a72e85994d47fd5a237c75536b3c11f8f70389ca",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ENG-OWATKI11",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x9b0e2a2f2fa402e43e37df02cc1bfd0678f8bc9ae2ffd57e3133a9a55a98bde1",
+        "kalshiId": "KXWCTOTAL-26JUL04CANMAR-2",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Full-match total vs a half-only total",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x8b827ea32d7c13e540e93f2721afb4bce9d01261f89bd020a67f35e64be0ae07",
+        "kalshiId": "KXWCTEAMLEADGOAL-26ECU-WPACHO51",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xf089cd0ea0461d3377b2d22d6183f308b9f1e86d5545604504aafeb989b9428f",
+        "kalshiId": "KXWCTEAMLEADGOAL-26GHA-IWILLI9",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xcaa4cf99ad9f4e3772ec612eaa43f6a8a9aabc4569168b15b6dc7ac92dc3b692",
+        "kalshiId": "KXWCTEAMLEADGOAL-26SUI-DNDOYE14",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "Score-a-goal vs a country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0x8a6249766ee1744e1f2bb84b2a04f4b0c041414f4049532c3747068ada9eff5e",
+        "kalshiId": "KXWCTEAMLEADGOAL-26COL-LSUARE97",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      },
+      {
+        "polymarketId": "0xe7a4f6591498e3fd3579596cbbe764915fb350ed318860c32a67b6372658d35d",
+        "kalshiId": "KXWCTEAMLEADGOAL-26BRA-ENDR9",
+        "original_verdict": "topical_overlap",
+        "corrected_verdict": "spec_mismatch",
+        "correction_reason": "World Cup top-scorer vs a single country’s goal leader",
+        "correction_source": "deterministic_rule",
+        "affects_funnel_stage": "topical_overlap"
+      }
+    ],
+    "summary": {
+      "total": 128,
+      "bySource": {
+        "strict_reverify": 39,
+        "deterministic_rule": 89
+      },
+      "byOriginalStatus": {
+        "semantic_survivor": 45,
+        "validated_same_contract": 9,
+        "dropped_degenerate": 9,
+        "topical_overlap": 65
+      },
+      "survivorsReclassified": 45,
+      "correctedSemanticSurvivors": 176,
+      "clearExecutableArbChanged": false
+    }
+  }
+}

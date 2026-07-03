@@ -1,0 +1,174 @@
+/* The Efficiency Lab signature hero — the "concept space" (DESIGN §10).
+   The market universe is dim typographic noise; the fee-clearing apparent gaps rise out of it as
+   rows with both platform prices + a gap bar that crosses the 9pp fee line — then the funnel
+   resolves to 0 executable. DOM + thin overlay (no WebGL); real data only; fully readable.
+   All motion is one-shot and information-bearing; reduced-motion jumps to the end-state. */
+
+.lab-hero {
+  position: relative;
+  border: 1px solid var(--color-border, #1e293b);
+  border-radius: 10px;
+  background: var(--color-bg, #020617);
+  padding: 22px 24px 8px;
+  overflow: hidden;
+}
+
+/* ── Funnel header ─────────────────────────────────────────────────────────── */
+.lab-hero .funnel {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.lab-hero .step {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lab-hero .step .n {
+  font: 600 40px/1 "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
+.lab-hero .step.pairs .n { color: var(--color-accent-hover, #22d3ee); }
+.lab-hero .step.zero .n { color: #f8fafc; }
+.lab-hero .step .lbl { font-size: 11px; color: var(--color-text-secondary, #94a3b8); margin-top: 8px; }
+.lab-hero .step .sub { font: 10px/1.4 "IBM Plex Mono", ui-monospace, monospace; color: var(--color-text-tertiary, #64748b); margin-top: 2px; }
+.lab-hero .arrow {
+  align-self: center;
+  color: #334155;
+  font-size: 18px;
+  padding-top: 6px;
+}
+
+/* ── Stage ─────────────────────────────────────────────────────────────────── */
+.lab-hero .stage {
+  position: relative;
+  height: 452px;
+  margin-top: 18px;
+  opacity: 0;
+  transition: opacity var(--dur-base, 480ms) var(--ease-out, cubic-bezier(.22,.61,.36,1));
+}
+.lab-hero .stage.on { opacity: 1; }
+
+.lab-hero .spotlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 50% 38%, rgba(6, 182, 212, 0.08), rgba(2, 6, 23, 0) 60%);
+  opacity: 0;
+  transition: opacity var(--dur-slow, 900ms) var(--ease-out);
+  pointer-events: none;
+}
+.lab-hero .stage.on .spotlight { opacity: 1; }
+
+/* ── Universe (dim noise) ──────────────────────────────────────────────────── */
+.lab-hero .universe { position: absolute; inset: 0; transition: opacity var(--dur-base) var(--ease-out); }
+.lab-hero .stage.narrow .universe { opacity: 0.32; }
+.lab-hero .frag {
+  position: absolute;
+  font: 9px/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: #334155;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.lab-hero .universe.on .frag { opacity: var(--o, 0.6); transform: translateY(0); }
+
+/* ── Matches (signals) ─────────────────────────────────────────────────────── */
+.lab-hero .matches { position: absolute; inset: 0; }
+.lab-hero .match {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.lab-hero .matches.on .match { opacity: 1; transform: translateY(0); }
+.lab-hero .chip {
+  flex: none;
+  font: 600 11px/1 "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 7px;
+  border-radius: 5px;
+  width: 46px;
+  text-align: center;
+}
+.lab-hero .chip.poly { color: #60a5fa; background: rgba(96, 165, 250, 0.1); }
+.lab-hero .chip.kal { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+.lab-hero .q {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+  -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, #000 82%, transparent);
+}
+.lab-hero .gap { flex: none; position: relative; height: 22px; display: flex; align-items: center; }
+.lab-hero .bar {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #0891b2, #22d3ee);
+  width: 0;
+  transition: width var(--dur-slow, 900ms) var(--ease-out);
+}
+.lab-hero .bar.over { background: linear-gradient(90deg, #0891b2, #22d3ee 70%, #f59e0b); }
+.lab-hero .barval {
+  position: absolute;
+  font: 10px/1 "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #94a3b8;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out) 300ms;
+}
+.lab-hero .matches.bars .barval { opacity: 1; }
+
+/* ── Thresholds ────────────────────────────────────────────────────────────── */
+.lab-hero .thresholds { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity var(--dur-base) var(--ease-out); }
+.lab-hero .stage.bars .thresholds { opacity: 1; }
+.lab-hero .tline { position: absolute; top: 46px; bottom: 84px; width: 0; border-left: 1px dashed; }
+.lab-hero .tline.fee { border-color: rgba(245, 158, 11, 0.55); }
+.lab-hero .tline.det { border-color: rgba(239, 68, 68, 0.5); }
+.lab-hero .tline .cap {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font: 9px/1 "IBM Plex Mono", ui-monospace, monospace;
+  white-space: nowrap;
+}
+.lab-hero .tline.fee .cap { color: #f59e0b; }
+.lab-hero .tline.det .cap { color: #ef4444; }
+
+/* ── Footer ────────────────────────────────────────────────────────────────── */
+.lab-hero .hero-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0 8px;
+  flex-wrap: wrap;
+}
+.lab-hero .punch { font-size: 12px; color: #94a3b8; }
+.lab-hero .punch b { color: #f8fafc; font-weight: 600; }
+.lab-hero .replay {
+  font: 10px/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: #64748b;
+  background: #0e1223;
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.lab-hero .replay:hover { color: #94a3b8; }

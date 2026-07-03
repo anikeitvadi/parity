@@ -1,6 +1,8 @@
 import React from 'react';
 import type { MarketDetailResponse } from '../api/client.js';
 import { getYesPrice, formatVolume, formatClosing } from '../lib/utils.js';
+import { useVerifierIndex } from '../lib/useVerifierIndex.js';
+import { VerifierPanel } from './VerifierPanel.js';
 
 interface Props {
   detail: MarketDetailResponse | null;
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export function EvidenceBoard({ detail, loading }: Props) {
+  const { index: verifierIndex, study } = useVerifierIndex();
+
   if (!detail && !loading) {
     return (
       <div className="flex items-center justify-center h-full text-[13px] text-[#64748B]">
@@ -32,6 +36,8 @@ export function EvidenceBoard({ detail, loading }: Props) {
   const { market, crossPlatform, settlement, priceHistory, metaculus } = detail;
   const yesPrice = getYesPrice(market.prices);
   const closing = market.closeDate ? formatClosing(market.closeDate) : null;
+  const rec = verifierIndex.get(market.id);
+  const feeFloorPp = Math.round((study?.fees.roundTrip ?? 0.09) * 100);
 
   // Compute movement from price history
   const movement = computeMovement(priceHistory);
@@ -45,7 +51,7 @@ export function EvidenceBoard({ detail, loading }: Props) {
             {market.question}
           </h2>
           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
-            market.platform === 'polymarket' ? 'bg-blue-500/10 text-blue-400' : 'bg-violet-500/10 text-violet-400'
+            market.platform === 'polymarket' ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'
           }`}>
             {market.platform === 'polymarket' ? 'POLY' : 'KALSHI'}
           </span>
@@ -66,8 +72,10 @@ export function EvidenceBoard({ detail, loading }: Props) {
           <div className="text-[10px] text-[#64748B] uppercase tracking-wider mb-2">Price History (7d)</div>
           <PriceSparkline
             history={priceHistory}
+            platform={market.platform}
             metaculusPrediction={metaculus?.prediction}
             crossPlatformPrice={crossPlatform?.matchedMarket ? getYesPrice(crossPlatform.matchedMarket.prices) : undefined}
+            crossPlatformPlatform={crossPlatform?.matchedPlatform}
           />
         </div>
       )}
@@ -92,10 +100,11 @@ export function EvidenceBoard({ detail, loading }: Props) {
         )}
       </div>
 
-      {/* Cross-Platform Comparison */}
-      {crossPlatform?.matchedMarket && (
+      {/* Live cross-platform match — shown only when the frozen study has NOT verified this market
+          (a studied market gets the richer, audited verifier verdict below instead). */}
+      {!rec && crossPlatform?.matchedMarket && (
         <div className="bg-[#0E1223] border border-[#1E293B] rounded p-3">
-          <div className="text-[10px] text-[#64748B] uppercase tracking-wider mb-2">Cross-Platform</div>
+          <div className="text-[10px] text-[#64748B] uppercase tracking-wider mb-2">Cross-Platform (live)</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="text-[10px] text-[#64748B] capitalize">{market.platform}</div>
@@ -116,6 +125,10 @@ export function EvidenceBoard({ detail, loading }: Props) {
           </div>
         </div>
       )}
+
+      {/* Study-backed verifier verdict — the frozen-run counterpart, gap-vs-fee ruler, contract
+          checklist, and an honest is-this-actionable line. Falls back to a 'live only' note. */}
+      <VerifierPanel rec={rec} feeFloorPp={feeFloorPp} />
 
       {/* Metaculus Signal */}
       {metaculus && (
@@ -158,61 +171,130 @@ export function EvidenceBoard({ detail, loading }: Props) {
 
 // --- Sub-components ---
 
+/** Platform tint — Polymarket blue, Kalshi green (locked); violet only as a neutral cross-ref. */
+function platformColor(p?: string): string {
+  return p === 'kalshi' ? '#22C55E' : p === 'polymarket' ? '#60A5FA' : '#8B5CF6';
+}
+
+function HoverDot({ leftPct, topPct, color }: { leftPct: number; topPct: number; color: string }) {
+  return (
+    <div
+      className="absolute w-1.5 h-1.5 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      style={{ left: `${leftPct}%`, top: `${topPct}%`, background: color, boxShadow: `0 0 6px ${color}` }}
+    />
+  );
+}
+
+function LegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className="inline-block w-2.5 h-[2px]" style={{ background: color }} />
+      {label}
+    </span>
+  );
+}
+
+/**
+ * The elevated price-history chart — a real time-series (now backed by live CLOB history) drawn as
+ * a platform-colored line over an area-fill, with Metaculus + cross-platform reference lines and an
+ * interactive hover crosshair that reads out the price + date at any point. Distortion-free: the SVG
+ * fills the box (preserveAspectRatio none) for the line/area, while the dots + crosshair are HTML
+ * overlays positioned by percentage.
+ */
 function PriceSparkline({
   history,
+  platform,
   metaculusPrediction,
   crossPlatformPrice,
+  crossPlatformPlatform,
 }: {
   history: { timestamp: number; data: { prices: Record<string, number> } }[];
+  platform: string;
   metaculusPrediction?: number;
   crossPlatformPrice?: number;
+  crossPlatformPlatform?: string;
 }) {
   const prices = history.map((s) => getYesPrice(s.data.prices));
+  const [hover, setHover] = React.useState<number | null>(null);
+  const ref = React.useRef<HTMLDivElement>(null);
   if (prices.length < 2) return null;
 
-  const min = Math.min(...prices, metaculusPrediction ?? 1, crossPlatformPrice ?? 1) - 0.03;
-  const max = Math.max(...prices, metaculusPrediction ?? 0, crossPlatformPrice ?? 0) + 0.03;
-  const range = max - min || 0.1;
+  const lineColor = platformColor(platform);
+  const xpColor = platformColor(crossPlatformPlatform);
 
-  const w = 320;
-  const h = 100;
-  const pad = 4;
+  const lo = Math.min(...prices, metaculusPrediction ?? 1, crossPlatformPrice ?? 1) - 0.03;
+  const hi = Math.max(...prices, metaculusPrediction ?? 0, crossPlatformPrice ?? 0) + 0.03;
+  const range = hi - lo || 0.1;
+  const xPct = (i: number) => (i / (prices.length - 1)) * 100;
+  const yPct = (p: number) => 100 - ((p - lo) / range) * 100;
 
-  const points = prices.map((p, i) => {
-    const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
-    const y = h - pad - ((p - min) / range) * (h - pad * 2);
-    return { x, y };
-  });
-
-  const polyline = points.map((p) => `${p.x},${p.y}`).join(' ');
-  const last = points[points.length - 1];
-
-  const refY = (val: number) => h - pad - ((val - min) / range) * (h - pad * 2);
+  const linePts = prices.map((p, i) => `${xPct(i)},${yPct(p)}`).join(' ');
+  const areaPts = `0,100 ${linePts} 100,100`;
+  const hIdx = hover == null ? null : Math.max(0, Math.min(prices.length - 1, hover));
+  const fmtDate = (ts: number) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const ticks = [0, 0.5, 1].map((f) => Math.round(f * (prices.length - 1)));
+  const gid = `pf-${platform}`;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24">
-      {/* Metaculus reference line */}
-      {metaculusPrediction != null && (
-        <>
-          <line x1={pad} y1={refY(metaculusPrediction)} x2={w - pad} y2={refY(metaculusPrediction)} stroke="#06B6D4" strokeWidth="1" strokeDasharray="4,3" opacity="0.5" />
-          <text x={w - pad - 2} y={refY(metaculusPrediction) - 3} fill="#06B6D4" fontSize="8" textAnchor="end" opacity="0.7">MC {Math.round(metaculusPrediction * 100)}%</text>
-        </>
-      )}
+    <div>
+      <div
+        ref={ref}
+        className="relative h-24 cursor-crosshair"
+        onMouseMove={(e) => {
+          const r = ref.current?.getBoundingClientRect();
+          if (r) setHover(Math.round(((e.clientX - r.left) / r.width) * (prices.length - 1)));
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0.2" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon points={areaPts} fill={`url(#${gid})`} />
+          {metaculusPrediction != null && (
+            <line x1="0" y1={yPct(metaculusPrediction)} x2="100" y2={yPct(metaculusPrediction)} stroke="#06B6D4" strokeWidth="1" strokeDasharray="4,3" opacity="0.5" vectorEffect="non-scaling-stroke" />
+          )}
+          {crossPlatformPrice != null && (
+            <line x1="0" y1={yPct(crossPlatformPrice)} x2="100" y2={yPct(crossPlatformPrice)} stroke={xpColor} strokeWidth="1" strokeDasharray="2,4" opacity="0.55" vectorEffect="non-scaling-stroke" />
+          )}
+          <polyline points={linePts} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        </svg>
 
-      {/* Cross-platform reference line */}
-      {crossPlatformPrice != null && (
-        <>
-          <line x1={pad} y1={refY(crossPlatformPrice)} x2={w - pad} y2={refY(crossPlatformPrice)} stroke="#8B5CF6" strokeWidth="1" strokeDasharray="2,4" opacity="0.4" />
-          <text x={w - pad - 2} y={refY(crossPlatformPrice) - 3} fill="#8B5CF6" fontSize="8" textAnchor="end" opacity="0.6">XP {Math.round(crossPlatformPrice * 100)}%</text>
-        </>
-      )}
+        {hIdx == null ? (
+          <HoverDot leftPct={xPct(prices.length - 1)} topPct={yPct(prices[prices.length - 1])} color={lineColor} />
+        ) : (
+          <>
+            <div className="absolute top-0 bottom-0 border-l border-dashed border-[#475569] pointer-events-none" style={{ left: `${xPct(hIdx)}%` }} />
+            <HoverDot leftPct={xPct(hIdx)} topPct={yPct(prices[hIdx])} color={lineColor} />
+            <div className="absolute top-0 left-0 text-[10px] font-mono bg-[#020617]/80 px-1 rounded pointer-events-none">
+              <span className="text-[#F8FAFC]">{Math.round(prices[hIdx] * 100)}%</span>
+              <span className="text-[#64748B]"> · {fmtDate(history[hIdx].timestamp)}</span>
+            </div>
+          </>
+        )}
 
-      {/* Price line */}
-      <polyline points={polyline} fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <div className="absolute top-0.5 right-1 text-right text-[8px] font-mono leading-tight pointer-events-none">
+          {crossPlatformPrice != null && <div style={{ color: xpColor }}>XP {Math.round(crossPlatformPrice * 100)}%</div>}
+          {metaculusPrediction != null && <div className="text-[#06B6D4]">MC {Math.round(metaculusPrediction * 100)}%</div>}
+        </div>
+      </div>
 
-      {/* Current price dot */}
-      <circle cx={last.x} cy={last.y} r="3" fill="#22C55E" />
-    </svg>
+      <div className="flex justify-between text-[8px] font-mono text-[#64748B] mt-1">
+        {ticks.map((ti, k) => (
+          <span key={k}>{fmtDate(history[ti].timestamp)}</span>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-3 text-[9px] text-[#64748B] mt-1.5">
+        <LegendItem color={lineColor} label={`${platform === 'kalshi' ? 'Kalshi' : 'Polymarket'} YES`} />
+        {crossPlatformPrice != null && <LegendItem color={xpColor} label="Cross-platform" />}
+        {metaculusPrediction != null && <LegendItem color="#06B6D4" label="Metaculus" />}
+        <span className="ml-auto text-[#475569]">hover for readout</span>
+      </div>
+    </div>
   );
 }
 

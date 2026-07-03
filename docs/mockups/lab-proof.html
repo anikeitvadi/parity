@@ -1,0 +1,128 @@
+<!doctype html>
+<!--
+  THROWAWAY MOCKUP — Efficiency Lab "proof layer": the compression waterfall, the
+  comparison matrix, and the "where apparent gaps went" triage breakdown. This is the
+  data-dense backbone that must exist under the hero. Open: `open docs/mockups/lab-proof.html`.
+  Top-of-funnel numbers are REAL (this run's preflight); rows below same-contract are
+  placeholders ("·") until the Batch-API verification publishes.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Efficiency Lab — proof layer (mockup)</title>
+<style>
+  :root {
+    --surface:#020617; --card:#0E1223; --border:#1E293B; --text:#F8FAFC; --muted:#64748B;
+    --poly:#06B6D4; --kalshi:#8B5CF6; --warn:#F59E0B; --bad:#EF4444; --good:#22C55E; --accent:#22D3EE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--surface);color:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif}
+  .wrap{max-width:1120px;margin:0 auto;padding:48px 28px 90px}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  h2{font-size:22px;font-weight:600;margin:8px 0 4px}
+  .note{color:var(--muted);font-size:13px;margin-bottom:18px}
+  section{margin:34px 0}
+  .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+  /* Waterfall */
+  .wf-row{display:grid;grid-template-columns:210px 1fr 132px;align-items:center;gap:14px;padding:7px 0}
+  .wf-row .lab{font-size:13px;color:#CBD5E1}
+  .wf-row .lab small{color:var(--muted);display:block;font-size:11px}
+  .bar{height:26px;border-radius:5px;position:relative;background:linear-gradient(90deg,var(--poly),#0e7490)}
+  .bar.pending{background:repeating-linear-gradient(45deg,#1e293b,#1e293b 7px,#0f172a 7px,#0f172a 14px);border:1px dashed #334155}
+  .bar.zero{background:linear-gradient(90deg,#14532d,#22C55E)}
+  .wf-row .num{font-family:"IBM Plex Mono",monospace;text-align:right;font-size:16px;font-variant-numeric:tabular-nums}
+  .wf-row .num.pending{color:var(--warn)}
+
+  /* Matrix */
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:right}
+  th{color:var(--muted);font-weight:500;font-family:"IBM Plex Mono",monospace;font-size:11px;background:#0a0f1f}
+  td:first-child,th:first-child{text-align:left;color:#CBD5E1;font-family:inherit}
+  td.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+  td.p{color:#334155}
+  tr.hl td{background:rgba(6,182,212,0.06)}
+
+  /* Triage breakdown */
+  .tri{display:grid;grid-template-columns:1fr;gap:8px;max-width:560px}
+  .tri-row{display:grid;grid-template-columns:200px 1fr 40px;align-items:center;gap:12px;font-size:13px}
+  .tri-bar{height:16px;border-radius:4px}
+  .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;padding:2px 7px;border-radius:5px;letter-spacing:.04em}
+  .t-warn{background:rgba(245,158,11,.14);color:var(--warn);border:1px solid rgba(245,158,11,.3)}
+  .t-bad{background:rgba(239,68,68,.13);color:var(--bad);border:1px solid rgba(239,68,68,.3)}
+  .t-mut{background:rgba(100,116,139,.14);color:#94a3b8;border:1px solid #334155}
+  .t-good{background:rgba(34,197,94,.13);color:var(--good);border:1px solid rgba(34,197,94,.3)}
+  .t-cyan{background:rgba(6,182,212,.12);color:var(--accent);border:1px solid rgba(6,182,212,.3)}
+
+  /* Scanner badge samples */
+  .queue{display:grid;gap:8px;max-width:760px}
+  .qrow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:11px 13px}
+  .qrow .q{font-size:13px}.qrow .q small{color:var(--muted);display:block;font-size:11px;margin-top:2px}
+  .gap{font-family:"IBM Plex Mono",monospace;font-size:13px;margin-right:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Efficiency Lab · proof layer</div>
+  <h2>From a billion comparisons to the ones that survive</h2>
+  <p class="note">Live top-of-funnel from this run's preflight. Rows below “same-contract” fill in when the Batch-API verification publishes.</p>
+
+  <!-- WATERFALL -->
+  <section>
+    <div class="kicker">Compression waterfall · log scale</div>
+    <div style="margin-top:14px">
+      <div class="wf-row"><div class="lab">Possible comparisons<small>enumerated poly × kalshi</small></div><div class="bar" style="width:100%"></div><div class="num">1,621,351,026</div></div>
+      <div class="wf-row"><div class="lab">Tradeable pair-space<small>both sides have traded</small></div><div class="bar" style="width:95%"></div><div class="num">588,148,078</div></div>
+      <div class="wf-row"><div class="lab">Candidate pairs<small>cosine ≥ 0.68</small></div><div class="bar" style="width:48%"></div><div class="num">24,077</div></div>
+      <div class="wf-row"><div class="lab">Markets with a candidate<small>one LLM verdict each</small></div><div class="bar" style="width:43%"></div><div class="num">8,197</div></div>
+      <div class="wf-row"><div class="lab">Topical overlaps<small>same event (verified)</small></div><div class="bar pending" style="width:30%"></div><div class="num pending">verifying</div></div>
+      <div class="wf-row"><div class="lab">Same-contract pairs<small>same resolution criteria</small></div><div class="bar pending" style="width:20%"></div><div class="num pending">verifying</div></div>
+      <div class="wf-row"><div class="lab">Apparent fee-clearing gaps<small>gap &gt; 9pp round-trip</small></div><div class="bar pending" style="width:12%"></div><div class="num pending">verifying</div></div>
+      <div class="wf-row"><div class="lab">Confirmed arbitrage<small>survives every check</small></div><div class="bar zero" style="width:4%"></div><div class="num pending">~0 expected</div></div>
+    </div>
+  </section>
+
+  <!-- MATRIX -->
+  <section>
+    <div class="kicker">Comparison matrix · stage × slice</div>
+    <table style="margin-top:14px">
+      <thead><tr><th>stage</th><th>all</th><th>Sports</th><th>Elections</th><th>Politics</th><th>Fin/Econ</th><th>Crypto</th><th>Entmt</th><th>≥$1k</th><th>≥$10k</th></tr></thead>
+      <tbody>
+        <tr><td>tradeable markets</td><td class="mono">51,521</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+        <tr><td>candidate pairs</td><td class="mono">24,077</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+        <tr><td>markets w/ candidate</td><td class="mono">8,197</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+        <tr><td>topical overlaps</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+        <tr><td>same-contract</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+        <tr><td>apparent gaps</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+        <tr class="hl"><td>confirmed arbitrage</td><td class="mono">~0</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td><td class="mono p">·</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- WHERE GAPS WENT -->
+  <section>
+    <div class="kicker">Where the apparent gaps went · triage reason</div>
+    <div class="tri" style="margin-top:14px">
+      <div class="tri-row"><span class="tag t-warn">settlement_ambiguity</span><div class="tri-bar" style="width:60%;background:var(--warn);opacity:.35"></div><span class="mono p">·</span></div>
+      <div class="tri-row"><span class="tag t-bad">entity_mismatch_rejected</span><div class="tri-bar" style="width:48%;background:var(--bad);opacity:.35"></div><span class="mono p">·</span></div>
+      <div class="tri-row"><span class="tag t-bad">scope_mismatch</span><div class="tri-bar" style="width:40%;background:var(--bad);opacity:.28"></div><span class="mono p">·</span></div>
+      <div class="tri-row"><span class="tag t-mut">thin_or_dead_liquidity</span><div class="tri-bar" style="width:34%;background:#64748b;opacity:.35"></div><span class="mono p">·</span></div>
+      <div class="tri-row"><span class="tag t-cyan">needs_manual_review</span><div class="tri-bar" style="width:14%;background:var(--accent);opacity:.3"></div><span class="mono p">·</span></div>
+      <div class="tri-row"><span class="tag t-good">confirmed_arbitrage</span><div class="tri-bar" style="width:3%;background:var(--good);opacity:.5"></div><span class="mono p">·</span></div>
+    </div>
+  </section>
+
+  <!-- SCANNER BADGES -->
+  <section>
+    <div class="kicker">Scanner / research terminal · triage-aware badges</div>
+    <div class="queue" style="margin-top:14px">
+      <div class="qrow"><div class="q">Fed cuts rates in 2026? <small>Polymarket · Kalshi KXFED — same resolution source &amp; date</small></div><div><span class="gap" style="color:var(--good)">+0.4pp</span><span class="tag t-good">validated_same_contract</span></div></div>
+      <div class="qrow"><div class="q">“Leader of the House” vs “de facto leader” <small>genuinely ambiguous resolution wording</small></div><div><span class="gap" style="color:var(--warn)">+12pp</span><span class="tag t-warn">apparent gap · settlement</span></div></div>
+      <div class="qrow"><div class="q">US Senate race vs state-senate race <small>different office — not the same contract</small></div><div><span class="gap" style="color:var(--bad)">+19pp</span><span class="tag t-bad">rejected · entity</span></div></div>
+    </div>
+    <p class="note" style="margin-top:14px">A gap is never shown as an opportunity unless it's validated, fee-surviving, and not blocked by settlement/entity/scope/liquidity risk. Orientation-normalized reads as careful accounting, not failure.</p>
+  </section>
+</div>
+</body>
+</html>

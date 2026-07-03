@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Markdown from 'react-markdown';
 import type { MarketDetailResponse, Source } from '../api/client.js';
+import { submitForecast, fetchCalibrationStats } from '../api/client.js';
 import { useResearch } from '../hooks/useResearch.js';
 import { useSavedMarkets } from '../hooks/useSavedMarkets.js';
 import { getYesPrice, kellyEstimate } from '../lib/utils.js';
@@ -101,17 +102,13 @@ function BriefAndCall({
 
   const logForecast = async () => {
     try {
-      await fetch('/api/calibration/forecast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          marketId: market.id,
-          platform: market.platform,
-          marketQuestion: market.question,
-          forecastProbability: forecast / 100,
-          marketPrice: yesPrice,
-          category: (market.metadata as Record<string, unknown>)?.category,
-        }),
+      await submitForecast({
+        marketId: market.id,
+        platform: market.platform,
+        marketQuestion: market.question,
+        forecastProbability: forecast / 100,
+        marketPrice: yesPrice,
+        category: (market.metadata as Record<string, unknown>)?.category,
       });
       setForecastLogged(true);
     } catch { /* ignore */ }
@@ -342,7 +339,7 @@ function TrackRecord() {
   const [stats, setStats] = useState<CalStats | null>(null);
 
   useEffect(() => {
-    fetch('/api/calibration/stats').then((r) => r.json()).then(setStats).catch(() => {});
+    fetchCalibrationStats().then(setStats).catch(() => {});
   }, []);
 
   if (!stats) return <div className="text-[11px] text-[#64748B]">Loading track record…</div>;

@@ -5,117 +5,128 @@ below should be narratable without notes. Practice out loud until each answer is
 
 ---
 
-## The 90-second pitch (lead with this)
+## The 30-second pitch (lead with this)
 
-> "It's a full-stack AI research terminal for prediction markets. I set out to find
-> cross-platform mispricings between Polymarket and Kalshi — same event priced differently,
-> that's an edge. I built the live scanner with semantic matching across 2,219 markets — it
-> found 7 high-confidence overlaps and **zero that cleared the arbitrage threshold** after
-> fees. The overlapping markets are efficient; for retail there's no free edge.
-> So instead of faking it, I killed the premise and reframed the product around what's
-> actually useful when you can't beat the price: synthesizing the dispersed research,
-> flagging contract/settlement risk, and tracking your own forecasting calibration. The
-> most useful thing I learned was to let live data override the vision I was attached to."
+> "Parity is a market-efficiency study that ships as a product. I set out to find
+> arbitrage between Polymarket and Kalshi — same event, different price, trade the gap.
+> I scanned 92,290 standalone markets across both platforms (the Polymarket count is a floor), verified every candidate
+> pair with a cached LLM pipeline, and found 215 apparent price gaps — some huge. After
+> fees, liquidity, contract-spec checks, and manual review: zero executable. Proving
+> that zero rigorously — including auditing my own verifier's false positives with a
+> 128-correction overlay that never rewrites the raw data — became the product. It's
+> two surfaces: a Lab that walks you through the full audit, and a live pair terminal
+> built on the same verifier."
 
 Then pick the lens for the room:
-- **Integration / solutions roles** → "I normalized three completely different market APIs
-  into one validated schema and built an AI layer on top."
-- **AI / agent roles** → "streamed LLM briefs over SSE with prompt/context engineering and
-  vector-embedding event matching."
-- **PM / product roles** → "I tested a hypothesis against live data, it failed, and I
-  reframed honestly — here's the decision trail."
+- **Data / ML roles** → "recall-first embeddings at cosine 0.68, precision from 11,138
+  cached LLM verdicts on a pinned model+prompt — most accumulated via a Batch API transport with a crash-resilient poller."
+- **Full-stack roles** → "three independently-typechecked TypeScript projects, 435 tests,
+  and a static zero-backend deploy that ships the whole corpus as frozen artifacts."
+- **PM / product roles** → "the data killed my premise twice; I made the negative result
+  and the machinery that proves it the product."
 
 ---
 
-## Q: Walk me through the architecture.
+## The 5-minute walkthrough (drive the app in this order)
 
-"Three layers. `src/` is a framework-agnostic core engine — service clients, detectors,
-scoring, SQLite. `server/` is a Hono API that imports the engine and exposes REST + an SSE
-endpoint. `web/` is a React SPA that talks only to that API. Each has its own tsconfig and
-typechecks independently, because the engine is reused by the API, a CLI dashboard, and a
-background scheduler. Data flows: external APIs → normalized `Market` schema → SQLite →
-a `/feed` endpoint that serves the universe with computed divergence → the React UI."
+**1. Lab hero — the consensus field (~60s).** "Every point is one market — all 92,290,
+to scale; the green Kalshi galaxy really is 2.4× the blue Polymarket one. The orange
+embers are the 215 apparent gaps. Watch them triage: the badge settles on 'post-triage ·
+0 confirmed.' In the consensus field, red is reserved for confirmed executable arbitrage —
+and it is never drawn. That absence is the argument."
 
-(Have `docs/ARCHITECTURE.md` open — the two sequence diagrams are the visual.)
+**2. Waterfall + funnel ledger (~60s).** "This is the whole study in one chart — the
+log-scale collapse from 92,290 to 0, and under it the exact-figures ledger: every stage
+names its gate and its cull. 23,866 candidates at cosine ≥ 0.68, 5,431 same-event,
+3,791 same-contract flags, 558 clear the 9pp fee floor, 215 survive entity/scope triage,
+then 79 liquid, 40 strict spec-matched, 4 deep, 0 executable. No stage is hand-waved."
 
-## Q: The data normalization — what was actually hard?
+**3. Survivors wall (~60s).** "Here's every apparent gap as evidence, not aggregate:
+per-pair 7-point contract-spec checklists (the word-diffed contract titles come next, in the deep four and the dossier), so you can
+see exactly which check failed. This is where 'looks like the same contract' goes to die."
 
-"Syntactic differences are easy — different field names, Zod handles that. The hard part is
-*semantic*. Polymarket reports trading volume in **dollars**; Kalshi reports it in
-**contracts**. If you just display both, Kalshi looks 1000× smaller and any volume sort is
-meaningless. So I convert Kalshi to approximate USD turnover — lifetime contracts × price.
-Another one: Kalshi multi-outcome events repeat the event question as every sub-market's
-title, so 'Who will the next Pope be?' showed up seven identical times — the actual
-candidate name lives in a different field, `yes_sub_title`. Normalization is judgment about
-meaning, not just mapping keys."
+**4. The deep four (~45s).** "The four residuals with real money behind them — e.g. a
+Strait of Hormuz pair with $725k on the thinner side, and two UFC pairs where the diff
+is literally 'Champion' vs 'Title Holder' on the same date. Each dies on resolution
+nuance or timing under manual review. The honest caveat lives here too: executability
+was never tested at the order-book level — the claim is 'nothing survives the checks a
+trade would have to pass first,' not 'no arb can exist.'"
 
-## Q: Semantic matching — why and how?
+**5. Terminal dossier (~75s).** "Same verifier, live tool: 2,626 matched pairs, live
+per-pair price refresh against both venues. Open a dossier: gap-vs-fee meter, dual
+30-day price history, word-diffed contract texts, the cached verifier's rationale —
+quoted and attributed, not spoken in the app's voice — and a 'why this isn't free money'
+banner with the exact gap−fee arithmetic. It answers the question a trader would
+actually ask, pair by pair."
 
-"To detect when the same real-world event is listed on both platforms, I first tried keyword
-matching. It produced false positives — 'next James Bond actor' matched 'next James Bond
-villain' because they share tokens. I replaced it with embeddings: each market question is
-vectorized with OpenAI's `text-embedding-3-small` (1536 dims), stored in **sqlite-vec** — a
-vector extension that runs inside the same SQLite file, so no separate vector DB. Matching is
-cosine similarity with a 0.85 threshold. Embeddings are cached with a 24-hour freshness
-check, so the matching pass itself is pure in-memory math — no API calls on the hot path."
+---
 
-*Follow-up — why 0.85?* "Empirical. Below it you let in near-misses like the Bond example;
-much above it you miss legitimately-phrased-differently matches. It's a tunable threshold,
-not a magic number."
+## Hard questions (know these cold)
 
-## Q: How do the AI briefs work?
+### Q: Why zero? Isn't that suspiciously clean?
 
-"On-demand, streamed. When you click Generate, the server gathers context — the market data,
-recent news headlines, Metaculus superforecaster numbers, cross-platform pricing — builds a
-decision-first prompt, and streams the model's response token-by-token over Server-Sent
-Events. The frontend renders markdown as tokens arrive. It's a dual provider: it prefers xAI
-Grok and falls back to OpenAI GPT-4o — same OpenAI SDK, different base URL. I made generation
-manual rather than automatic specifically to not burn tokens on markets the user doesn't open."
+"Zero is what the gates leave, not a narrative choice. The median gap on priceable
+same-contract pairs is 2.5pp against a 9pp round-trip fee floor — most 'gaps' are
+noise inside fees. Of the 215 that clear fees and triage, 136 are too thin to trade,
+39 more fail a 7-point contract-spec checklist, and the deep residuals die on
+resolution nuance under manual review. And the biggest gaps were the *most* wrong —
+96–99pp 'gaps' that were county-vs-statewide contract mismatches. If anything, zero is
+conservative: I never even got to test depth and slippage, because nothing survived
+long enough to need it."
 
-*Honest limitation to volunteer:* "The brief now grounds on real cached web sources with
-URLs — an optional collector (`npm run collect:context`; built-in DuckDuckGo, optional
-Agent-Reach for richer sources) gathers them, and the Terminal surfaces them under 'Sources
-used.' What's left is full-article retrieval + structured base rates — the step from 'cites a
-source' to 'reasons over the full evidence.' The prompt also carries explicit source-honesty
-rules — no invented citations, no claiming live retrieval it didn't do — verified by a
-promptfoo eval suite (`npm run eval:briefs`) that runs offline."
+### Q: Is the verifier trustworthy?
 
-## Q: The calibration feature — what's a Brier score?
+"No — and that's a design input, not an admission. It over-matches on look-alike
+questions, so trust comes from the layers around it: a pinned single model and prompt
+version (`gpt-4o-mini`, v3-market-level) across all 11,138 calls, every verdict cached
+and provenance-tagged, a strict re-verification pass over the survivors, and
+deterministic rules for known error classes. That audit produced 128 corrections — 45
+against the 221 raw survivors — applied as a display-layer overlay so the raw artifact
+is never rewritten. You can diff exactly what I reclassified and why. The verifier is
+a noisy instrument; the corrections layer is the calibration certificate."
 
-"It measures how good your *probabilities* are, not just your yes/no calls. For each resolved
-forecast it's the squared error between your stated probability and the outcome (1 or 0).
-Lower is better; 0.25 is what you'd get always saying 50%. I bucket forecasts into ranges and
-plot predicted-vs-actual — so 'when you said 70%, did it happen 70% of the time?' If your
-70% bucket only happens 55% of the time, you're overconfident. It's a proper scoring rule
-from decision science — it can't be gamed by hedging."
+### Q: The Lab says 215 apparent gaps; the Terminal chip says 176. Which is wrong?
 
-## Q: Server-side divergence — what problem did that solve?
+"Neither — they're two views of the same corrections file. The study's raw artifact has
+221 semantic survivors. The corrections layer reverses 45 of them: 6 by deterministic
+scope rules, 39 by strict re-verification. The Lab books those 39 where they
+methodologically belong — at the strict-spec gate of the funnel (that's the 79 → 40
+cull) — so its apparent-gaps stage shows 221 − 6 = 215. The Terminal is a per-pair
+tool, so its chip applies all 45 up front: 221 − 45 = 176, and the chip's tooltip spells
+out that arithmetic. Same `corrections.json`, one funnel-stage convention, one
+per-pair convention — and I can point to the derivation for each in the code."
 
-"Originally the list's Signal/Gap columns were computed client-side from a cache that only
-filled when you *clicked* a market. So the column meant to tell you *where to look* was empty
-until you'd already looked everywhere. I moved divergence computation to the server in a
-`/feed` endpoint — it runs the embedding match once and attaches a signal to every market —
-so the whole list is populated and sortable by divergence in one pass."
+### Q: Your first scan found 7 overlaps in 2,219 markets. Why believe the new numbers?
 
-## Q: Why did the original premise fail, and how do you know?
+"The first scan used a high-precision cosine threshold (0.85) on a small pull — good at
+not being wrong, terrible at recall. The rebuild inverts that: a recall-first 0.68
+threshold that admits 23,866 candidates, then an LLM verification layer to restore
+precision. The overlap story changed completely — 5,431 same-event pairs, not 7 —
+which is exactly why the conclusion had to be re-earned at full scale."
 
-"The scanner ran the cross-platform match across 2,219 live markets — 7 cleared the 0.85
-cosine bar as genuine overlaps and 0 of those cleared the arbitrage threshold (~19pp after
-~9pp round-trip fees); the detector's own counter still reads `priceGaps: 0`. That's not a
-code failure; it's the efficient-market hypothesis showing up in real data on this scan. Two
-well-capitalized markets on
-the same event converge. I could have hidden that and shipped a fake 'edge finder,' but the
-honest finding is more valuable — it forced a better product and it's the part of this
-project I'm most willing to defend."
+---
 
-## Q: What would you build next, and what would you cut?
+## What broke and how I found it (war stories)
 
-"Next: deeper evidence-grounded briefs — full-article retrieval and structured base rates on
-top of the cached sources they already cite — because that's the one feature that adds value a
-market price doesn't already contain. After that,
-on-chain wallet profiling (Polymarket is on Polygon, holder data is public) to show smart-
-money vs retail positioning, and backtesting against my historical snapshots. Cut: anything
-that revives 'find the edge' — that premise is dead and chasing it would be dishonest."
+**The county-scope bug.** The four largest apparent gaps in the study — 96 to 99
+points — were Polymarket contracts on *county-level* results of the California
+governor primary matched against Kalshi's *statewide* contracts. Same candidate, same
+election, same wording almost token-for-token; every naive check passed. It surfaced in
+an adversarial QA pass I ran over my own results before publishing — the rule I gave
+the review was 'attack the biggest gaps first, they're the most likely to be wrong.'
+The fix wasn't editing four rows: I wrote a deterministic county-scope rule that
+catches the whole class (13 pairs corpus-wide) in both the app overlay and the
+correction generator, and the raw artifact stayed untouched.
+
+**The 0/400 bulk-match trap.** For the Terminal I wanted settled pairs demoted from the
+queue. The cheap approach — bulk-fetch the live market map and treat 'absent' as
+'settled' — matched 0 of the first 400 corpus rows. Not because everything settled
+overnight, but because platform IDs churn: the bulk endpoint and the frozen corpus
+disagreed on identity. If I'd trusted absence as evidence, the Terminal would have
+demoted essentially every pair — a silent, total mislabeling. The fix: a pair is only
+marked settled on per-pair probe evidence, where both venues are found *and* report
+inactive. The lesson generalizes: absence in a bulk join is weak evidence, and weak
+evidence should never drive a strong label.
 
 ---
 
@@ -123,13 +134,14 @@ that revives 'find the edge' — that premise is dead and chasing it would be di
 
 | Claim | File |
 |-------|------|
-| One normalized schema | `src/types/market.ts`, `src/services/{polymarket,kalshi}.ts` |
-| Embedding match, 0.85 cosine | `src/services/semantic-matcher.ts` |
-| Server-side divergence | `server/src/routes/opportunities.ts` (`/feed`) |
-| SSE streaming brief | `server/src/routes/markets.ts` (`/:id/research`), `web/src/hooks/useResearch.ts` |
-| Decision-first prompt | `server/src/prompts/research.ts` |
-| Brier / calibration | `src/scoring/brier.ts`, `server/src/routes/calibration.ts` |
-| The pivot in one number | scan stats `priceGaps: 0` across 2,219 markets |
+| The funnel, one source of truth (215→79→40→4→0) | `web/src/lib/funnel.ts` |
+| Correction overlay, raw data never rewritten | `server/src/pairs-data.ts`, `scripts/build-corrections.ts` |
+| Batch verification transport + crash-safe poller | `scripts/verify-batch.ts`, `verify-batch-doctor.ts` |
+| The study itself | `scripts/efficiency-study.ts` → `docs/data/efficiency-study.json` |
+| 3D consensus field (to-scale, settle-and-freeze) | `web/src/components/lab/consensus3d/` |
+| Dossier: gap meter, diff, attributed verdict | `web/src/components/PairDossier.tsx` |
+| Settled-only-on-probe-evidence logic | `web/src/pages/TerminalPage.tsx` |
+| 176-vs-215 reconciliation, in the UI itself | Terminal "Apparent gaps" chip tooltip |
 
 ## The one honesty rule
 

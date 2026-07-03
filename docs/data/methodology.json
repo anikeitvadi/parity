@@ -1,0 +1,134 @@
+{
+  "generatedAt": "2026-06-30T14:17:54.443Z",
+  "unitOfComparison": "standalone market: a single forecastable proposition with its own price, its own settlement criteria, a binary/directly-comparable outcome, and no dependency on multiple unrelated legs",
+  "exclusionRules": [
+    "Exclude multi-leg / composite contracts (Kalshi MVE parlays: mve_collection_ticker / mve_selected_legs / KXMVE* tickers) — not directly comparable cross-platform forecast propositions.",
+    "Exclude raw container events with no direct price; keep each priced child of a mutually-exclusive event as its own standalone binary.",
+    "Do NOT exclude by category — Sports, Elections, Entertainment, etc. are kept when structurally standalone and reported only as post-hoc analysis slices.",
+    "Polymarket Gamma already returns individual standalone binaries (multi-candidate events arrive pre-split into negRisk binaries), so raw ≈ standalone."
+  ],
+  "polymarket": {
+    "source": "Gamma /events?closed=false&active=true — multi-sort union (volume, liquidity, startDate desc)",
+    "enumerationMethod": "multi-sort /events union over [volume, liquidity, startDate]",
+    "enumeratedCount": 26930,
+    "isLowerBound": true,
+    "enumerationNote": "Gamma hard-caps offset pagination at ~2000 per sort (offset 2100+ → HTTP 422). Unioning sort orders raises coverage but cannot guarantee completeness, so this is a LOWER BOUND on the true active universe — never \"all active markets\".",
+    "tradeableCount": 17058,
+    "excludedCount": 3,
+    "includedSamples": [
+      {
+        "id": "0x7976b8dbacf9077eb1453a62bcefd6ab2df199acd28aad276ff0d920d6992892",
+        "title": "Will Spain win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0x3a26ca6425e2d98f14935670bc22cdb0744defc6f6d83c65f8c413a921c5c70c",
+        "title": "Will Switzerland win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0x375409bc5eeeff961e82b479caeccc20f33d15738e5bce1186d628aa3d9dfb1f",
+        "title": "Will England win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0x9b6fef249040fd17e9c107955b37ac2c3e923509b6b0ff01cc463a331ddeb894",
+        "title": "Will France win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0x30d55d8124ee1e12dabe89201badc45669b81dff69e4ce44d961f32878ec178a",
+        "title": "Will Brazil win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0x0c4cd2055d6ea89354ffddc55d6dbcef9355748112ea952fc925f3db6a5c457f",
+        "title": "Will Argentina win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0xe99cc59f32b10d23acf196d1a0e8264ea30fca198428acadd3464b06ff60e771",
+        "title": "Will Colombia win the 2026 FIFA World Cup?"
+      },
+      {
+        "id": "0x4f3421fb2daf5cca7430ed8d8132463963081572d75434393a1808fdb8829fe8",
+        "title": "Will Portugal win the 2026 FIFA World Cup?"
+      }
+    ],
+    "excludedSamples": [
+      {
+        "id": "0x65ac5ee644386c33517d2eff8f081771eb88556f5b75520bec9b99f193f0ced4",
+        "title": "Will Paulo Costa be the UFC Light Heavyweight Champion on December 31, 2026?",
+        "reason": "no id or price"
+      },
+      {
+        "id": "0x11892ce286697de2b3e042b4fc11e1b5941bbc4ef6972d93c5052369667abe2f",
+        "title": "Map 1 Rounds Handicap: Subtop De France (-6.5) vs Julie&cie (+6.5)",
+        "reason": "no id or price"
+      },
+      {
+        "id": "0x11892ce286697de2b3e042b4fc11e1b5941bbc4ef6972d93c5052369667abe2f",
+        "title": "Map 1 Rounds Handicap: Subtop De France (-6.5) vs Julie&cie (+6.5)",
+        "reason": "no id or price"
+      }
+    ]
+  },
+  "kalshi": {
+    "source": "/events?status=open (cursor-walked, no offset cap) → per-event detail expanded to standalone child markets",
+    "eventCount": 7105,
+    "rawChildCount": 65360,
+    "standaloneMarketCount": 65360,
+    "excludedCompositeCount": 0,
+    "excludedUnpricedCount": 0,
+    "tradeableCount": 35800,
+    "rawMarketsEndpoint": {
+      "note": "The /markets endpoint is dominated by MVE multi-leg parlays and is NOT used as an ingestion source — standalone markets are sourced via /events.",
+      "sampledRows": 5000,
+      "compositeRows": 5000,
+      "compositeShare": 1,
+      "cursorExhausted": false
+    },
+    "includedSamples": [
+      {
+        "id": "KXELONMARS-99",
+        "title": "Will Elon Musk visit Mars in his lifetime? (Before 2099)"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-KIOH",
+        "title": "Who will be the next Secretary General of NATO? — Klaus Iohannis"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-KKAL",
+        "title": "Who will be the next Secretary General of NATO? — Kaja Kallas"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-BWAL",
+        "title": "Who will be the next Secretary General of NATO? — Ben Wallace"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-MFRE",
+        "title": "Who will be the next Secretary General of NATO? — Mette Frederiksen"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-ULEY",
+        "title": "Who will be the next Secretary General of NATO? — Ursula von der Leyen"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-PPAV",
+        "title": "Who will be the next Secretary General of NATO? — Petr Pavel"
+      },
+      {
+        "id": "KXNEXTNATOSECGEN-99-ASTU",
+        "title": "Who will be the next Secretary General of NATO? — Alexander Stubb"
+      }
+    ],
+    "excludedSamples": []
+  },
+  "universe": {
+    "polymarketEnumerated": 26930,
+    "polymarketIsLowerBound": true,
+    "kalshiStandalone": 65360,
+    "totalStandalone": 92290
+  },
+  "tradeable": {
+    "liquidityFloorUsed": "volume > 0",
+    "polymarketTradeable": 17058,
+    "kalshiTradeable": 35800,
+    "matchingUniverseCount": 52858,
+    "note": "The gap analysis runs only on this tradeable subset (markets with non-zero volume). The enumerated universe above is the honest denominator; this is the realistically-arbitrageable set."
+  }
+}

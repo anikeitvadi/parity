@@ -262,7 +262,12 @@ Keep it this way; adding an icon set would break the terminal feel.
 ## 7. Motion
 
 Only `transition-colors` on interactive elements, and `animate-pulse` for
-skeletons / the streaming cursor. No layout/transform animations.
+skeletons / the streaming cursor. No layout/transform animations **in the
+data-dense terminal** — tables, rows, and panels stay still.
+
+**Exception — the Efficiency Lab signature visual (§10):** one deliberate,
+data-bound, reduced-motion-gated animated object. It is the *only* place
+canvas/transform motion is allowed, and it must encode real data, never decorate.
 
 ---
 
@@ -286,3 +291,64 @@ tokens.
 could codemod the existing hex → tokens (e.g. `#F8FAFC` → `text`, `#0E1223` →
 `card`, `#1E293B` → `border`, `#06B6D4` → `accent`) so the palette lives in one
 place. Until then, this guide maps every hex to its token so the two stay in sync.
+
+---
+
+## 10. Motion & Signature Visuals (Efficiency Lab)
+
+The Lab carries **one** signature visual — a **"market inefficiency surface"**
+generated *from the final study artifact* (`efficiency-study.json`), never from mock
+data. Its job: make the core compression legible in ~5 seconds — a billion-scale
+comparison space collapses to the few contracts that are genuinely the same, then the
+apparent arbitrage evaporates under triage. Current exploration (throwaway):
+`docs/mockups/lab-hero.html` (hero) + `docs/mockups/lab-proof.html` (proof layer).
+
+### 10.1 Data-binding contract (color → meaning)
+
+Every point, thread, and flare maps to a real artifact row. Nothing is decorative.
+
+| Element | Encodes | Color |
+|---|---|---|
+| Polymarket field | poly market clusters | **blue** `#60A5FA` (platform identity) |
+| Kalshi field | kalshi market clusters | **green** `#22C55E` (platform identity) |
+| Candidate / discovered | eligible cosine matches (the scan) | cyan `#22D3EE` |
+| Threads | model-verified cross-platform overlaps | violet `#8B5CF6` |
+| Peaks / flares | apparent fee-clearing gaps (`gap > 9pp`) | amber `#F59E0B` |
+| Red flares | entity / scope rejects | red `#EF4444` |
+| Faded / flattened | gaps removed by orientation / liquidity / triage | slate `#334155`, decaying |
+| Final state | no confirmed-arbitrage peak | flat field (green `#22C55E` only if a real one survives) |
+
+**Color is layered (locked).** *Platform identity* is separate from *process state*:
+- **Platform:** Polymarket = **blue** `#60A5FA`, Kalshi = **green** `#22C55E`.
+- **Process:** **cyan** = scanning / discovered / eligible · **violet** = inference /
+  normalization / model-derived · **amber** = caution / unresolved mismatch · **red** =
+  blocked / invalid · **green** = executable edge.
+- Green does double duty (Kalshi vs executable-edge); context disambiguates, and confirmed
+  edges are ~0 so the collision is rare. The hero must **establish the billion→0 story then
+  get out of the way** — a one-shot flatten that settles and freezes, never competing with
+  the proof layer (waterfall/matrix), where credibility lives.
+
+### 10.2 Alternative — scientific height surface
+
+If the point-field reads as too abstract, the same data renders as a surface:
+**X** = category / semantic cluster · **Y** = liquidity-floor bucket (>0, ≥$1k, ≥$10k) ·
+**Z (height)** = apparent-gap density or max fee-clearing gap · **color** = triage state.
+Same data, more "quant terminal," less "hologram." Either is acceptable.
+
+### 10.3 Motion
+
+- The object may **rotate, breathe, and morph through pipeline stages** — animating from
+  a noisy, high-apparent-gap field into a flattened post-triage field.
+- **No random particles. No fake/decorative data. No "Marvel battle scene."** Every
+  moving element is a real market or a real transition.
+- **`prefers-reduced-motion`: render the final flattened state statically** (no loop).
+- **Lazy-load** any heavy 3D/WebGL library so it never blocks first paint.
+
+### 10.4 Tone & 3D guidance
+
+- **Premium quant-lab hologram:** scientific, restrained, crisp. Cool *because it's real.*
+- **True 3D only if it carries meaning.** Do **not** add `react-three-fiber`/`drei` unless
+  the surface genuinely needs it; a high-craft **2D Canvas** version with the same mapping
+  is preferred (the mockups are Canvas2D).
+- **The matrix + waterfall must exist underneath as the data-dense proof, even if the hero
+  is 3D.** The hero seduces; the matrix convinces.

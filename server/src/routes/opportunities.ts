@@ -4,6 +4,7 @@ import { getDatabase } from '../../../src/database/schema.js';
 import { PolymarketClient } from '../../../src/services/polymarket.js';
 import { KalshiClient } from '../../../src/services/kalshi.js';
 import { initEmbeddingTable, embedMarkets, findSemanticMatches } from '../../../src/services/semantic-matcher.js';
+import { loadVerifiedPairs, type VerifiedPair, type PairsVerification } from '../pairs-data.js';
 import { SimpleCache } from '../cache.js';
 import { logger } from '../../../src/utils/logger.js';
 import type { Market } from '../../../src/types/market.js';
@@ -45,7 +46,13 @@ const polyClient = new PolymarketClient();
 const kalshiClient = new KalshiClient();
 const watchlistCache = new SimpleCache<WatchlistItem[]>(120);
 const feedCache = new SimpleCache<FeedItem[]>(120);
-const marketCache = new SimpleCache<Market[]>(60);
+// 15 min: the corpus is frozen and the dossier refreshes prices per-pair on open, so a longer
+// TTL only affects how often the full queue re-matches live books (a ~12s scan per miss).
+const marketCache = new SimpleCache<Market[]>(900);
+const pairsCache = new SimpleCache<PairRow[]>(900);
+let pairsBuiltAt: string | null = null;
+// Verifier provenance for the terminal footer — cached alongside the rows so it survives cache hits.
+let cachedVerification: PairsVerification | null = null;
 
 export const opportunityRoutes = new Hono();
 
@@ -352,6 +359,225 @@ opportunityRoutes.get('/feed', async (c) => {
   } catch (err) {
     return c.json({ error: err instanceof Error ? err.message : 'Feed failed', items: [] }, 500);
   }
+});
+
+/** One cross-platform PAIR row — the unit of the live terminal (not an individual market). */
+interface PairRow {
+  id: string;
+  event: string;
+  polymarket: { id: string; title: string; yes: number; volume: number; live: boolean };
+  kalshi: { id: string; title: string; yes: number; volume: number; live: boolean };
+  yesAligned: boolean;
+  gap: number; // oriented, using live prices where available
+  feeFloor: number;
+  beatsFees: boolean;
+  cosine: number;
+  liquidity: number; // thinner-side volume
+  status: 'survivor' | 'same_contract' | 'spec_mismatch' | 'topical' | 'stale';
+  strictSurvivor: boolean; // passed the 7-point spec checklist (deepest tier)
+  liquidityTier?: string;
+  checklist?: Record<string, boolean | string>; // 7-point spec checklist (liquid survivors only)
+  corrected: boolean; // a false-positive verdict reclassified by the correction overlay
+  correctionReason?: string;
+  correctionSource?: string;
+  reason: string;
+  category?: string;
+  verifiedAt: string;
+  pricesLive: boolean; // both sides refreshed against the live universe
+}
+
+// Map the study's triage label → the terminal's honest status. The verdict is the study's, not
+// re-derived here — that's what keeps orientation/degenerate artifacts out of the queue.
+function statusFor(triageLabel: string): PairRow['status'] {
+  switch (triageLabel) {
+    case 'dropped_degenerate': return 'stale';
+    case 'scope_mismatch':
+    case 'entity_mismatch_rejected':
+    case 'spec_mismatch': return 'spec_mismatch'; // corrected verdicts use the canonical label
+    case 'semantic_survivor': return 'survivor';
+    case 'validated_same_contract': return 'same_contract';
+    default: return 'topical'; // topical_overlap: same event, not the same contract
+  }
+}
+
+const STATUS_RANK: Record<PairRow['status'], number> = {
+  survivor: 0, same_contract: 1, spec_mismatch: 2, topical: 3, stale: 4,
+};
+
+// GET /api/opportunities/pairs — the live cross-platform pair terminal.
+// Reads the FROZEN study verdicts (triaged, oriented) and refreshes prices against the live
+// universe. Cached rigor + live prices; never recomputes the study here.
+opportunityRoutes.get('/pairs', async (c) => {
+  let rows = pairsCache.get('latest');
+  if (!rows) {
+    const loaded = loadVerifiedPairs();
+    const verified: VerifiedPair[] = loaded?.pairs ?? [];
+    cachedVerification = loaded?.verification ?? null;
+
+    // Live price/volume map for the markets currently traded (so the live subset is current).
+    const live = new Map<string, { yes: number; volume: number }>();
+    try {
+      let poly = marketCache.get('polymarket');
+      if (!poly) { poly = await polyClient.getActiveMarkets(); marketCache.set('polymarket', poly); }
+      let kalshi = marketCache.get('kalshi');
+      if (!kalshi) { kalshi = await kalshiClient.getActiveMarkets(); marketCache.set('kalshi', kalshi); }
+      for (const m of poly) live.set(`polymarket:${m.id}`, { yes: getYesPrice(m), volume: m.volume ?? 0 });
+      for (const m of kalshi) live.set(`kalshi:${m.id}`, { yes: getYesPrice(m), volume: m.volume ?? 0 });
+    } catch (err) {
+      matcherLogger.warn({ err }, 'pairs: live price refresh failed — using study snapshot prices');
+    }
+
+    rows = verified.map((p) => {
+      const polyLive = live.get(`polymarket:${p.polymarketId}`);
+      const kalshiLive = live.get(`kalshi:${p.kalshiId}`);
+      const polyYes = polyLive ? polyLive.yes : p.polymarketYes;
+      // Re-orient the live Kalshi quote the same way the study did; otherwise keep the oriented snapshot.
+      const kalshiYes = kalshiLive ? (p.yesAligned ? kalshiLive.yes : 1 - kalshiLive.yes) : p.kalshiYes;
+      const gap = Math.abs(polyYes - kalshiYes);
+      const polyVol = polyLive ? polyLive.volume : p.polyVolume;
+      const kalshiVol = kalshiLive ? kalshiLive.volume : p.kalshiVolume;
+      return {
+        id: `${p.polymarketId}::${p.kalshiId}`,
+        event: p.polymarketTitle,
+        polymarket: { id: p.polymarketId, title: p.polymarketTitle, yes: polyYes, volume: polyVol, live: !!polyLive },
+        kalshi: { id: p.kalshiId, title: p.kalshiTitle, yes: kalshiYes, volume: kalshiVol, live: !!kalshiLive },
+        yesAligned: p.yesAligned,
+        gap,
+        feeFloor: p.feeFloor,
+        beatsFees: gap > p.feeFloor,
+        cosine: p.cosine,
+        liquidity: Math.min(polyVol, kalshiVol),
+        status: statusFor(p.triageLabel),
+        strictSurvivor: !!p.strictSurvivor,
+        liquidityTier: p.liquidityTier,
+        checklist: p.checklist,
+        corrected: !!p.corrected,
+        correctionReason: p.correctionReason,
+        correctionSource: p.correctionSource,
+        reason: p.reason,
+        category: p.category,
+        verifiedAt: p.verifiedAt,
+        pricesLive: !!(polyLive && kalshiLive),
+      };
+    });
+    pairsCache.set('latest', rows);
+    pairsBuiltAt = new Date().toISOString();
+  }
+
+  // Filters (all optional query params) — applied per request over the cached rows.
+  const q = c.req.query();
+  const search = (q.search ?? '').toLowerCase();
+  const minLiquidity = q.minLiquidity ? Number(q.minLiquidity) : 0;
+  let out = rows;
+  if (search) out = out.filter((r) => r.event.toLowerCase().includes(search) || r.kalshi.title.toLowerCase().includes(search));
+  if (q.status) out = out.filter((r) => r.status === q.status);
+  else {
+    // Default view = the comparable contracts + their rejections; topical/stale noise behind a toggle.
+    if (q.includeStale !== 'true') out = out.filter((r) => r.status !== 'stale');
+    if (q.includeTopical !== 'true') out = out.filter((r) => r.status !== 'topical');
+    if (q.includeMismatch === 'false') out = out.filter((r) => r.status !== 'spec_mismatch');
+  }
+  if (minLiquidity) out = out.filter((r) => r.liquidity >= minLiquidity);
+
+  const sort = q.sort ?? 'opportunity';
+  out = [...out].sort((a, b) => {
+    if (sort === 'gap') return b.gap - a.gap;
+    if (sort === 'liquidity') return b.liquidity - a.liquidity;
+    if (sort === 'confidence') return b.cosine - a.cosine;
+    // 'opportunity' (default): survivors first, and within each status the most CREDIBLE rows lead —
+    // the 7/7 strict survivors, then deepest liquidity — so the queue opens on the real candidates,
+    // not the thin near-settled extremes (those are found via the 'gap' sort).
+    return (
+      STATUS_RANK[a.status] - STATUS_RANK[b.status] ||
+      Number(b.strictSurvivor) - Number(a.strictSurvivor) ||
+      b.liquidity - a.liquidity
+    );
+  });
+
+  const limit = q.limit ? Number(q.limit) : 400;
+  const counts = { survivor: 0, same_contract: 0, spec_mismatch: 0, topical: 0, stale: 0 } as Record<PairRow['status'], number>;
+  for (const r of rows) counts[r.status]++;
+  return c.json({
+    pairs: out.slice(0, limit),
+    meta: {
+      verifiedAt: rows[0]?.verifiedAt ?? null,
+      feeFloor: rows[0]?.feeFloor ?? 0.09,
+      total: rows.length,
+      shown: Math.min(out.length, limit),
+      live: rows.filter((r) => r.pricesLive).length,
+      pricesAsOf: pairsBuiltAt,
+      counts,
+      verification: cachedVerification,
+    },
+  });
+});
+
+interface LiveSide { found: boolean; active: boolean; yes: number | null; volume: number | null; hasBook: boolean }
+
+async function livePolySide(conditionId: string): Promise<LiveSide> {
+  try {
+    const d = await polyClient.getMarketDetails(conditionId);
+    if (!d) return { found: false, active: false, yes: null, volume: null, hasBook: false };
+    const yesTok = d.tokens?.find((t) => (t.outcome ?? '').toLowerCase() === 'yes');
+    const active = d.active !== false && d.closed !== true;
+    const yes = typeof yesTok?.price === 'number' ? yesTok.price : null;
+    return { found: true, active, yes, volume: null, hasBook: active && yes != null };
+  } catch {
+    return { found: false, active: false, yes: null, volume: null, hasBook: false };
+  }
+}
+
+async function liveKalshiSide(ticker: string): Promise<LiveSide> {
+  try {
+    const m = await kalshiClient.getMarket(ticker);
+    if (!m) return { found: false, active: false, yes: null, volume: null, hasBook: false };
+    return { found: true, active: m.active, yes: m.yes, volume: m.volume, hasBook: m.hasBook };
+  } catch {
+    return { found: false, active: false, yes: null, volume: null, hasBook: false };
+  }
+}
+
+// GET /api/opportunities/pair-live?poly=<conditionId>&kalshi=<ticker>
+// On-demand live price/liquidity for both sides of a pair. The dossier calls this on open so a
+// study-backed row shows CURRENT prices where the markets still trade — and says so honestly when a
+// side has gone inactive. The verifier verdict stays cached; only price/liquidity is refreshed.
+opportunityRoutes.get('/pair-live', async (c) => {
+  const poly = c.req.query('poly');
+  const kalshi = c.req.query('kalshi');
+  const [polymarket, kalshiSide] = await Promise.all([
+    poly ? livePolySide(poly) : Promise.resolve(null),
+    kalshi ? liveKalshiSide(kalshi) : Promise.resolve(null),
+  ]);
+  return c.json({ polymarket, kalshi: kalshiSide, fetchedAt: new Date().toISOString() });
+});
+
+async function polyHistory(conditionId: string, days: number): Promise<{ timestamp: number; yes: number }[]> {
+  try {
+    const raw = await polyClient.getPriceHistory(conditionId, days);
+    return raw
+      .map((pt) => {
+        const prices = pt.data?.prices ?? {};
+        const yes = prices['Yes'] ?? prices['yes'] ?? Object.values(prices)[0];
+        return { timestamp: pt.timestamp, yes: typeof yes === 'number' ? yes : NaN };
+      })
+      .filter((p) => Number.isFinite(p.yes) && p.yes > 0 && p.yes < 1);
+  } catch {
+    return [];
+  }
+}
+
+// GET /api/opportunities/pair-history?poly=<conditionId>&kalshi=<ticker>&days=30
+// Daily YES-price history for BOTH venues, so the dossier can chart Poly vs Kalshi over time.
+// Either side may be empty (honest "history unavailable"); Kalshi is via the candlesticks endpoint.
+opportunityRoutes.get('/pair-history', async (c) => {
+  const poly = c.req.query('poly');
+  const kalshi = c.req.query('kalshi');
+  const days = c.req.query('days') ? Number(c.req.query('days')) : 30;
+  const [polymarket, kalshiSide] = await Promise.all([
+    poly ? polyHistory(poly, days) : Promise.resolve([]),
+    kalshi ? kalshiClient.getPriceHistory(kalshi, days).catch(() => []) : Promise.resolve([]),
+  ]);
+  return c.json({ polymarket, kalshi: kalshiSide });
 });
 
 // GET /api/opportunities/stats

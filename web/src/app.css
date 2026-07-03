@@ -1,9 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
   --color-surface: #020617;
   --color-card: #0E1223;
   --color-card-hover: #141A2E;
@@ -17,6 +16,15 @@
   --color-accent: #06B6D4;
   --color-accent-hover: #22D3EE;
   --color-warning: #F59E0B;
+  /* Platform identity — low-saturation tints, never used for direction (green/red = direction). */
+  --color-poly: #60A5FA;   /* Polymarket = blue */
+  --color-kalshi: #22C55E; /* Kalshi = green (user's explicit lock; overrides the design-system export's violet) */
+  /* Motion (DESIGN §7) — information, never decoration; all one-shot. */
+  --ease-out: cubic-bezier(.22,.61,.36,1);
+  --dur-fast: 240ms;
+  --dur-base: 480ms;
+  --dur-slow: 900ms;
+  --stagger: 60ms;
 }
 
 body {
@@ -31,3 +39,12 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Live price flash on the queue — a one-shot tint when a YES price moves on the poll. */
+@keyframes flash-up { from { background-color: rgba(34, 197, 94, 0.35); } to { background-color: transparent; } }
+@keyframes flash-down { from { background-color: rgba(239, 68, 68, 0.35); } to { background-color: transparent; } }
+.flash-up { animation: flash-up 700ms var(--ease-out); }
+.flash-down { animation: flash-down 700ms var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .flash-up, .flash-down { animation: none; }
+}
