@@ -1,4 +1,14 @@
-# Session Handoff — Final Review + Polish Pass (2026-07-02, evening)
+# Session Handoff — Final Review + Polish Pass (2026-07-02/03)
+
+## 2026-07-03 UPDATE — DEPLOYMENT-READY
+Commit `f50b289`: settled pairs demoted+badged (ONLY on per-pair probe evidence — the bulk live-map
+matched 0/400 rows due to ID churn, never trust bulk absence), staged first-load narration, 'prices
+as of HH:MM' tick, server pairs cache 60s->900s (12.5s cold -> 23ms warm), snapshot regenerated
+(static build VERIFIED: zero /api calls, Lab + 2,626-pair Terminal render). npm run check GREEN.
+STILL OPEN before publish: (1) README/docs rewrite (P0 — old 2,219→7→0 story), (2) retriage.ts
+taxonomy fix + pair-audit.csv regen (regression warning below), (3) push + PR, (4) repo hygiene
+(.planning/, old handoffs, LICENSE). Known non-blocker: bulk live-map matches nothing (why the
+header once showed 44,572/3,197 — investigate ID mapping in getActiveMarkets vs corpus ids).
 
 > Supersedes the previous 3D-consensus-field handoff (recoverable at git `c76b1d9^`).
 > READ THIS FIRST next session. Companion file: `REVIEW-FINDINGS.md` (all 59 verified findings, severity-sorted, with fixes).
