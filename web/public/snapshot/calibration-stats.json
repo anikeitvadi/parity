@@ -1,1 +1,21 @@
-{ "totalForecasts": 0, "resolvedForecasts": 0, "meanBrierScore": null, "assessment": "", "calibrationCurve": [] }
+{
+  "totalForecasts": 3,
+  "resolvedForecasts": 1,
+  "meanBrierScore": 0.48999999999999994,
+  "assessment": "Poor — your confidence levels need recalibration",
+  "calibrationCurve": [
+    {
+      "range": "30-40%",
+      "midpoint": 0.35,
+      "forecasts": 1,
+      "outcomes": 1,
+      "observedFrequency": 1
+    }
+  ],
+  "byCategory": {
+    "Geopolitics": {
+      "avgBrier": 0.48999999999999994,
+      "count": 1
+    }
+  }
+}

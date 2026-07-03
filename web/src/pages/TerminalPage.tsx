@@ -8,6 +8,12 @@ import { useCountUp } from '../lib/useCountUp.js';
 type StatusFilter = 'curated' | 'strict' | PairStatus;
 type SortKey = 'opportunity' | 'gap' | 'liquidity';
 
+const LOAD_STAGES = [
+  'fetching the cached verifier corpus…',
+  'pulling live order books from both venues…',
+  'pricing every matched pair…',
+];
+
 /**
  * The Scanner: a LIVE cross-platform pair terminal. Every row is one event listed on both
  * Polymarket and Kalshi; the verifier's verdict (cached from the Efficiency Lab run) says whether
@@ -50,6 +56,17 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
     fetchEfficiencyStudy().then((r) => setStudy(r.study ?? null)).catch(() => {});
   }, []);
 
+  // The first load really does this work (~12s): read the cached verifier corpus, pull both
+  // venues' active books, and re-price every matched pair. Narrate it instead of a bare spinner.
+  const [loadStage, setLoadStage] = useState(0);
+  useEffect(() => {
+    if (data) return;
+    setLoadStage(0);
+    const t1 = setTimeout(() => setLoadStage(1), 3500);
+    const t2 = setTimeout(() => setLoadStage(2), 8500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [data]);
+
   // Live prices reported back by the open dossier overwrite the corpus prices in the queue,
   // so a row and its dossier never show two different gaps for the same pair.
   const [liveById, setLiveById] = useState<Record<string, PairLive>>({});
@@ -61,14 +78,18 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
     return base.map((p) => {
       const l = liveById[p.id];
       if (!l) return p;
+      // Both venues confirmed closed by the per-pair probe — the only evidence strong enough to
+      // call a pair settled. Bulk-scan "not live" is too weak (ID churn / partial venue pulls).
+      const settledLive = !!(l.polymarket?.found && l.kalshi?.found && !l.polymarket.active && !l.kalshi.active);
       const polyLive = l.polymarket?.found && l.polymarket.yes != null ? l.polymarket.yes : null;
       const kalRaw = l.kalshi?.found && l.kalshi.yes != null ? l.kalshi.yes : null;
-      if (polyLive == null && kalRaw == null) return p;
+      if (polyLive == null && kalRaw == null) return { ...p, settledLive };
       const kalLive = kalRaw == null ? null : p.yesAligned ? kalRaw : 1 - kalRaw;
       const polyYes = polyLive ?? p.polymarket.yes;
       const kalYes = kalLive ?? p.kalshi.yes;
       return {
         ...p,
+        settledLive,
         polymarket: { ...p.polymarket, yes: polyYes },
         kalshi: { ...p.kalshi, yes: kalYes },
         gap: polyYes != null && kalYes != null ? Math.abs(polyYes - kalYes) : p.gap,
@@ -89,9 +110,18 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
       list = list.filter((p) => p.event.toLowerCase().includes(q) || p.kalshi.title.toLowerCase().includes(q));
     }
     const out = [...list];
-    if (sort === 'gap') out.sort((a, b) => b.gap - a.gap);
-    else if (sort === 'liquidity') out.sort((a, b) => b.liquidity - a.liquidity);
-    // 'opportunity' keeps the server's credibility order (survivors → strict → liquidity).
+    // A pair with no live book on either side can't be traded — its corpus "gap" is history,
+    // not opportunity. Demote those below every live pair regardless of sort.
+    const settledLast = (a: PairRow, b: PairRow, cmp: number) => {
+      const aDead = !!a.settledLive;
+      const bDead = !!b.settledLive;
+      if (aDead !== bDead) return aDead ? 1 : -1;
+      return cmp;
+    };
+    if (sort === 'gap') out.sort((a, b) => settledLast(a, b, b.gap - a.gap));
+    else if (sort === 'liquidity') out.sort((a, b) => settledLast(a, b, b.liquidity - a.liquidity));
+    // 'opportunity' keeps the server's credibility order (survivors → strict → liquidity), settled last.
+    else out.sort((a, b) => settledLast(a, b, 0));
     return out;
   }, [pairs, statusFilter, search, sort]);
 
@@ -165,8 +195,11 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
           <div className="shrink-0">
             <div className="text-[11px] font-semibold text-[#E2E8F0] leading-none">Live cross-platform pairs</div>
             <div className="text-[9px] text-[#64748B] mt-0.5">
-              {verifiedDate ? `cached verifier run · ${verifiedDate}` : 'loading…'}
+              {verifiedDate ? `cached verifier run · ${verifiedDate}` : LOAD_STAGES[loadStage]}
               {data ? ` · ${data.meta.total.toLocaleString()} pairs · open one for live prices` : ''}
+              {data?.meta.pricesAsOf
+                ? ` · prices as of ${new Date(data.meta.pricesAsOf).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                : ''}
             </div>
           </div>
 

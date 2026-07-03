@@ -46,8 +46,11 @@ const polyClient = new PolymarketClient();
 const kalshiClient = new KalshiClient();
 const watchlistCache = new SimpleCache<WatchlistItem[]>(120);
 const feedCache = new SimpleCache<FeedItem[]>(120);
-const marketCache = new SimpleCache<Market[]>(60);
-const pairsCache = new SimpleCache<PairRow[]>(60);
+// 15 min: the corpus is frozen and the dossier refreshes prices per-pair on open, so a longer
+// TTL only affects how often the full queue re-matches live books (a ~12s scan per miss).
+const marketCache = new SimpleCache<Market[]>(900);
+const pairsCache = new SimpleCache<PairRow[]>(900);
+let pairsBuiltAt: string | null = null;
 // Verifier provenance for the terminal footer — cached alongside the rows so it survives cache hits.
 let cachedVerification: PairsVerification | null = null;
 
@@ -458,6 +461,7 @@ opportunityRoutes.get('/pairs', async (c) => {
       };
     });
     pairsCache.set('latest', rows);
+    pairsBuiltAt = new Date().toISOString();
   }
 
   // Filters (all optional query params) — applied per request over the cached rows.
@@ -501,6 +505,7 @@ opportunityRoutes.get('/pairs', async (c) => {
       total: rows.length,
       shown: Math.min(out.length, limit),
       live: rows.filter((r) => r.pricesLive).length,
+      pricesAsOf: pairsBuiltAt,
       counts,
       verification: cachedVerification,
     },

@@ -52,6 +52,14 @@ function PairRowItem({ pair, selected, onSelect }: { pair: PairRow; selected: bo
             <span className="text-[#F87171] text-[9px] leading-none shrink-0" title={v.suspicious}>⚠</span>
           )}
           <div className="truncate text-[12px] text-[#E2E8F0] leading-tight group-hover:text-white">{pair.event}</div>
+          {pair.settledLive && (
+            <span
+              className="shrink-0 text-[8px] font-mono uppercase tracking-wide text-[#64748B] border border-[#334155] rounded px-1 leading-[13px]"
+              title="Both venues confirmed closed — the gap is from the frozen study corpus, not a tradeable price."
+            >
+              settled
+            </span>
+          )}
         </div>
         <div className="truncate text-[10px] text-[#64748B] leading-tight mt-[3px]">{pair.kalshi.title}</div>
       </div>

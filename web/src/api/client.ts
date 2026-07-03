@@ -208,6 +208,7 @@ export interface PairRow {
   category?: string;
   verifiedAt: string; // when the verdict was produced
   pricesLive: boolean; // both sides currently live
+  settledLive?: boolean; // client-derived: the per-pair live probe confirmed both venues closed
 }
 export interface PairsVerification {
   model: string;
@@ -220,6 +221,7 @@ export interface PairsMeta {
   total: number;
   shown: number;
   live: number;
+  pricesAsOf?: string | null;
   counts: Record<PairStatus, number>;
   verification?: PairsVerification | null;
 }
