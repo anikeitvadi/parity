@@ -89,27 +89,14 @@ function PointCloud({ positions, center, color, size, opacity, twinkle = 0.35 }:
   );
 }
 
-/** Gap beacons: the real ~215 apparent gaps, throbbing amber. Two 12s triage breaths, then the field settles at the end state — 0 confirmed. */
-function Gaps({ positions, onPhase }: { positions: Float32Array; onPhase: (p: 'scanning' | 'resolved') => void }) {
+/** Gap beacons: the real ~215 apparent gaps, amber, always visible — just markets, drawn to scale. */
+function Gaps({ positions }: { positions: Float32Array }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
-  const phaseRef = useRef<'scanning' | 'resolved'>('scanning');
   const uniforms = useMemo(() => ({
-    uColor: { value: new THREE.Color(GAP_COLOR) }, uSize: { value: 0.36 }, uOpacity: { value: 1 }, uTwinkle: { value: 0.75 }, uTime: { value: 0 },
+    uColor: { value: new THREE.Color(GAP_COLOR) }, uSize: { value: 0.36 }, uOpacity: { value: 1 }, uTwinkle: { value: 0.35 }, uTime: { value: 0 },
   }), []);
   useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    const settled = REDUCED_MOTION || t >= 24;
-    const c = (t % 12) / 12;
-    let vis: number;
-    if (settled) vis = 0;
-    else if (c < 0.08) vis = 0;
-    else if (c < 0.2) vis = (c - 0.08) / 0.12;
-    else if (c < 0.8) vis = 1;
-    else if (c < 0.95) vis = 1 - (c - 0.8) / 0.15;
-    else vis = 0;
-    if (matRef.current) { matRef.current.uniforms.uTime.value = t; matRef.current.uniforms.uOpacity.value = vis; }
-    const want = settled || c < 0.08 || c >= 0.95 ? 'resolved' : 'scanning';
-    if (phaseRef.current !== want) { phaseRef.current = want; onPhase(want); }
+    if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
   });
   return (
     <points>
@@ -179,7 +166,7 @@ function Bridge({ model }: { model: FieldModel }) {
   );
 }
 
-function Scene({ model, onPhase }: { model: FieldModel; onPhase: (p: 'scanning' | 'resolved') => void }) {
+function Scene({ model }: { model: FieldModel }) {
   return (
     <>
       <color attach="background" args={['#04060e']} />
@@ -187,7 +174,7 @@ function Scene({ model, onPhase }: { model: FieldModel; onPhase: (p: 'scanning' 
       <PointCloud positions={model.polyPos} center={POLY_CENTER} color={POLY_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
       <PointCloud positions={model.kalshiPos} center={KALSHI_CENTER} color={KALSHI_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
       <Bridge model={model} />
-      <Gaps positions={model.gapPos} onPhase={onPhase} />
+      <Gaps positions={model.gapPos} />
       <OrbitControls autoRotate={!REDUCED_MOTION} autoRotateSpeed={0.35} enablePan={false} enableZoom={false} minDistance={6} maxDistance={13} target={[0.15, 0, 0]} />
       <EffectComposer>
         <Bloom intensity={1.3} luminanceThreshold={0.2} luminanceSmoothing={0.6} mipmapBlur />
@@ -198,7 +185,6 @@ function Scene({ model, onPhase }: { model: FieldModel; onPhase: (p: 'scanning' 
 
 export function ConsensusField3D({ study, apparentCount }: { study: EfficiencyStudy; apparentCount?: number }) {
   const model = useFieldModel(study, apparentCount);
-  const [phase, setPhase] = useState<'scanning' | 'resolved'>('scanning');
   const [glLost, setGlLost] = useState(false);
   const [inView, setInView] = useState(true);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -231,7 +217,7 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
             gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setGlLost(true); }, false);
           }}
         >
-          <Scene model={model} onPhase={setPhase} />
+          <Scene model={model} />
         </Canvas>
       )}
       {glLost && (
@@ -261,8 +247,8 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
 
       {/* Triage state */}
       <div className="absolute top-4 right-4">
-        <span className={`text-[10px] font-mono px-2 py-1 rounded border ${phase === 'resolved' ? 'bg-[#7F1D1D]/30 text-[#FCA5A5] border-[#991B1B]/40' : 'bg-[#0B0F1D]/70 text-[#94A3B8] border-[#1E293B]'}`}>
-          {phase === 'resolved' ? 'post-triage · 0 confirmed' : 'verifying…'}
+        <span className="text-[10px] font-mono px-2 py-1 rounded border bg-[#7F1D1D]/30 text-[#FCA5A5] border-[#991B1B]/40">
+          0 confirmed arb
         </span>
       </div>
 

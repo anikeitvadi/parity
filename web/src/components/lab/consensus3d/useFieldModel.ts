@@ -120,11 +120,12 @@ export function useFieldModel(study: EfficiencyStudy, apparentCount?: number): F
     const bridgeA = new Float32Array(draw * 3);
     const bridgeB = new Float32Array(draw * 3);
     const bridgePhase = new Float32Array(draw);
+    // Snap every arc endpoint to a real rendered point so no thread ends in blank space.
     for (let i = 0; i < draw; i++) {
-      galaxyPoint(i * 7 + 11, POLY_R * (0.72 + rnd(i * 3.1) * 0.28), 'ring', 0, 0, tmp, 0);
-      bridgeA[i * 3] = tmp[0] + POLY_CENTER[0]; bridgeA[i * 3 + 1] = tmp[1] + POLY_CENTER[1]; bridgeA[i * 3 + 2] = tmp[2] + POLY_CENTER[2];
-      galaxyPoint(i * 7 + 13, kalshiR * (0.4 + rnd(i * 4.7) * 0.55), 'spiral', KALSHI_BRANCHES, KALSHI_SPIN, tmp, 0);
-      bridgeB[i * 3] = tmp[0] + KALSHI_CENTER[0]; bridgeB[i * 3 + 1] = tmp[1] + KALSHI_CENTER[1]; bridgeB[i * 3 + 2] = tmp[2] + KALSHI_CENTER[2];
+      const ai = ((i * 104729 + 11) % poly) * 3;
+      bridgeA[i * 3] = polyPos[ai] + POLY_CENTER[0]; bridgeA[i * 3 + 1] = polyPos[ai + 1] + POLY_CENTER[1]; bridgeA[i * 3 + 2] = polyPos[ai + 2] + POLY_CENTER[2];
+      const bi = ((i * 130363 + 13) % kalshi) * 3;
+      bridgeB[i * 3] = kalshiPos[bi] + KALSHI_CENTER[0]; bridgeB[i * 3 + 1] = kalshiPos[bi + 1] + KALSHI_CENTER[1]; bridgeB[i * 3 + 2] = kalshiPos[bi + 2] + KALSHI_CENTER[2];
       bridgePhase[i] = rnd(i * 17.1);
     }
 
