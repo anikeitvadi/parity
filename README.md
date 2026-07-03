@@ -6,6 +6,8 @@ I set out to find cross-platform mispricings between Polymarket and Kalshi. The 
 
 The finding is the product. Parity ships two surfaces: the **Lab**, which walks you through the full 92,290 → 0 audit, and the **Terminal**, a live pair-by-pair decision tool built on the same verifier.
 
+**Live demo:** [paritylab.vercel.app](https://paritylab.vercel.app) — a frozen, reproducible snapshot. Clone and run locally for the live-data mode against both venues.
+
 ---
 
 ## The funnel (one reproducible scan, June 30 2026)

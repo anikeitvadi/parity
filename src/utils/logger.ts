@@ -17,7 +17,7 @@ export const logger = pino({
   // Redact sensitive data
   redact: ['apiKey', 'privateKey', 'password', 'secret', 'POLYMARKET_PRIVATE_KEY'],
   base: {
-    service: 'prediction-market-scanner',
+    service: 'parity',
     environment: process.env.NODE_ENV || 'development',
   },
 });
