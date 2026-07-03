@@ -1,107 +1,81 @@
-# Session Handoff — Final Review + Polish Pass (2026-07-02/03)
+# Session Handoff — SHIP-READY (2026-07-03)
 
-## 2026-07-03 UPDATE — DEPLOYMENT-READY
-Commit `f50b289`: settled pairs demoted+badged (ONLY on per-pair probe evidence — the bulk live-map
-matched 0/400 rows due to ID churn, never trust bulk absence), staged first-load narration, 'prices
-as of HH:MM' tick, server pairs cache 60s->900s (12.5s cold -> 23ms warm), snapshot regenerated
-(static build VERIFIED: zero /api calls, Lab + 2,626-pair Terminal render). npm run check GREEN.
-STILL OPEN before publish: (1) README/docs rewrite (P0 — old 2,219→7→0 story), (2) retriage.ts
-taxonomy fix + pair-audit.csv regen (regression warning below), (3) push + PR, (4) repo hygiene
-(.planning/, old handoffs, LICENSE). Known non-blocker — ROOT CAUSE FOUND (2026-07-03): the pairs route's live map uses
-polyClient.getActiveMarkets(), which fetches ONLY the first Gamma page (limit cap 100 markets);
-the study uses the paginating getAllActiveMarkets(). So the bulk map holds ~100 newest Poly markets
-and matches ~0 corpus pairs (Kalshi side may partially match). Correct fix when wanted: on pairs
-cache build, probe the ~400 corpus polymarketIds directly (concurrency-limited per-id fetch, like
-/pair-live does) instead of intersecting with a first-page pull. Harmless today: nothing
-user-visible trusts bulk flags anymore (settled badges/demotion use per-pair probes only).
+> Read this + `REVIEW-FINDINGS.md` (final disposition of all 59 audit findings) first.
+> Branch `feat/consensus-field-3d`, ~16 commits ahead of main, **NOTHING PUSHED**.
+> `npm run check` GREEN at tip (typecheck ×3 + Vite build + 435 tests). Static deploy verified.
 
-> Supersedes the previous 3D-consensus-field handoff (recoverable at git `c76b1d9^`).
-> READ THIS FIRST next session. Companion file: `REVIEW-FINDINGS.md` (all 59 verified findings, severity-sorted, with fixes).
-> Branch `feat/consensus-field-3d`, NOTHING pushed. Polish fixes are COMMITTED and verified (check GREEN, 435 tests; visually confirmed via scratchpad/shots/10-11: hero settles on 'post-triage · 0 confirmed', row/dossier prices agree, chip reads 'Matches 2,626', rationale attributed).
+## TL;DR
+The product is done and audit-clean. A 59-finding adversarial review (2 rounds) ran across thesis,
+numbers, UX, heroes, docs, and hygiene; **every finding is either fixed (with commit) or explicitly
+noted with an owner** — see REVIEW-FINDINGS.md's disposition ledger. Docs were rewritten to the real
+study and independently fact-checked (publish gate); all must-fixes applied. What remains is shipping
+mechanics, not product work.
 
-## What this session was
-User asked for a final check of everything (heroes, UI/UX, thesis, docs) + polish + improvement suggestions.
-Done: (1) live app screenshotted end-to-end via Playwright, (2) a 7-dimension multi-agent adversarial review
-(2 rounds; a flaky network — `SSL: SSLV3_ALERT_BAD_RECORD_MAC` — killed some lanes in each round, but merged
-coverage = numbers, thesis/copy, hologram, fresh-eyes interviewer, completeness critic + my own Terminal
-walkthrough; only the dedicated hygiene lane never fully ran), (3) fix pass applied (below).
+## Ship checklist (in order, ~30 min + deploy)
+1. **(optional, 5 min)** Funnel-ledger height nit — stretch the ledger card to match the waterfall
+   (same treatment as Experiment 1 in commit 19f06c4: grid `items-stretch`, card `h-full flex flex-col`,
+   let the table breathe). Was in flight when the session pivoted to handoff.
+2. **(if repo public)** Hygiene sweep: move SESSION-HANDOFF.md, REVIEW-FINDINGS.md,
+   SCANNER-REFRAME-HANDOFF.md -> docs/archive/ (or delete); decide `.planning/` (68 committed AI-session
+   files); add LICENSE file (ISC to match package.json + README); optionally fix package.json
+   name/description ("prediction-market-scanner" / scanner-era description).
+3. **Push + PR + merge** to main.
+4. **Deploy**: vercel.json builds `VITE_STATIC=true npm run build:web` from the COMMITTED snapshot
+   (web/public/snapshot/*, regenerated 2026-07-03, verified zero-/api with full 2,626-pair Terminal).
+   Click through the live URL once: Lab hero renders, Terminal loads, one dossier opens.
+5. **Post**: docs/LINKEDIN.md has the fact-checked draft (hook, numbers, visual guidance).
+   docs/INTERVIEW-WALKTHROUGH.md is the rehearsal script.
 
-## Verdict (the review's thesis, short form)
-The product's rigor story HOLDS: funnel numbers reconcile on screen (215→79→40→4→0), the hologram is honest
-to scale, "0 executable" is argued credibly, dossier is audit-grade. Almost everything wrong is a SURFACE that
-contradicts that rigor: stale docs telling the old 2,219→7→0 story (P0, worst offender — README/PORTFOLIO/
-LINKEDIN/INTERVIEW-WALKTHROUGH), shipped `docs/data/pair-audit.csv` still labeling the 221 survivors
-`confirmed_arbitrage` (P1 — and NOTE: re-running `npm run retriage` would REGRESS efficiency-study.json's
-taxonomy; fix retriage.ts labels first), raw LLM rationale ("exploitable mispricing", 93 pairs) rendered in the
-app's own voice (FIXED this session — now attributed+quoted), and the 215-vs-176 double convention (root cause
-below). Heroes: galaxy hologram is interview-ready visually; its payoff badge never landed (FIXED — settles now);
-Terminal reads like a real tool but had trust papercuts (chip overclaim FIXED, row/dossier price mismatch FIXED).
+## What this session shipped (commit -> what)
+- `7e78ad6` handoff + findings tracker (round-1)
+- `3502c93` polish pass: dossier rationale attribution, history empty-state, Matches chip,
+  row/dossier live-price sync, hologram trust+perf fixes, red->orange dots, index.html identity
+- `f50b289` deployment readiness: settled demotion (per-pair probe evidence only), staged load
+  narration, prices-as-of tick, server cache 60s->900s (12.5s cold -> 23ms warm), snapshot regenerated
+- `1653778` README rewritten to the real study; pair-audit.csv relabeled (221 rows,
+  confirmed_arbitrage -> semantic_survivor, both columns); retriage.ts defused (emits current
+  taxonomy + no longer clobbers app-shaped study.funnel — re-running it was a regression trap)
+- `c6f17d5` PORTFOLIO/LINKEDIN/INTERVIEW-WALKTHROUGH rewritten + publish-gate must-fixes
+  (63-not-45 of 3,791 reversed; fees upstream of the 215 by construction; waterfall captioned
+  52,858->0; red-reserved claim scoped to the consensus field)
+- `f76a0dc` arcs snap to real dots; gap beacons steady (interim state)
+- `77114f1` + `040bbd3` gaps redrawn as amber THREADS at uniform 1:120 link sampling
+  (proportion-honest; beacon dots deleted); legend cleaned (no "(verified)" overclaim, no
+  Standalone-total row, sampling caption)
+- `a8f1b48` + `01a1119` traveling orbs replace the white pulse (hue-true, bidirectional,
+  ride the exact arc bezier, fade at ends)
+- `dec5fda` survivors wall CSS-columns bug: 64 of 79 cards rendered INVISIBLY off-card
+  -> scrollable grid
+- `ca7b6a6` + `19f06c4` experiments 2/3 to full-width bottom row; Experiment-1 card stretches with
+  height-aware scatter (PlotFigure fill mode: absolute inner layer, no resize feedback loop)
 
-## 215 vs 176 — root cause (from the recovered numbers lane)
-corrections.json has 45 semantic_survivor corrections (39 strict_reverify + 6 deterministic_rule).
-- Lab (funnel.ts:44 + LabPage:298-301) subtracts ONLY the 6 deterministic → 221−6=215, keeping the 39 as the
-  funnel's own liquid→strict cull (79→40).
-- Server overlay (server/src/pairs-data.ts) applies ALL 45 → counts.survivor=176 (Terminal chip).
-Both use the bare label "Apparent gaps". corrections.json summary itself says correctedSemanticSurvivors:176.
-Reconciliation = LABELING decision (user's): keep Lab 215 (funnel-stage convention), qualify the Terminal chip
-(e.g. sub/tooltip "221 in study − 45 corrected = 176"). Forcing 176 into the Lab collapses the strict-gate beat.
+## Key technical facts a future session needs
+- **Number model**: raw artifact 221 semantic survivors / 44 strict; displayed funnel 215->79->40->4->0
+  via web/src/lib/funnel.ts::correctedFunnelCounts (subtracts only the 6 deterministic corrections;
+  the 39 strict-reverify kills are booked at the strict gate). Terminal chips apply all 45 ->
+  counts.survivor=176. corrections.json total=128. 63 of 3,791 same-contract flags reversed overall
+  (45 among the 221). A tooltip on the Apparent-gaps chip explains 176-vs-215.
+- **Hologram encoding**: 1 point = 1 market (92,290, to scale, Kalshi 2.43x); links sample at
+  ~1:120 (32 teal gradient threads = 3,791 candidates, 2 amber = 215 gaps); every thread endpoint
+  is a real rendered dot; orbs travel both directions, hue follows position; red never drawn.
+- **Bulk live-map is broken by design** (ROOT-CAUSED): the pairs route uses getActiveMarkets()
+  (FIRST Gamma page only, ~100 markets) vs the study's paginating getAllActiveMarkets -> live map
+  matches ~0/400 corpus pairs. Everything user-visible now uses per-pair probes (/pair-live).
+  Proper fix if wanted: on pairs-cache build, probe the ~400 corpus ids directly (concurrency-limited).
+- **retriage.ts**: safe now, but the verdict-cache vocabulary still says 'confirmed_arbitrage' —
+  the script MAPS it to 'semantic_survivor' on output and writes its funnel to study.triageFunnel.
+- **Static mode**: client.ts VITE_STATIC=true reads web/public/snapshot/*; fetchPairLive returns null
+  -> no live badges/settled demotion in static (correct: can't verify). Regen: dev servers up ->
+  `npm run snapshot` -> `VITE_STATIC=true npm run build:web`.
+- **npm cache is broken** (root-owned ~/.npm/_cacache): use `npm install --cache /tmp/fresh-cache`.
+- **Token-compression hook** (RTK/headroom) mangles file reads mid-session; for surgical edits either
+  disable it or print exact lines via python line-slices and patch by line index.
 
-## Fixes APPLIED this session (uncommitted; web typecheck passes)
-ConsensusField3D.tsx:
-1. Settle-and-freeze: gaps do 2×12s triage breaths then stay at the end state; badge lands on
-   "post-triage · 0 confirmed" permanently (was: looped forever, "verifying…" 87% of the time).
-2. REDUCED_MOTION const (matchMedia) → settled immediately + autoRotate off.
-3. enableZoom={false} (wheel-trap on 62vh hero killed page scroll); hint now "drag to orbit".
-4. Legend "Same-contract pairs (verified)" → "Same-contract candidates (cached)" (overclaim).
-5. frameloop gated by IntersectionObserver (inView ? 'always' : 'never') — no offscreen 60fps burn.
-6. WebGL context-loss listener → graceful text fallback ("3D view unavailable — the numbers ... are the finding").
-PairDossier.tsx:
-7. pair.reason now attributed: small "cached model rationale" label + italic quoted text (display-layer fix
-   for the "exploitable mispricing" contradiction; corpus regen stays user's call).
-8. History fetch failure → `{polymarket:[],kalshi:[]}` sentinel → renders the designed "no history" empty state
-   (was: eternal skeleton pulse, e.g. Hormuz pair, and forever in static mode).
-9. New optional prop `onLive(pairId, live)` — fires on dossier open + manual refresh.
-TerminalPage.tsx:
-10. Chip "Best verified" → "Matches" + count (survivor+same_contract) — was showing 2,626 rows, 93% unverified.
-11. Header strip "3,791 cross-listed contracts" → "same-contract candidates".
-12. liveById state + onLive → queue rows adopt dossier's live prices & recomputed gap (row 83/72·10.5 vs
-    dossier 83/70·12.5 mismatch fixed; orientation via yesAligned respected).
-
-## Fix pass — ALL ITEMS BELOW ARE DONE (kept for reference; see git diff of the polish commit)
-- pairStatus.ts:197 banner grammar ("the last mile no dataset settles" → readable phrasing); :189 wording; :150.
-- LabPage.tsx: Experiment-1 dots #EF4444 → #FF8A1E orange + legend swatch (2 charts; red is design-locked
-  reserved-for-confirmed — using it for "gap beats fees" violates the lock); stat card "few strict-verified" →
-  "40 strict-verified"; Suspense fallback for lazy hologram = labeled skeleton not bare black band; "≥1.76B".
-- ConsensusField3D.tsx readout sub-line: "215 apparent gaps · 0.23% of 92,290 · 0 survive verification" →
-  rebase % to pairs basis ("4.0% of 5,431 same-event pairs") and "0 survive verification" → "0 executable after
-  audit" (40 strict + 4 deep DO survive gates; only executability is zero). Hardcoded '0' literals → bind study.
-- index.html: title still "Prediction Market Scanner" → "Parity — prediction-market efficiency"; add meta
-  description + OG + tiny inline SVG favicon (blue+green dots); consider moving Google-Fonts @import (app.css,
-  render-blocking) to preconnect <link> or @fontsource (npm cache broken: use --cache <tmpdir> workaround).
-- EvidenceWall: "All apparent 215" tab renders 176 cards (server overlay) — make tab count = rendered length.
-- package.json: name/description still scanner-era; license ISC w/o LICENSE file (user decision on license).
-- THEN: `npm run check` (must stay green; 435 tests) → restart shot scripts in scratchpad
-  (`shoot.mjs`, `shoot-terminal2.mjs`, OUT_DIR=scratchpad/shots) → verify hero settles, chip label, rationale
-  attribution → final report to user (also paste verdict atop REVIEW-FINDINGS.md).
-
-## USER DECISIONS needed (do not do unilaterally)
-1. README + docs rewrite to canonical funnel (P0, publish blocker). Old story files to archive:
-   HANDOFF.md, HANDOFF-WIP.md, PAIR-TERMINAL-HANDOFF.md, SCANNER-REFRAME-HANDOFF.md, FINAL-STORY-*, docs stale set.
-2. pair-audit.csv regen (fix scripts/retriage.ts taxonomy labels FIRST — see regression warning above).
-3. 215/176 labeling choice (see root cause section).
-4. `npm run snapshot` for static deploy (web/public/snapshot/* are stubs → static build ships EMPTY; server must
-   be running; punch-list commit 4).
-5. Commit plan (nothing committed yet): suggest (a) polish fixes commit, (b) docs rewrite commit, (c) snapshot commit.
-6. .planning/ (68 files) + root handoff clutter committed in repo — archive/remove before publish?
-7. Terminal is desktop-only (min-width layout; 560px fixed dossier) — responsive pass = larger effort, punt or do.
-8. ~12.5s Terminal first load EVERY visit (no server cache on /api/opportunities/pairs; live matching each hit).
-   Options: server TTL cache w/ provenance timestamp, skeleton copy that says what's happening, or accept.
-
-## Session mechanics (for resume)
-- Dev servers RUNNING in bg task (Vite 5173 + API 3001). npm run check was GREEN at baseline.
-- Screenshots: scratchpad/shots/01-08*.png (Lab hero, scrolls, Terminal, dossier; 07/08 = 30s/45s badge proof).
-- Review workflow run `wf_ded91b61-a9b` (resumed once); raw results in scratchpad review-round1.json (41
-  findings) + review-round2.json (18); full agent transcripts under ~/.claude/projects/.../subagents/workflows/.
-- Memory files to update after user decisions: endgame-punch-list (fold this session), consensus-field-honest
-  (settle behavior changed), scanner-pair-terminal-spec (chip rename).
-- npm cache is broken (root-owned ~/.npm/_cacache) — use `npm install --cache /tmp/fresh-cache` if needed.
+## Where everything lives
+- Findings + final disposition: `REVIEW-FINDINGS.md` (committed, this repo).
+- Raw audit JSON + all verification screenshots: session scratchpad
+  `/private/tmp/claude-501/-Users-anikeit-new-project/0c27b23f-a2bb-49d2-906e-0da60939e6a4/scratchpad/`
+  (review-round1.json, review-round2.json, shots/*.png — ephemeral tmp, will not survive forever).
+- Persistent memory: `~/.claude/projects/-Users-anikeit-new-project/memory/` — endgame-punch-list is
+  the running log; NOTE the hologram gap encoding changed 2026-07-03 (beacons -> sampled amber threads).
+- LinkedIn draft + interview script: docs/LINKEDIN.md, docs/INTERVIEW-WALKTHROUGH.md (gate-checked).

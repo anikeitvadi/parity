@@ -1,28 +1,62 @@
-# REVIEW-FINDINGS — final polish pass (2026-07-02)
+# REVIEW-FINDINGS — final disposition (2026-07-03)
 
-Working tracker for the adversarially-verified final review (41 confirmed findings, round 1;
-round 2 recovering 4 network-killed reviewer lanes is still running — its findings get appended).
-Status legend: [x] fixed this session · [ ] pending · [D] decision needed from Anikeit.
-Delete or archive this file once the punch list is folded into the docs rewrite.
+Adversarially-verified audit: 41 findings (round 1) + 18 (round 2, recovered numbers lane).
+Every item below is either FIXED (commit referenced) or NOTED with an owner/decision.
+Raw findings with evidence follow in the two sections at the bottom of this file.
 
-## Quick status
-- [x] Hologram: settle-and-freeze after 2 breaths (badge now lands on 'post-triage · 0 confirmed' and stays)
-- [x] Hologram: wheel-zoom scroll trap disabled (drag-to-orbit kept), hint text updated
-- [x] Hologram: legend '(verified)' -> 'Same-contract candidates (cached)'
-- [x] Hologram: prefers-reduced-motion respected (no autorotate, settled state immediately)
-- [x] Hologram: frameloop gated by IntersectionObserver (no offscreen 60fps burn)
-- [x] Hologram: WebGL context-loss fallback message
-- [x] Dossier: cached LLM rationale now attributed + quoted ('cached model rationale · "..."')
-- [x] Dossier: price-history fetch failure shows empty-state instead of eternal skeleton
-- [x] Terminal: chip 'Matches'+count, strip label, row/dossier live-price sync, 176-tooltip (settled-row demotion still open)
-- [x] LabPage: red->orange beats-fees dots+swatch, '40 strict-verified' (corrected funnel), >=1.76B, labeled Suspense fallback
-- [x] pairStatus: banner grammar, 'doesn't clear' wording
-- [x] index.html: Parity title, meta+OG description, inline SVG favicon, fonts moved out of render-blocking @import; EvidenceWall 'All apparent' tab counts rendered cards; hologram readout rebased to 4.0% of 5,431 same-event pairs / '0 executable after audit'
-- [D] README + docs rewrite (P0 — old 2,219->7->0 story everywhere)
-- [D] snapshot stubs (static deploy ships empty until `npm run snapshot`)
-- [D] 215 vs 176 cross-tab reconcile (root cause in round-2 numbers lane)
-- [D] root handoff-file cleanup, LICENSE/package.json metadata, repo description
-- [D] responsive layout (Terminal is desktop-only today)
+## FIXED — app (commits 3502c93, f50b289, f76a0dc, a8f1b48, 01a1119, 040bbd3, dec5fda, ca7b6a6, 19f06c4)
+- Dossier: raw LLM rationale attributed + quoted ("cached model rationale"); history fetch failure shows
+  empty state (was eternal skeleton); row/dossier live-price sync via onLive (row 83/72 vs dossier 83/70 bug).
+- Terminal: "Best verified" chip -> "Matches"+count (was 2,626 rows, 93% unverified); strip label
+  "same-contract candidates"; 176-vs-215 tooltip on Apparent-gaps chip; settled pairs demoted+badged
+  (per-pair probe evidence ONLY — bulk flags proven untrustworthy); staged first-load narration;
+  "prices as of HH:MM" tick; server pairs/market cache 60s->900s (12.5s cold -> 23ms warm).
+- Hologram: gap beacons REPLACED by amber gap-threads at uniform 1:120 link sampling (proportion-honest);
+  thread endpoints snap to real dots; bidirectional traveling orbs replace the white pulse; legend cleaned
+  (no "(verified)" overclaim, no Standalone-total row, sampling caption); zoom trap off; reduced-motion;
+  offscreen frameloop gating; WebGL context-loss fallback; labeled Suspense fallback; readout rebased
+  ("4.0% of 5,431 same-event pairs · 0 executable after audit"); "0" bound to study.
+- Lab: beats-fees dots red->orange (red stays reserved); "40 strict-verified" from corrected funnel;
+  ">=1.76B"; EvidenceWall "All apparent" tab counts rendered cards; survivors wall CSS-columns bug
+  (64 of 79 cards were invisible) -> scrollable grid; Experiments 2/3 to full-width bottom row;
+  Experiment-1 card stretches + height-aware scatter fill.
+- index.html: Parity title, meta description, OG title/desc, inline SVG favicon, fonts out of
+  render-blocking @import.
+- pairStatus copy: banner grammar, "doesn't clear the fee floor".
+
+## FIXED — data + docs (commits 1653778, c6f17d5)
+- pair-audit.csv: 221 rows relabeled confirmed_arbitrage -> semantic_survivor (both columns).
+- scripts/retriage.ts: emits current taxonomy; no longer clobbers app-shaped study.funnel (regression trap).
+- README + docs/PORTFOLIO + docs/LINKEDIN + docs/INTERVIEW-WALKTHROUGH rewritten to the 92,290 story,
+  then publish-gate fact-checked; all must-fixes applied (63-not-45 of 3,791 reversed; fees are upstream
+  of the 215 by construction; waterfall captioned 52,858->0; red-reserved claim scoped to consensus field;
+  lower-bound hedges).
+- web/public/snapshot/* regenerated; static build VERIFIED zero-/api (Lab + 2,626-pair Terminal).
+
+## NOTED — ship checklist (user actions)
+1. PUSH + PR + merge (nothing is public yet; ~16 commits on feat/consensus-field-3d).
+2. Deploy (vercel.json builds static from committed snapshot) + one live click-through.
+3. If repo goes public: archive root AI artifacts (SESSION-HANDOFF.md, REVIEW-FINDINGS.md,
+   SCANNER-REFRAME-HANDOFF.md) + decide .planning/ (68 committed files); add LICENSE file (package.json
+   says ISC; README says ISC; no LICENSE file exists); optionally rename package.json name/description.
+
+## NOTED — open, deliberately not done (with rationale)
+- Funnel-ledger card is shorter than the waterfall next to it (same stretch treatment as Experiment 1
+  would fix; was in flight when interrupted). Cosmetic.
+- Bulk live-map matches ~0/400 (route uses first-page-capped getActiveMarkets vs study's paginating
+  getAllActiveMarkets). ROOT-CAUSED + specced in SESSION-HANDOFF; harmless now (nothing user-visible
+  trusts bulk flags); proper fix = probe the ~400 corpus ids on cache build.
+- 12.5s cold load: mitigated (900s cache + staged narration); first visitor after idle still waits.
+- Terminal is desktop-only (560px fixed dossier, no responsive pass). Post-ship.
+- No deep links / hash router (/pair/:id) — selection lost on refresh. Post-ship nicety.
+- P3 copy nits never applied: Overlaps-by-category counts lack thousands separators (LabPage ~:441);
+  dossier 7-point CHECKS chips have no tooltips + "match 76%" unexplained (PairDossier ~:130);
+  LabPage hedging bullet ~:420 could name 3,017/2.5pp/9pp explicitly.
+- OG image (og:image) absent — link previews show text only.
+- Google Fonts still loaded from CDN (moved to parallel <link>; @fontsource self-host possible;
+  npm cache is broken — use --cache /tmp/fresh-cache).
+- README has no screenshots; a hero capture would sell it (shots exist in session scratchpad).
+- Hologram taste knobs if wanted: orb size (Orbs size prop), crossing speed (7+rnd*5 in buildArcGeo).
 
 ## Full findings (severity-sorted, with suggested fixes)
 
