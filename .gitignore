@@ -60,3 +60,6 @@ quick-test.mjs
 .claude/
 PORTFOLIO-STRATEGY.md
 .planning/
+.vercel
+.env*
+docs/archive/

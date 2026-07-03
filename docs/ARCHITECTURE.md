@@ -1,8 +1,7 @@
 # Architecture & Data Flow
 
 How data moves from three external markets into a single research terminal. Diagrams are
-Mermaid (render on GitHub). For the recruiter version see [PORTFOLIO.md](./PORTFOLIO.md);
-for the interview talking points see [INTERVIEW-WALKTHROUGH.md](./INTERVIEW-WALKTHROUGH.md).
+Mermaid (render on GitHub). For the narrative version of the study see [PORTFOLIO.md](./PORTFOLIO.md).
 
 ## System overview
 

@@ -83,7 +83,7 @@ in stages, each cheap enough to afford the next:
   floor, a 7-point contract-spec checklist, a $10k depth cut, and manual review of
   the final residuals: 215 → 79 → 40 → 4 → **0**.
 
-## 4. The corrections layer — the part I'd want to be interviewed on
+## 4. The corrections layer — where the credibility lives
 
 The verifier over-matches on look-alike questions. That's a finding, not a footnote,
 and the credibility of "zero" rests on how those errors are handled:

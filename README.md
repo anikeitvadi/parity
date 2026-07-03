@@ -4,7 +4,7 @@
 
 I set out to find cross-platform mispricings between Polymarket and Kalshi. The first small scan (2,219 markets, 7 overlaps) suggested there was nothing there. So I rebuilt the pipeline to scan **the entire standalone-market universe of both platforms — 92,290 markets — and audited every apparent price gap down to the last residual.** The answer got stronger: hundreds of gaps *look* free, and after fees, liquidity, contract-spec verification, and manual review, **zero are executable**.
 
-The finding is the product. Parity ships two surfaces: the **Lab**, which walks an interviewer through the full 92,290 → 0 audit, and the **Terminal**, a live pair-by-pair decision tool built on the same verifier.
+The finding is the product. Parity ships two surfaces: the **Lab**, which walks you through the full 92,290 → 0 audit, and the **Terminal**, a live pair-by-pair decision tool built on the same verifier.
 
 ---
 
@@ -33,7 +33,7 @@ Every number is derived from the shipped artifact (`docs/data/efficiency-study.j
 - **Terminal** — a live cross-platform pair terminal on the same corpus: 2,626 matched pairs, live per-pair price refresh against both venues' books, a dossier per pair (gap vs fee meter, price history, word-diffed contract texts, the cached verifier's verdict — quoted and attributed — and a "why this isn't free money" banner with the exact gap−fee arithmetic), plus streamed AI research briefs with cited sources.
 - **Core engine** (`src/`) — platform clients, embedding matcher, batch LLM verification transport with crash-resilient polling, SQLite persistence, calibration scoring (Brier) — shared by the server, study scripts, and the original Ink CLI.
 
-## Honesty architecture (the part I'd want to be interviewed on)
+## Honesty architecture
 
 The study's credibility rests on how errors are handled, not on the headline:
 
@@ -46,7 +46,7 @@ The study's credibility rests on how errors are handled, not on the headline:
 ## Quick start
 
 ```bash
-git clone <repo-url> && cd prediction-market-scanner
+git clone https://github.com/anikeitvadi/parity.git && cd parity
 npm install
 cp .env.example .env     # works out of the box — no API keys needed to browse
 npm run dev:web          # API server + Vite frontend → http://localhost:5173
