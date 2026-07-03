@@ -136,7 +136,8 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
   useEffect(() => {
     if (!autoSelected.current && filtered.length > 0) {
       autoSelected.current = true;
-      setSelectedId(filtered[0].id);
+      // Desktop only: a phone should land on the list, not a pre-opened dossier.
+      if (window.matchMedia('(min-width: 1024px)').matches) setSelectedId(filtered[0].id);
     }
   }, [filtered]);
 
@@ -191,7 +192,7 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
 
       {/* Header: freshness + search + status chips + sort */}
       <div className="shrink-0 border-b border-[#1E293B] bg-[#0E1223]">
-        <div className="h-11 flex items-center gap-2.5 px-4">
+        <div className="h-11 flex items-center gap-2.5 px-4 overflow-x-auto">
           <div className="shrink-0">
             <div className="text-[11px] font-semibold text-[#E2E8F0] leading-none">Live cross-platform pairs</div>
             <div className="text-[9px] text-[#64748B] mt-0.5">
@@ -271,15 +272,24 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
 
       {/* Body: queue + dossier */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-[560px] shrink-0 border-r border-[#1E293B] overflow-y-auto">
+        {/* On phones the queue and dossier take turns; from lg up they sit side by side. */}
+        <div className={`${selectedId ? 'hidden lg:block' : ''} w-full lg:w-[560px] shrink-0 border-r border-[#1E293B] overflow-y-auto`}>
           {!loading && filtered.length === 0 ? (
             <EmptyState statusFilter={statusFilter} hasData={!!data} onReset={() => { setStatusFilter('curated'); setSearch(''); }} />
           ) : (
             <PairQueue pairs={filtered} selectedId={selectedId} onSelect={onSelect} loading={loading} />
           )}
         </div>
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <PairDossier pair={selected} onOpenLab={onOpenLab} verification={data?.meta.verification ?? null} onLive={onLive} />
+        <div className={`${selectedId ? 'flex' : 'hidden lg:flex'} flex-1 min-w-0 overflow-hidden flex-col`}>
+          <button
+            onClick={() => setSelectedId(null)}
+            className="lg:hidden h-9 shrink-0 flex items-center gap-1.5 px-4 text-[11px] text-[#94A3B8] border-b border-[#1E293B] text-left"
+          >
+            ← All pairs
+          </button>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <PairDossier pair={selected} onOpenLab={onOpenLab} verification={data?.meta.verification ?? null} onLive={onLive} />
+          </div>
         </div>
       </div>
     </div>

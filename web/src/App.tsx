@@ -49,9 +49,9 @@ export function App() {
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
           <SnapshotBadge />
-          <Clock />
+          <div className="hidden md:block"><Clock /></div>
           {!IS_STATIC && (
             <a
               href="/api/status"

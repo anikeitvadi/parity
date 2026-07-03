@@ -23,7 +23,8 @@ export function SnapshotBadge() {
       className="inline-flex items-center gap-1.5 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-300/90"
     >
       <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-      Frozen snapshot · {when} · not live
+      <span className="whitespace-nowrap">Frozen snapshot</span>
+      <span className="hidden sm:inline whitespace-nowrap">· {when} · not live</span>
     </span>
   );
 }
