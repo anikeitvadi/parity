@@ -37,7 +37,7 @@ Every number is derived from the shipped artifact (`docs/data/efficiency-study.j
 
 The study's credibility rests on how errors are handled, not on the headline:
 
-- **The raw artifact is never rewritten.** `efficiency-study.json` says 221 semantic survivors. A batch **strict re-verification pass** (11,138 cached AI verification calls, single model `gpt-4o-mini`, single prompt `v3-market-level`) plus deterministic scope rules produced **128 corrections** (`corrections.json`) — 45 of them against those 221 survivors. The app applies corrections as a **display-layer overlay**, so raw data and judgment stay separable and diffable.
+- **The raw artifact is never rewritten.** `efficiency-study.json` says 221 semantic survivors. The study's verification layer is 11,138 cached AI calls — single model `gpt-4o-mini`, single prompt `v3-market-level`. A batch **strict re-verification pass** plus deterministic scope rules produced **128 corrections** (`corrections.json`) — 45 of them against those 221 survivors. The app applies corrections as a **display-layer overlay**, so raw data and judgment stay separable and diffable.
 - **The corrections make the result *stronger*, not weaker.** Example: the four highest apparent gaps were Polymarket *county-level* contracts matched against Kalshi *statewide* contracts — 96–99pp "gaps" that pass naive checks. A deterministic county-scope rule now catches the whole class, in both the app and the correction generator.
 - **Displayed funnel semantics:** the Lab shows 215 apparent gaps (221 − 6 deterministic scope corrections), and books the 39 strict-recheck failures where they belong — at the strict-spec gate (79 → 40). The Terminal's per-pair chips apply all 45 (hover the "Apparent gaps 176" chip for the reconciliation).
 - **Red is reserved.** Across every visualization, red = confirmed executable arbitrage. It is never drawn. That absence is the argument.
@@ -96,7 +96,7 @@ Three TypeScript projects typecheck independently; `npm run check` runs all thre
 
 - **One scan.** The corpus is frozen at June 30 2026. The Terminal refreshes prices per pair on demand, but the match set itself is a snapshot; markets list and delist daily.
 - **The universe counts are lower bounds** where pagination caps applied (Polymarket is reported as ≥26,930 for exactly this reason).
-- **The verifier over-matches on look-alike questions.** That's a finding, not a footnote — it's why the strict re-verification and correction layer exist, and 45 of its 3,791 same-contract flags were reversed on audit.
+- **The verifier over-matches on look-alike questions.** That's a finding, not a footnote — it's why the strict re-verification and correction layer exist, and 63 of its 3,791 same-contract flags were reversed on audit — 45 of them among the 221 apparent-gap survivors.
 - **Executability was never proven or disproven at the book level.** No depth, slippage, or settlement-timing test has been run; the study stops at "no gap survives the checks a trade would have to pass first."
 - **No accounts, single server.** SQLite + sqlite-vec, deliberately — the whole study stays reproducible from files in the repo.
 
@@ -114,7 +114,7 @@ npm run dashboard -- --demo   # original CLI terminal UI
 
 ## Deploy
 
-**Static (recommended for the public demo):** `npm run snapshot`, then `VITE_STATIC=true npm run build:web` — the bundle serves the Lab and the full 2,626-pair Terminal with zero backend calls (verified). `vercel.json` does this on push.
+**Static (recommended for the public demo):** `npm run snapshot`, then `VITE_STATIC=true npm run build:web` — the bundle serves the Lab and the full 2,626-pair Terminal with zero backend calls (verified). `vercel.json` runs the static build on push (the snapshot is committed to the repo).
 
 **Full container:** one image serves the built frontend and the API together; briefs are rate-limited per IP and globally so a public demo can't drain a key.
 
