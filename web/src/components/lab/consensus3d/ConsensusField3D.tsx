@@ -54,22 +54,51 @@ const POINT_FRAG = /* glsl */ `
 
 // ---- Flowing lines (the same-contract bridge) ----------------------------------------------------
 const LINE_VERT = /* glsl */ `
-  uniform float uTime;
-  attribute float aT; attribute float aPhase; attribute vec3 aColor;
-  varying vec3 vColor; varying float vGlow;
+  attribute vec3 aColor;
+  varying vec3 vColor;
   void main() {
     vColor = aColor;
-    float p = fract(aT * 1.5 - uTime * 0.11 + aPhase);
-    vGlow = smoothstep(0.86, 1.0, p);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 const LINE_FRAG = /* glsl */ `
   uniform float uOpacity;
-  varying vec3 vColor; varying float vGlow;
+  varying vec3 vColor;
   void main() {
-    vec3 c = vColor + (vColor * 1.2 + vec3(0.25)) * vGlow * 1.5;
-    gl_FragColor = vec4(c, uOpacity + vGlow * 0.5);
+    gl_FragColor = vec4(vColor, uOpacity);
+  }
+`;
+
+// One orb per thread travels the same quadratic bezier; its color follows its position along the way.
+const ORB_VERT = /* glsl */ `
+  attribute vec3 aCtrl;
+  attribute vec3 aEnd;
+  attribute float aPhase;
+  attribute float aSpeed;
+  uniform float uTime;
+  uniform float uSize;
+  varying float vT;
+  void main() {
+    float t = fract(uTime * aSpeed + aPhase);
+    vT = t;
+    float m = 1.0 - t;
+    vec3 p = m * m * position + 2.0 * m * t * aCtrl + t * t * aEnd;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    gl_PointSize = uSize * (26.0 / -mv.z);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+const ORB_FRAG = /* glsl */ `
+  uniform vec3 uColorA;
+  uniform vec3 uColorB;
+  uniform float uOpacity;
+  varying float vT;
+  void main() {
+    vec2 uv = gl_PointCoord - 0.5;
+    float a = smoothstep(0.5, 0.06, length(uv));
+    float ends = smoothstep(0.0, 0.1, vT) * (1.0 - smoothstep(0.9, 1.0, vT));
+    vec3 c = mix(uColorA, uColorB, vT);
+    gl_FragColor = vec4(c * 1.6, a * ends * uOpacity);
   }
 `;
 
@@ -108,6 +137,11 @@ function buildArcGeo(
   const colors = new Float32Array(N * SEG * 2 * 3);
   const ts = new Float32Array(N * SEG * 2);
   const phases = new Float32Array(N * SEG * 2);
+  const starts = new Float32Array(N * 3);
+  const ctrls = new Float32Array(N * 3);
+  const ends = new Float32Array(N * 3);
+  const orbPhases = new Float32Array(N);
+  const speeds = new Float32Array(N);
   let w = 0;
   for (let i = 0; i < N; i++) {
     const ax = A[i * 3], ay = A[i * 3 + 1], az = A[i * 3 + 2];
@@ -118,6 +152,11 @@ function buildArcGeo(
     const cy = (ay + by) / 2 + (rnd(i * 11.7) - 0.5) * mag * 1.7;
     const cz = (az + bz) / 2 + (rnd(i * 13.3) - 0.5) * mag * 1.7;
     const phase = phasesIn[i];
+    starts[i * 3] = ax; starts[i * 3 + 1] = ay; starts[i * 3 + 2] = az;
+    ctrls[i * 3] = cx; ctrls[i * 3 + 1] = cy; ctrls[i * 3 + 2] = cz;
+    ends[i * 3] = bx; ends[i * 3 + 1] = by; ends[i * 3 + 2] = bz;
+    orbPhases[i] = phase;
+    speeds[i] = 1 / (7 + rnd(i * 3.7) * 5); // one crossing every 7-12s
     let px = 0, py = 0, pz = 0, pt = 0;
     for (let k = 0; k <= SEG; k++) {
       const t = k / SEG, m = 1 - t;
@@ -137,23 +176,43 @@ function buildArcGeo(
       px = x; py = y; pz = z; pt = t;
     }
   }
-  return { positions, colors, ts, phases };
+  return { positions, colors, ts, phases, starts, ctrls, ends, orbPhases, speeds };
 }
 
 function ThreadSet({ geo, opacity }: { geo: ReturnType<typeof buildArcGeo>; opacity: number }) {
-  const matRef = useRef<THREE.ShaderMaterial>(null);
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uOpacity: { value: opacity } }), [opacity]);
-  useFrame((s) => { if (matRef.current) matRef.current.uniforms.uTime.value = s.clock.elapsedTime; });
+  const uniforms = useMemo(() => ({ uOpacity: { value: opacity } }), [opacity]);
   return (
     <lineSegments>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[geo.positions, 3]} />
         <bufferAttribute attach="attributes-aColor" args={[geo.colors, 3]} />
-        <bufferAttribute attach="attributes-aT" args={[geo.ts, 1]} />
-        <bufferAttribute attach="attributes-aPhase" args={[geo.phases, 1]} />
       </bufferGeometry>
-      <shaderMaterial ref={matRef} uniforms={uniforms} vertexShader={LINE_VERT} fragmentShader={LINE_FRAG} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      <shaderMaterial uniforms={uniforms} vertexShader={LINE_VERT} fragmentShader={LINE_FRAG} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
     </lineSegments>
+  );
+}
+
+function Orbs({ geo, colorA, colorB, size = 0.55 }: { geo: ReturnType<typeof buildArcGeo>; colorA: string; colorB: string; size?: number }) {
+  const matRef = useRef<THREE.ShaderMaterial>(null);
+  const uniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uSize: { value: size },
+    uOpacity: { value: 0.9 },
+    uColorA: { value: new THREE.Color(colorA) },
+    uColorB: { value: new THREE.Color(colorB) },
+  }), [size, colorA, colorB]);
+  useFrame((s) => { if (matRef.current) matRef.current.uniforms.uTime.value = s.clock.elapsedTime; });
+  return (
+    <points>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[geo.starts, 3]} />
+        <bufferAttribute attach="attributes-aCtrl" args={[geo.ctrls, 3]} />
+        <bufferAttribute attach="attributes-aEnd" args={[geo.ends, 3]} />
+        <bufferAttribute attach="attributes-aPhase" args={[geo.orbPhases, 1]} />
+        <bufferAttribute attach="attributes-aSpeed" args={[geo.speeds, 1]} />
+      </bufferGeometry>
+      <shaderMaterial ref={matRef} uniforms={uniforms} vertexShader={ORB_VERT} fragmentShader={ORB_FRAG} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+    </points>
   );
 }
 
@@ -165,7 +224,12 @@ const LINKS_PER_THREAD = 120;
 function Bridge({ model, links }: { model: FieldModel; links: number }) {
   const count = Math.max(8, Math.round(links / LINKS_PER_THREAD));
   const geo = useMemo(() => buildArcGeo(model.bridgeA, model.bridgeB, model.bridgePhase, count, grad), [model, count]);
-  return <ThreadSet geo={geo} opacity={0.16} />;
+  return (
+    <>
+      <ThreadSet geo={geo} opacity={0.16} />
+      <Orbs geo={geo} colorA={POLY_COLOR} colorB={KALSHI_COLOR} />
+    </>
+  );
 }
 
 function GapThreads({ model, gaps }: { model: FieldModel; gaps: number }) {
@@ -174,7 +238,12 @@ function GapThreads({ model, gaps }: { model: FieldModel; gaps: number }) {
     () => buildArcGeo(model.gapA, model.gapB, model.gapPhase, count, gapTint, 0.8),
     [model, count]
   );
-  return <ThreadSet geo={geo} opacity={0.3} />;
+  return (
+    <>
+      <ThreadSet geo={geo} opacity={0.3} />
+      <Orbs geo={geo} colorA={GAP_COLOR} colorB={GAP_COLOR} size={0.5} />
+    </>
+  );
 }
 
 function Scene({ model, links, gaps }: { model: FieldModel; links: number; gaps: number }) {
