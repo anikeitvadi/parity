@@ -208,12 +208,13 @@ function resolveSide(snapshotYes: number, live: PairLive['polymarket'], orient?:
   return { yes: snapshotYes, fresh: 'snapshot' };
 }
 
-export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow | null; onOpenLab?: () => void; verification?: PairsVerification | null }) {
+export function PairDossier({ pair, onOpenLab, verification, onLive }: { pair: PairRow | null; onOpenLab?: () => void; verification?: PairsVerification | null; onLive?: (pairId: string, live: PairLive) => void }) {
   const [live, setLive] = useState<PairLive | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState<PairHistory | null>(null);
   const polyId = pair?.polymarket.id;
   const kalshiId = pair?.kalshi.id;
+  const pairId = pair?.id;
 
   useEffect(() => {
     if (!polyId || !kalshiId) { setLive(null); setHistory(null); return; }
@@ -222,23 +223,23 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
     setHistory(null);
     setRefreshing(true);
     fetchPairLive(polyId, kalshiId)
-      .then((r) => { if (alive) setLive(r); })
+      .then((r) => { if (alive) { setLive(r); if (r && pairId) onLive?.(pairId, r); } })
       .catch(() => { if (alive) setLive(null); })
       .finally(() => { if (alive) setRefreshing(false); });
     fetchPairHistory(polyId, kalshiId, 30)
-      .then((r) => { if (alive) setHistory(r); })
-      .catch(() => { if (alive) setHistory(null); });
+      .then((r) => { if (alive) setHistory(r ?? { polymarket: [], kalshi: [] }); })
+      .catch(() => { if (alive) setHistory({ polymarket: [], kalshi: [] }); });
     return () => { alive = false; };
-  }, [polyId, kalshiId]);
+  }, [polyId, kalshiId, pairId, onLive]);
 
   const refreshPrices = useCallback(() => {
     if (!polyId || !kalshiId) return;
     setRefreshing(true);
     fetchPairLive(polyId, kalshiId)
-      .then((r) => setLive(r))
+      .then((r) => { setLive(r); if (r && pairId) onLive?.(pairId, r); })
       .catch(() => { /* keep prior prices */ })
       .finally(() => setRefreshing(false));
-  }, [polyId, kalshiId]);
+  }, [polyId, kalshiId, pairId, onLive]);
 
   if (!pair) {
     return (
@@ -380,7 +381,8 @@ export function PairDossier({ pair, onOpenLab, verification }: { pair: PairRow |
             )}
             {pair.reason && (
               <div className={`text-[11px] leading-snug ${pair.corrected ? 'text-[#64748B] line-through decoration-[#475569]/60' : 'text-[#CBD5E1]'}`}>
-                {pair.reason}
+                <span className="text-[9px] uppercase tracking-wide text-[#64748B] mr-1.5">cached model rationale</span>
+                <span className="italic">“{pair.reason}”</span>
               </div>
             )}
             <div className="text-[10px] text-[#64748B]">

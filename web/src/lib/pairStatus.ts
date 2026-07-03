@@ -186,7 +186,7 @@ export function causeOfDeath(pair: PairRow): string {
   if (!pair.beatsFees) {
     return `Dies on fees: gap ${pp(pair.gap)} − ~${pp(pair.feeFloor)} round-trip = ${pp(
       pair.gap - pair.feeFloor
-    )} net. It never clears the fee floor.`;
+    )} net. It doesn't clear the fee floor.`;
   }
   if (pair.liquidity < 10000) {
     return `Dies on depth: the gap clears fees, but only ${usd(pair.liquidity)} sits on the thin side — below the >$10k the deepest gate needs.`;
@@ -194,5 +194,5 @@ export function causeOfDeath(pair: PairRow): string {
   if (!pair.strictSurvivor) {
     return `Unverified: clears fees and depth, but hasn't passed the 7-point contract-spec check — not confirmed as the same bet.`;
   }
-  return `Passes every automated gate. What stays unproven is the last mile no dataset settles: order-book depth, slippage, and settlement timing.`;
+  return `Passes every automated gate. What stays unproven is the last mile — order-book depth, slippage, and settlement timing — which no cached dataset can settle.`;
 }

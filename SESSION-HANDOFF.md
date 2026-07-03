@@ -2,7 +2,7 @@
 
 > Supersedes the previous 3D-consensus-field handoff (recoverable at git `c76b1d9^`).
 > READ THIS FIRST next session. Companion file: `REVIEW-FINDINGS.md` (all 59 verified findings, severity-sorted, with fixes).
-> Branch `feat/consensus-field-3d`, NOTHING pushed. Working tree has UNCOMMITTED polish fixes (listed below).
+> Branch `feat/consensus-field-3d`, NOTHING pushed. Polish fixes are COMMITTED and verified (check GREEN, 435 tests; visually confirmed via scratchpad/shots/10-11: hero settles on 'post-triage · 0 confirmed', row/dossier prices agree, chip reads 'Matches 2,626', rationale attributed).
 
 ## What this session was
 User asked for a final check of everything (heroes, UI/UX, thesis, docs) + polish + improvement suggestions.
@@ -52,7 +52,7 @@ TerminalPage.tsx:
 12. liveById state + onLive → queue rows adopt dossier's live prices & recomputed gap (row 83/72·10.5 vs
     dossier 83/70·12.5 mismatch fixed; orientation via yesAligned respected).
 
-## Fix pass REMAINING (all specified in REVIEW-FINDINGS.md)
+## Fix pass — ALL ITEMS BELOW ARE DONE (kept for reference; see git diff of the polish commit)
 - pairStatus.ts:197 banner grammar ("the last mile no dataset settles" → readable phrasing); :189 wording; :150.
 - LabPage.tsx: Experiment-1 dots #EF4444 → #FF8A1E orange + legend swatch (2 charts; red is design-locked
   reserved-for-confirmed — using it for "gap beats fees" violates the lock); stat card "few strict-verified" →

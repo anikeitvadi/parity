@@ -130,7 +130,7 @@ function GapDistribution({ pairs }: { pairs: ChartPair[] }) {
             x: 'gapPp',
             y: () => 0,
             r: 'volume',
-            fill: (d: ChartPair) => (d.beatsFees ? '#EF4444' : '#22D3EE'),
+            fill: (d: ChartPair) => (d.beatsFees ? '#FF8A1E' : '#22D3EE'),
             fillOpacity: 0.85,
             stroke: '#020617',
             strokeWidth: 1,
@@ -189,7 +189,7 @@ function SimilarityVsGap({ pairs }: { pairs: ChartPair[] }) {
             x: 'similarity',
             y: 'gapPp',
             r: 'volume',
-            fill: (d: ChartPair) => (d.beatsFees ? '#EF4444' : '#22D3EE'),
+            fill: (d: ChartPair) => (d.beatsFees ? '#FF8A1E' : '#22D3EE'),
             fillOpacity: 0.85,
             stroke: '#020617',
             strokeWidth: 1,
@@ -326,7 +326,7 @@ export function LabPage() {
         <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-md border border-[#1E293B] bg-[#0B1120] px-4 py-2.5">
           <span className="text-[9px] uppercase tracking-wider text-[#64748B] shrink-0">scale of one scan</span>
           {([
-            [((s.universe.polymarket * s.universe.kalshi) / 1e9).toFixed(2) + 'B', 'possible cross-listings'],
+            ['≥' + ((s.universe.polymarket * s.universe.kalshi) / 1e9).toFixed(2) + 'B', 'possible cross-listings'],
             [s.universe.total.toLocaleString(), 'standalone markets'],
             [(f?.sameEvent ?? m.topicalOverlaps).toLocaleString(), 'same-event pairs'],
             [(s.verification?.provenance?.reduce((a, p) => a + (p.n ?? 0), 0) || s.verification?.cachedVerdicts || 0).toLocaleString(), 'AI verification calls'],
@@ -343,7 +343,16 @@ export function LabPage() {
 
       {/* Signature visual — full-bleed 3D consensus field: real markets, threads, gap flares. */}
       <div className="mb-5">
-        <Suspense fallback={<div className="border-y border-[#1E293B] bg-[#04060e]" style={{ height: '62vh' }} />}>
+        <Suspense
+          fallback={
+            <div className="relative border-y border-[#1E293B] bg-[#04060e]" style={{ height: '62vh' }}>
+              <div className="absolute top-4 left-5 space-y-1">
+                <div className="text-[10px] tracking-[0.25em] text-[#475569] font-mono">CONSENSUS FIELD</div>
+                <div className="text-[12px] text-[#64748B]">rendering the 92,290-market universe…</div>
+              </div>
+            </div>
+          }
+        >
           <ConsensusField3D study={s} apparentCount={correctedSemantic} />
         </Suspense>
       </div>
@@ -352,7 +361,7 @@ export function LabPage() {
         {/* Headline numbers */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           <Stat value={s.universe.total.toLocaleString()} label="Standalone markets enumerated" sub={`Poly ${polyDenom} · Kalshi ${s.universe.kalshi.toLocaleString()}`} />
-          <Stat value={(f?.sameContract ?? m.sameContract).toLocaleString()} label="Candidate same-contract (cached)" sub={`of ${(f?.sameEvent ?? m.topicalOverlaps).toLocaleString()} same-event · few strict-verified`} />
+          <Stat value={(f?.sameContract ?? m.sameContract).toLocaleString()} label="Candidate same-contract (cached)" sub={`of ${(f?.sameEvent ?? m.topicalOverlaps).toLocaleString()} same-event · ${correctedFunnel.strictSpecSurvivors.toLocaleString()} strict-verified`} />
           <Stat value={correctedSemantic.toLocaleString()} label="Apparent gaps" sub={`clear ${feePp}pp fees + entity/scope`} />
           <Stat value={String(f?.clearExecutableArb ?? 0)} label="Clear executable arbitrage" sub="after liquidity + spec + manual" />
         </div>
@@ -405,7 +414,7 @@ export function LabPage() {
 
             <div className="flex items-center gap-4 text-[10px] text-[#64748B] pt-1 border-t border-[#1E293B]">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22D3EE]" /> below fee line</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /> gap beats fees</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#FF8A1E]" /> gap beats fees</span>
               <span className="flex-1" />
               <span>○ size = volume</span>
             </div>

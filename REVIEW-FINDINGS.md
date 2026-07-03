@@ -14,10 +14,10 @@ Delete or archive this file once the punch list is folded into the docs rewrite.
 - [x] Hologram: WebGL context-loss fallback message
 - [x] Dossier: cached LLM rationale now attributed + quoted ('cached model rationale · "..."')
 - [x] Dossier: price-history fetch failure shows empty-state instead of eternal skeleton
-- [ ] Terminal: chip rename, strip label, settled-row handling, row/dossier price sync
-- [ ] LabPage: red->orange experiment dots, copy fixes, Suspense fallback + error boundary
-- [ ] pairStatus: banner grammar, 'never clears' wording
-- [ ] index.html: title/meta/OG/favicon
+- [x] Terminal: chip 'Matches'+count, strip label, row/dossier live-price sync, 176-tooltip (settled-row demotion still open)
+- [x] LabPage: red->orange beats-fees dots+swatch, '40 strict-verified' (corrected funnel), >=1.76B, labeled Suspense fallback
+- [x] pairStatus: banner grammar, 'doesn't clear' wording
+- [x] index.html: Parity title, meta+OG description, inline SVG favicon, fonts moved out of render-blocking @import; EvidenceWall 'All apparent' tab counts rendered cards; hologram readout rebased to 4.0% of 5,431 same-event pairs / '0 executable after audit'
 - [D] README + docs rewrite (P0 — old 2,219->7->0 story everywhere)
 - [D] snapshot stubs (static deploy ships empty until `npm run snapshot`)
 - [D] 215 vs 176 cross-tab reconcile (root cause in round-2 numbers lane)

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
@@ -19,6 +19,9 @@ const THREAD_COLOR = '#22D3EE';
 const GAP_COLOR = '#FF8A1E'; // apparent gaps; red stays reserved for confirmed arb (= 0)
 const POLY_RGB: [number, number, number] = [90 / 255, 162 / 255, 1.0];
 const KALSHI_RGB: [number, number, number] = [34 / 255, 197 / 255, 94 / 255];
+
+const REDUCED_MOTION =
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const rnd = (s: number) => {
   const v = Math.sin(s * 12.9898) * 43758.5453;
@@ -86,7 +89,7 @@ function PointCloud({ positions, center, color, size, opacity, twinkle = 0.35 }:
   );
 }
 
-/** Gap beacons: the real ~215 apparent gaps, throbbing amber. A 12s triage breath fades them to zero. */
+/** Gap beacons: the real ~215 apparent gaps, throbbing amber. Two 12s triage breaths, then the field settles at the end state — 0 confirmed. */
 function Gaps({ positions, onPhase }: { positions: Float32Array; onPhase: (p: 'scanning' | 'resolved') => void }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
   const phaseRef = useRef<'scanning' | 'resolved'>('scanning');
@@ -95,15 +98,17 @@ function Gaps({ positions, onPhase }: { positions: Float32Array; onPhase: (p: 's
   }), []);
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    const settled = REDUCED_MOTION || t >= 24;
     const c = (t % 12) / 12;
     let vis: number;
-    if (c < 0.08) vis = 0;
+    if (settled) vis = 0;
+    else if (c < 0.08) vis = 0;
     else if (c < 0.2) vis = (c - 0.08) / 0.12;
     else if (c < 0.8) vis = 1;
     else if (c < 0.95) vis = 1 - (c - 0.8) / 0.15;
     else vis = 0;
     if (matRef.current) { matRef.current.uniforms.uTime.value = t; matRef.current.uniforms.uOpacity.value = vis; }
-    const want = c < 0.08 || c >= 0.95 ? 'resolved' : 'scanning';
+    const want = settled || c < 0.08 || c >= 0.95 ? 'resolved' : 'scanning';
     if (phaseRef.current !== want) { phaseRef.current = want; onPhase(want); }
   });
   return (
@@ -183,7 +188,7 @@ function Scene({ model, onPhase }: { model: FieldModel; onPhase: (p: 'scanning' 
       <PointCloud positions={model.kalshiPos} center={KALSHI_CENTER} color={KALSHI_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
       <Bridge model={model} />
       <Gaps positions={model.gapPos} onPhase={onPhase} />
-      <OrbitControls autoRotate autoRotateSpeed={0.35} enablePan={false} enableZoom minDistance={6} maxDistance={13} target={[0.15, 0, 0]} />
+      <OrbitControls autoRotate={!REDUCED_MOTION} autoRotateSpeed={0.35} enablePan={false} enableZoom={false} minDistance={6} maxDistance={13} target={[0.15, 0, 0]} />
       <EffectComposer>
         <Bloom intensity={1.3} luminanceThreshold={0.2} luminanceSmoothing={0.6} mipmapBlur />
       </EffectComposer>
@@ -194,19 +199,46 @@ function Scene({ model, onPhase }: { model: FieldModel; onPhase: (p: 'scanning' 
 export function ConsensusField3D({ study, apparentCount }: { study: EfficiencyStudy; apparentCount?: number }) {
   const model = useFieldModel(study, apparentCount);
   const [phase, setPhase] = useState<'scanning' | 'resolved'>('scanning');
+  const [glLost, setGlLost] = useState(false);
+  const [inView, setInView] = useState(true);
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.05 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const f = study.funnel;
   const num = (n?: number) => (n ?? 0).toLocaleString();
   const total = study.universe.total;
   const apparent = apparentCount ?? f?.semanticSurvivors ?? 0;
-  const pct = total ? ((apparent / total) * 100).toFixed(2) : '0';
+  const sameEvent = f?.sameEvent ?? 0;
+  const pctPairs = sameEvent ? ((apparent / sameEvent) * 100).toFixed(1) : '0';
   const polyLabel = (study.universe.polymarketIsLowerBound ? '≥' : '') + num(study.universe.polymarket);
 
   return (
-    <div className="relative border-y border-[#1E293B] bg-[#04060e] overflow-hidden" style={{ height: '62vh' }}>
-      <Canvas camera={{ position: [0.5, 3.6, 7.0], fov: 52 }} dpr={[1, 2]} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-        <Scene model={model} onPhase={setPhase} />
-      </Canvas>
+    <div ref={frameRef} className="relative border-y border-[#1E293B] bg-[#04060e] overflow-hidden" style={{ height: '62vh' }}>
+      {!glLost && (
+        <Canvas
+          camera={{ position: [0.5, 3.6, 7.0], fov: 52 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
+          frameloop={inView ? 'always' : 'never'}
+          onCreated={({ gl }) => {
+            gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setGlLost(true); }, false);
+          }}
+        >
+          <Scene model={model} onPhase={setPhase} />
+        </Canvas>
+      )}
+      {glLost && (
+        <div className="absolute inset-0 flex items-center justify-center text-[11px] text-[#475569] font-mono">
+          3D view unavailable — the numbers on the left are the finding.
+        </div>
+      )}
 
       {/* Readout — the thesis is legible without motion. */}
       <div className="absolute top-4 left-5 pointer-events-none">
@@ -215,13 +247,13 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
           1 point = 1 market — the {num(total)}-market universe, to scale.
         </div>
         <div className="text-[11px] text-[#94A3B8] mt-1 max-w-[300px] leading-snug">
-          {num(apparent)} apparent gaps · {pct}% of {num(total)} · <span className="text-[#FCA5A5]">0 survive verification</span>
+          {num(apparent)} apparent gaps · {pctPairs}% of {num(sameEvent)} same-event pairs · <span className="text-[#FCA5A5]">{num(f?.clearExecutableArb ?? 0)} executable after audit</span>
         </div>
         <div className="mt-3 space-y-1.5 text-[11px]">
           <Row color={POLY_COLOR} label="Polymarket universe" value={polyLabel} />
           <Row color={KALSHI_COLOR} label="Kalshi universe" value={num(study.universe.kalshi)} />
           <Row color="#64748B" label="Standalone total" value={num(total)} />
-          <Row color={THREAD_COLOR} label="Same-contract pairs (verified)" value={num(f?.sameContract)} />
+          <Row color={THREAD_COLOR} label="Same-contract candidates (cached)" value={num(f?.sameContract)} />
           <Row color={GAP_COLOR} label="Apparent gaps (to scale)" value={num(apparent)} />
           <Row color="#EF4444" label="Confirmed executable arb" value={String(f?.clearExecutableArb ?? 0)} bright />
         </div>
@@ -235,7 +267,7 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
       </div>
 
       <div className="absolute bottom-3 right-4 text-[10px] text-[#475569] pointer-events-none font-mono">
-        drag to orbit · scroll to zoom
+        drag to orbit
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ export function EvidenceWall({
     liquid: survivors.length,
     strict: survivors.filter((p) => p.strict_survivor).length,
     mismatch: survivors.filter((p) => !p.strict_survivor).length,
-    all: semanticCount,
+    all: apparent.length,
   };
   const thin = semanticCount - survivors.length;
 

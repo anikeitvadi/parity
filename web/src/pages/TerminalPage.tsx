@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fetchPairs, fetchEfficiencyStudy, type PairsResponse, type PairRow, type PairStatus, type EfficiencyStudy } from '../api/client.js';
+import { fetchPairs, fetchEfficiencyStudy, type PairsResponse, type PairRow, type PairStatus, type EfficiencyStudy, type PairLive } from '../api/client.js';
 import { PairQueue } from '../components/PairQueue.js';
 import { PairDossier } from '../components/PairDossier.js';
 import { PAIR_STATUS } from '../lib/pairStatus.js';
@@ -50,7 +50,31 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
     fetchEfficiencyStudy().then((r) => setStudy(r.study ?? null)).catch(() => {});
   }, []);
 
-  const pairs = data?.pairs ?? [];
+  // Live prices reported back by the open dossier overwrite the corpus prices in the queue,
+  // so a row and its dossier never show two different gaps for the same pair.
+  const [liveById, setLiveById] = useState<Record<string, PairLive>>({});
+  const onLive = useCallback((id: string, live: PairLive) => setLiveById((m) => ({ ...m, [id]: live })), []);
+
+  const pairs = useMemo(() => {
+    const base = data?.pairs ?? [];
+    if (!Object.keys(liveById).length) return base;
+    return base.map((p) => {
+      const l = liveById[p.id];
+      if (!l) return p;
+      const polyLive = l.polymarket?.found && l.polymarket.yes != null ? l.polymarket.yes : null;
+      const kalRaw = l.kalshi?.found && l.kalshi.yes != null ? l.kalshi.yes : null;
+      if (polyLive == null && kalRaw == null) return p;
+      const kalLive = kalRaw == null ? null : p.yesAligned ? kalRaw : 1 - kalRaw;
+      const polyYes = polyLive ?? p.polymarket.yes;
+      const kalYes = kalLive ?? p.kalshi.yes;
+      return {
+        ...p,
+        polymarket: { ...p.polymarket, yes: polyYes },
+        kalshi: { ...p.kalshi, yes: kalYes },
+        gap: polyYes != null && kalYes != null ? Math.abs(polyYes - kalYes) : p.gap,
+      };
+    });
+  }, [data, liveById]);
   const counts = data?.meta.counts;
 
   const filtered = useMemo(() => {
@@ -107,9 +131,16 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
     : null;
 
   const strictCount = pairs.filter((p) => p.strictSurvivor).length;
-  const chips: { id: StatusFilter; label: string; count?: number; color?: string }[] = [
-    { id: 'curated', label: 'Best verified' },
-    { id: 'survivor', label: 'Apparent gaps', count: counts?.survivor, color: PAIR_STATUS.survivor.color },
+  const chips: { id: StatusFilter; label: string; count?: number; color?: string; title?: string }[] = [
+    { id: 'curated', label: 'Matches', count: counts ? counts.survivor + counts.same_contract : undefined },
+    {
+      id: 'survivor',
+      label: 'Apparent gaps',
+      count: counts?.survivor,
+      color: PAIR_STATUS.survivor.color,
+      title:
+        'After all 45 strict-recheck corrections: 221 in the study − 45 corrected = 176. The Lab counts 215 because it applies the 39 strict-recheck kills at the strict gate of the funnel instead.',
+    },
     { id: 'strict', label: 'Strict matches ★', count: strictCount, color: PAIR_STATUS.survivor.color },
     { id: 'same_contract', label: 'Candidates', count: counts?.same_contract, color: PAIR_STATUS.same_contract.color },
     { id: 'spec_mismatch', label: 'Spec mismatch', count: counts?.spec_mismatch, color: PAIR_STATUS.spec_mismatch.color },
@@ -189,6 +220,7 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
           {chips.map((ch) => (
             <button
               key={ch.id}
+              title={ch.title}
               onClick={() => setStatusFilter(ch.id)}
               className={`shrink-0 flex items-center gap-1.5 px-2 py-1 text-[10px] font-medium rounded transition-colors ${
                 statusFilter === ch.id ? 'bg-[#1E293B] text-white' : 'text-[#64748B] hover:text-[#94A3B8]'
@@ -214,7 +246,7 @@ export function TerminalPage({ onOpenLab }: { onOpenLab?: () => void }) {
           )}
         </div>
         <div className="flex-1 min-w-0 overflow-hidden">
-          <PairDossier pair={selected} onOpenLab={onOpenLab} verification={data?.meta.verification ?? null} />
+          <PairDossier pair={selected} onOpenLab={onOpenLab} verification={data?.meta.verification ?? null} onLive={onLive} />
         </div>
       </div>
     </div>
@@ -250,7 +282,7 @@ function VerdictStrip({ funnel, universeTotal }: { funnel?: EfficiencyStudy['fun
       <div className="flex items-center gap-3">
         <FunnelNum value={audited} label="tradeable markets" />
         <Arrow />
-        <FunnelNum value={crossListed} label="cross-listed contracts" color="#38BDF8" />
+        <FunnelNum value={crossListed} label="same-contract candidates" color="#38BDF8" />
         <Arrow />
         <FunnelNum value={executable} label="executable arbitrage" color="#22C55E" hero />
         <div className="flex-1" />
