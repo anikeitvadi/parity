@@ -8,9 +8,9 @@ import { useFieldModel, POLY_CENTER, KALSHI_CENTER, type FieldModel } from './us
 
 /**
  * The signature Lab visual in true 3D (react-three-fiber + bloom). Honest data model: 1 point = 1
- * market (Kalshi 2.43× Polymarket), ~215 gap beacons = 0.23%, ~3,791 same-contract links, 0 confirmed.
- * Polymarket is a ring galaxy, Kalshi a 4-arm spiral; the verified links render as gently-bowed cyan
- * arcs graded blue→green with a flow pulse. Counts/proportions stay exact; layout is aesthetic.
+ * market (Kalshi 2.43× Polymarket); LINKS sample uniformly at ≈1:60 — 3,791 same-contract links →
+ * teal threads graded blue→green, 215 apparent gaps → amber threads — so on-screen thread mass keeps
+ * the data's proportions. Every thread endpoint is a real rendered dot. Red = confirmed arb: never drawn.
  */
 
 const POLY_COLOR = '#5AA2FF';
@@ -68,7 +68,7 @@ const LINE_FRAG = /* glsl */ `
   uniform float uOpacity;
   varying vec3 vColor; varying float vGlow;
   void main() {
-    vec3 c = vColor + vec3(0.55, 0.85, 1.0) * vGlow * 1.5;
+    vec3 c = vColor + (vColor * 1.2 + vec3(0.25)) * vGlow * 1.5;
     gl_FragColor = vec4(c, uOpacity + vGlow * 0.5);
   }
 `;
@@ -89,28 +89,20 @@ function PointCloud({ positions, center, color, size, opacity, twinkle = 0.35 }:
   );
 }
 
-/** Gap beacons: the real ~215 apparent gaps, amber, always visible — just markets, drawn to scale. */
-function Gaps({ positions }: { positions: Float32Array }) {
-  const matRef = useRef<THREE.ShaderMaterial>(null);
-  const uniforms = useMemo(() => ({
-    uColor: { value: new THREE.Color(GAP_COLOR) }, uSize: { value: 0.36 }, uOpacity: { value: 1 }, uTwinkle: { value: 0.35 }, uTime: { value: 0 },
-  }), []);
-  useFrame((state) => {
-    if (matRef.current) matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-  });
-  return (
-    <points>
-      <bufferGeometry><bufferAttribute attach="attributes-position" args={[positions, 3]} /></bufferGeometry>
-      <shaderMaterial ref={matRef} uniforms={uniforms} vertexShader={POINT_VERT} fragmentShader={POINT_FRAG} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-    </points>
-  );
-}
-
 const grad = (t: number, i: 0 | 1 | 2) => POLY_RGB[i] + (KALSHI_RGB[i] - POLY_RGB[i]) * t;
+const GAP_RGB: [number, number, number] = [255 / 255, 138 / 255, 30 / 255];
+const gapTint = (_t: number, i: 0 | 1 | 2) => GAP_RGB[i];
 
-/** Bowed bezier threads → line segments, graded blue→green, with per-vertex flow data. */
-function buildArcGeo(model: FieldModel, count: number) {
-  const N = Math.min(count, model.bridgeN);
+/** Bowed bezier threads → line segments with per-vertex color + flow data. */
+function buildArcGeo(
+  A: Float32Array,
+  B: Float32Array,
+  phasesIn: Float32Array,
+  count: number,
+  color: (t: number, i: 0 | 1 | 2) => number,
+  bowScale = 1
+) {
+  const N = Math.min(count, phasesIn.length);
   const SEG = 14;
   const positions = new Float32Array(N * SEG * 2 * 3);
   const colors = new Float32Array(N * SEG * 2 * 3);
@@ -118,14 +110,14 @@ function buildArcGeo(model: FieldModel, count: number) {
   const phases = new Float32Array(N * SEG * 2);
   let w = 0;
   for (let i = 0; i < N; i++) {
-    const ax = model.bridgeA[i * 3], ay = model.bridgeA[i * 3 + 1], az = model.bridgeA[i * 3 + 2];
-    const bx = model.bridgeB[i * 3], by = model.bridgeB[i * 3 + 1], bz = model.bridgeB[i * 3 + 2];
+    const ax = A[i * 3], ay = A[i * 3 + 1], az = A[i * 3 + 2];
+    const bx = B[i * 3], by = B[i * 3 + 1], bz = B[i * 3 + 2];
     // Splay the bow in a random direction per thread so they read as an airy web, not a parallel cord.
-    const mag = 1.0 + rnd(i * 6.3) * 2.4;
+    const mag = (1.0 + rnd(i * 6.3) * 2.4) * bowScale;
     const cx = (ax + bx) / 2 + (rnd(i * 9.1) - 0.5) * mag * 1.3;
     const cy = (ay + by) / 2 + (rnd(i * 11.7) - 0.5) * mag * 1.7;
     const cz = (az + bz) / 2 + (rnd(i * 13.3) - 0.5) * mag * 1.7;
-    const phase = model.bridgePhase[i];
+    const phase = phasesIn[i];
     let px = 0, py = 0, pz = 0, pt = 0;
     for (let k = 0; k <= SEG; k++) {
       const t = k / SEG, m = 1 - t;
@@ -135,10 +127,10 @@ function buildArcGeo(model: FieldModel, count: number) {
       if (k > 0) {
         const v = w / 3;
         positions[w] = px; positions[w + 1] = py; positions[w + 2] = pz;
-        colors[w] = grad(pt, 0); colors[w + 1] = grad(pt, 1); colors[w + 2] = grad(pt, 2);
+        colors[w] = color(pt, 0); colors[w + 1] = color(pt, 1); colors[w + 2] = color(pt, 2);
         ts[v] = pt; phases[v] = phase;
         positions[w + 3] = x; positions[w + 4] = y; positions[w + 5] = z;
-        colors[w + 3] = grad(t, 0); colors[w + 4] = grad(t, 1); colors[w + 5] = grad(t, 2);
+        colors[w + 3] = color(t, 0); colors[w + 4] = color(t, 1); colors[w + 5] = color(t, 2);
         ts[v + 1] = t; phases[v + 1] = phase;
         w += 6;
       }
@@ -148,10 +140,9 @@ function buildArcGeo(model: FieldModel, count: number) {
   return { positions, colors, ts, phases };
 }
 
-function Bridge({ model }: { model: FieldModel }) {
+function ThreadSet({ geo, opacity }: { geo: ReturnType<typeof buildArcGeo>; opacity: number }) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
-  const geo = useMemo(() => buildArcGeo(model, 30), [model]);
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uOpacity: { value: 0.22 } }), []);
+  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uOpacity: { value: opacity } }), [opacity]);
   useFrame((s) => { if (matRef.current) matRef.current.uniforms.uTime.value = s.clock.elapsedTime; });
   return (
     <lineSegments>
@@ -166,15 +157,35 @@ function Bridge({ model }: { model: FieldModel }) {
   );
 }
 
-function Scene({ model }: { model: FieldModel }) {
+/** Threads sample the LINKS at a single uniform ratio so the picture keeps the data's proportions:
+ *  3,791 same-contract links → 63 teal threads, 215 apparent gaps → 4 amber threads (≈1:60 each).
+ *  Points stay strictly 1:1; the legend carries the exact counts. */
+const LINKS_PER_THREAD = 60;
+
+function Bridge({ model, links }: { model: FieldModel; links: number }) {
+  const count = Math.max(8, Math.round(links / LINKS_PER_THREAD));
+  const geo = useMemo(() => buildArcGeo(model.bridgeA, model.bridgeB, model.bridgePhase, count, grad), [model, count]);
+  return <ThreadSet geo={geo} opacity={0.2} />;
+}
+
+function GapThreads({ model, gaps }: { model: FieldModel; gaps: number }) {
+  const count = Math.max(2, Math.round(gaps / LINKS_PER_THREAD));
+  const geo = useMemo(
+    () => buildArcGeo(model.gapA, model.gapB, model.gapPhase, count, gapTint, 0.8),
+    [model, count]
+  );
+  return <ThreadSet geo={geo} opacity={0.3} />;
+}
+
+function Scene({ model, links, gaps }: { model: FieldModel; links: number; gaps: number }) {
   return (
     <>
       <color attach="background" args={['#04060e']} />
       <Stars radius={60} depth={40} count={1400} factor={3} saturation={0} fade speed={0.4} />
       <PointCloud positions={model.polyPos} center={POLY_CENTER} color={POLY_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
       <PointCloud positions={model.kalshiPos} center={KALSHI_CENTER} color={KALSHI_COLOR} size={0.08} opacity={0.95} twinkle={0.4} />
-      <Bridge model={model} />
-      <Gaps positions={model.gapPos} />
+      <Bridge model={model} links={links} />
+      <GapThreads model={model} gaps={gaps} />
       <OrbitControls autoRotate={!REDUCED_MOTION} autoRotateSpeed={0.35} enablePan={false} enableZoom={false} minDistance={6} maxDistance={13} target={[0.15, 0, 0]} />
       <EffectComposer>
         <Bloom intensity={1.3} luminanceThreshold={0.2} luminanceSmoothing={0.6} mipmapBlur />
@@ -217,7 +228,7 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
             gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setGlLost(true); }, false);
           }}
         >
-          <Scene model={model} />
+          <Scene model={model} links={f?.sameContract ?? 0} gaps={apparent} />
         </Canvas>
       )}
       {glLost && (
@@ -240,7 +251,7 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
           <Row color={KALSHI_COLOR} label="Kalshi universe" value={num(study.universe.kalshi)} />
           <Row color="#64748B" label="Standalone total" value={num(total)} />
           <Row color={THREAD_COLOR} label="Same-contract candidates (cached)" value={num(f?.sameContract)} />
-          <Row color={GAP_COLOR} label="Apparent gaps (to scale)" value={num(apparent)} />
+          <Row color={GAP_COLOR} label="Apparent gaps (amber threads)" value={num(apparent)} />
           <Row color="#EF4444" label="Confirmed executable arb" value={String(f?.clearExecutableArb ?? 0)} bright />
         </div>
       </div>

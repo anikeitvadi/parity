@@ -34,11 +34,12 @@ const BRIDGE_DRAW = 150;
 export interface FieldModel {
   polyPos: Float32Array;
   kalshiPos: Float32Array;
-  gapPos: Float32Array;
+  gapA: Float32Array; // Polymarket-side gap-thread endpoints (world space, 1 thread = 1 gap)
+  gapB: Float32Array; // Kalshi-side gap-thread endpoints (world space)
+  gapPhase: Float32Array;
   bridgeA: Float32Array; // Polymarket-side thread endpoints (world space)
   bridgeB: Float32Array; // Kalshi-side thread endpoints (world space)
   bridgePhase: Float32Array; // per-thread phase so flows aren't synchronized
-  bridgeN: number; // number of sampled threads
   polyR: number;
   kalshiR: number;
   counts: { poly: number; kalshi: number; gap: number; bridge: number; total: number; sameContract: number; confirmed: number };
@@ -100,18 +101,17 @@ export function useFieldModel(study: EfficiencyStudy, apparentCount?: number): F
     const kalshiPos = new Float32Array(kalshi * 3);
     for (let i = 0; i < kalshi; i++) galaxyPoint(i + 500000, kalshiR, 'spiral', KALSHI_BRANCHES, KALSHI_SPIN, kalshiPos, i * 3);
 
-    // Gaps scattered across both galaxies, weighted by universe share, sitting in the visible body.
-    const polyShare = poly / (poly + kalshi);
-    const polyGaps = Math.round(gap * polyShare);
-    const gapPos = new Float32Array(gap * 3);
-    const tmp = new Float32Array(3);
+    // A gap is a PAIR property, not a market property: each of the 215 apparent gaps is drawn as
+    // one thread between a real Poly dot and a real Kalshi dot (1 thread = 1 gap, to scale).
+    const gapA = new Float32Array(gap * 3);
+    const gapB = new Float32Array(gap * 3);
+    const gapPhase = new Float32Array(gap);
     for (let i = 0; i < gap; i++) {
-      const inPoly = i < polyGaps;
-      const c = inPoly ? POLY_CENTER : KALSHI_CENTER;
-      galaxyPoint(i * 13 + 3, (inPoly ? POLY_R : kalshiR) * (inPoly ? 1 : 0.72), inPoly ? 'ring' : 'spiral', KALSHI_BRANCHES, KALSHI_SPIN, tmp, 0);
-      gapPos[i * 3] = tmp[0] + c[0];
-      gapPos[i * 3 + 1] = tmp[1] + c[1];
-      gapPos[i * 3 + 2] = tmp[2] + c[2];
+      const ai = ((i * 92821 + 5) % poly) * 3;
+      gapA[i * 3] = polyPos[ai] + POLY_CENTER[0]; gapA[i * 3 + 1] = polyPos[ai + 1] + POLY_CENTER[1]; gapA[i * 3 + 2] = polyPos[ai + 2] + POLY_CENTER[2];
+      const bi = ((i * 75641 + 7) % kalshi) * 3;
+      gapB[i * 3] = kalshiPos[bi] + KALSHI_CENTER[0]; gapB[i * 3 + 1] = kalshiPos[bi + 1] + KALSHI_CENTER[1]; gapB[i * 3 + 2] = kalshiPos[bi + 2] + KALSHI_CENTER[2];
+      gapPhase[i] = rnd(i * 23.7);
     }
 
     // Bridge: a SAMPLE of verified-pair endpoints (Poly ring ↔ Kalshi spiral). The renderer turns
@@ -132,11 +132,12 @@ export function useFieldModel(study: EfficiencyStudy, apparentCount?: number): F
     return {
       polyPos,
       kalshiPos,
-      gapPos,
+      gapA,
+      gapB,
+      gapPhase,
       bridgeA,
       bridgeB,
       bridgePhase,
-      bridgeN: draw,
       polyR: POLY_R,
       kalshiR,
       counts: { poly, kalshi, gap, bridge: draw, total: study.universe.total, sameContract, confirmed },
