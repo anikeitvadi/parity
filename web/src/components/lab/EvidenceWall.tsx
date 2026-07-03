@@ -55,7 +55,7 @@ function Checklist({ c }: { c: StrictSurvivorPair['checklist'] }) {
 
 function RichCard({ p }: { p: StrictSurvivorPair }) {
   return (
-    <div className="border border-[#1E293B] rounded-md bg-[#0E1223] p-3 break-inside-avoid mb-3">
+    <div className="border border-[#1E293B] rounded-md bg-[#0E1223] p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           {p.category && <Chip>{p.category}</Chip>}
@@ -87,7 +87,7 @@ function RichCard({ p }: { p: StrictSurvivorPair }) {
 
 function LiteCard({ p }: { p: EfficiencyPair }) {
   return (
-    <div className="border border-[#1E293B] rounded-md bg-[#0E1223] p-2.5 break-inside-avoid mb-3">
+    <div className="border border-[#1E293B] rounded-md bg-[#0E1223] p-2.5">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5">
           {p.category && <Chip>{p.category}</Chip>}
@@ -192,7 +192,7 @@ export function EvidenceWall({
       </div>
 
       {/* The wall — masonry via CSS columns; 221 nodes max, no virtualization needed. */}
-      <div className="max-h-[560px] overflow-y-auto pr-1 [column-fill:_balance] columns-1 sm:columns-2 lg:columns-3 gap-3">
+      <div className="max-h-[560px] overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
         {view === 'all'
           ? apparentSorted.map((p, i) => <LiteCard key={`${p.polymarketId ?? i}-${i}`} p={p} />)
           : richList.map((p, i) => <RichCard key={`${p.polymarketId}-${i}`} p={p} />)}
