@@ -8,7 +8,7 @@ import { useFieldModel, POLY_CENTER, KALSHI_CENTER, type FieldModel } from './us
 
 /**
  * The signature Lab visual in true 3D (react-three-fiber + bloom). Honest data model: 1 point = 1
- * market (Kalshi 2.43× Polymarket); LINKS sample uniformly at ≈1:60 — 3,791 same-contract links →
+ * market (Kalshi 2.43× Polymarket); LINKS sample uniformly at ≈1:120 — 3,791 same-contract links →
  * teal threads graded blue→green, 215 apparent gaps → amber threads — so on-screen thread mass keeps
  * the data's proportions. Every thread endpoint is a real rendered dot. Red = confirmed arb: never drawn.
  */
@@ -158,14 +158,14 @@ function ThreadSet({ geo, opacity }: { geo: ReturnType<typeof buildArcGeo>; opac
 }
 
 /** Threads sample the LINKS at a single uniform ratio so the picture keeps the data's proportions:
- *  3,791 same-contract links → 63 teal threads, 215 apparent gaps → 4 amber threads (≈1:60 each).
+ *  3,791 same-contract links → 32 teal threads, 215 apparent gaps → 2 amber threads (≈1:120 each).
  *  Points stay strictly 1:1; the legend carries the exact counts. */
-const LINKS_PER_THREAD = 60;
+const LINKS_PER_THREAD = 120;
 
 function Bridge({ model, links }: { model: FieldModel; links: number }) {
   const count = Math.max(8, Math.round(links / LINKS_PER_THREAD));
   const geo = useMemo(() => buildArcGeo(model.bridgeA, model.bridgeB, model.bridgePhase, count, grad), [model, count]);
-  return <ThreadSet geo={geo} opacity={0.2} />;
+  return <ThreadSet geo={geo} opacity={0.16} />;
 }
 
 function GapThreads({ model, gaps }: { model: FieldModel; gaps: number }) {
@@ -249,10 +249,10 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
         <div className="mt-3 space-y-1.5 text-[11px]">
           <Row color={POLY_COLOR} label="Polymarket universe" value={polyLabel} />
           <Row color={KALSHI_COLOR} label="Kalshi universe" value={num(study.universe.kalshi)} />
-          <Row color="#64748B" label="Standalone total" value={num(total)} />
-          <Row color={THREAD_COLOR} label="Same-contract candidates (cached)" value={num(f?.sameContract)} />
-          <Row color={GAP_COLOR} label="Apparent gaps (amber threads)" value={num(apparent)} />
+          <Row color={THREAD_COLOR} label="Same-contract candidates" value={num(f?.sameContract)} />
+          <Row color={GAP_COLOR} label="Apparent gaps" value={num(apparent)} />
           <Row color="#EF4444" label="Confirmed executable arb" value={String(f?.clearExecutableArb ?? 0)} bright />
+          <div className="text-[9px] text-[#475569] pt-1">threads sample the links at ≈1:120 · points are 1:1</div>
         </div>
       </div>
 
