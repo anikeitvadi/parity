@@ -16,9 +16,9 @@ export function ComparisonMatrix({ study, corrected }: { study: EfficiencyStudy;
   if (stages.length === 0) return null;
 
   return (
-    <div className="border border-[#1E293B] rounded-md p-3 bg-[#0E1223] overflow-x-auto">
+    <div className="border border-[#1E293B] rounded-md p-3 bg-[#0E1223] overflow-x-auto h-full flex flex-col">
       <div className="text-[10px] uppercase tracking-wider text-[#64748B] mb-3">Funnel ledger · exact figures</div>
-      <table className="w-full text-[12px] border-collapse">
+      <table className="w-full flex-1 text-[12px] border-collapse">
         <thead>
           <tr className="text-[#64748B] font-mono text-[10px] uppercase tracking-wider">
             <th className="text-left font-medium px-2 py-1.5 border border-[#1E293B] bg-[#020617]">stage</th>

@@ -373,7 +373,7 @@ export function LabPage() {
         </div>
 
         {/* Proof spine — the funnel as a waterfall + the exact ledger. */}
-        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-5 mb-5 items-start">
+        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-5 mb-5 items-stretch">
           <CompressionWaterfall study={s} corrected={correctedFunnel} />
           <ComparisonMatrix study={s} corrected={correctedFunnel} />
         </div>
