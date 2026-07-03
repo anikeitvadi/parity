@@ -36,7 +36,7 @@ export function CompressionWaterfall({ study, corrected }: { study: EfficiencySt
         {stages.map((s) => {
           const w = logWidth(s.value, max);
           return (
-            <div key={s.key} className="grid grid-cols-[190px_1fr_138px] items-center gap-3">
+            <div key={s.key} className="grid grid-cols-[104px_1fr_92px] sm:grid-cols-[190px_1fr_138px] items-center gap-2 sm:gap-3">
               <div className="text-[12px] leading-tight">
                 <span className={s.terminal ? 'text-[#F8FAFC] font-semibold' : 'text-[#CBD5E1]'}>{s.label}</span>
                 <span className="block text-[10px] text-[#64748B]">{s.sub}</span>
@@ -45,7 +45,7 @@ export function CompressionWaterfall({ study, corrected }: { study: EfficiencySt
                 {s.terminal ? (
                   <div className="absolute inset-y-0 left-0 w-full flex items-center">
                     <div className="h-[2px] w-6 bg-[#475569]" />
-                    <span className="ml-2 text-[10px] text-[#64748B] italic">none demonstrable</span>
+                    <span className="ml-2 text-[10px] text-[#64748B] italic hidden sm:inline whitespace-nowrap">none demonstrable</span>
                   </div>
                 ) : (
                   <div

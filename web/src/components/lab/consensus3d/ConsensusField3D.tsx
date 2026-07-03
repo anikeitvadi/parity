@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import type { EfficiencyStudy } from '../../../api/client.js';
@@ -268,6 +268,26 @@ function Scene({ model, links, gaps }: { model: FieldModel; links: number; gaps:
   );
 }
 
+/**
+ * The default camera frames the two galaxies for a wide viewport. On narrow (phone) aspects the
+ * horizontal field of view collapses, so pull the camera back and widen the fov proportionally —
+ * otherwise the galaxies render half off-frame.
+ */
+function FitCamera() {
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
+  useEffect(() => {
+    const aspect = size.width / Math.max(size.height, 1);
+    const s = Math.min(1.6, Math.max(1, Math.sqrt(2.2 / Math.max(aspect, 0.35))));
+    const target = new THREE.Vector3(0.15, 0, 0);
+    const dir = new THREE.Vector3(0.5, 3.6, 7.0).sub(target).normalize();
+    camera.position.copy(target.add(dir.multiplyScalar(7.9 * s)));
+    (camera as THREE.PerspectiveCamera).fov = 52 + (s - 1) * 28;
+    camera.updateProjectionMatrix();
+  }, [camera, size.width, size.height]);
+  return null;
+}
+
 export function ConsensusField3D({ study, apparentCount }: { study: EfficiencyStudy; apparentCount?: number }) {
   const model = useFieldModel(study, apparentCount);
   const [glLost, setGlLost] = useState(false);
@@ -291,7 +311,8 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
   const polyLabel = (study.universe.polymarketIsLowerBound ? '≥' : '') + num(study.universe.polymarket);
 
   return (
-    <div ref={frameRef} className="relative border-y border-[#1E293B] bg-[#04060e] overflow-hidden" style={{ height: '62vh' }}>
+    <>
+    <div ref={frameRef} className="relative border-y border-[#1E293B] bg-[#04060e] overflow-hidden h-[52vh] sm:h-[62vh]">
       {!glLost && (
         <Canvas
           camera={{ position: [0.5, 3.6, 7.0], fov: 52 }}
@@ -302,6 +323,7 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
             gl.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); setGlLost(true); }, false);
           }}
         >
+          <FitCamera />
           <Scene model={model} links={f?.sameContract ?? 0} gaps={apparent} />
         </Canvas>
       )}
@@ -311,23 +333,9 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
         </div>
       )}
 
-      {/* Readout — the thesis is legible without motion. */}
-      <div className="absolute top-4 left-5 pointer-events-none">
-        <div className="text-[10px] uppercase tracking-[0.22em] text-[#475569]">Consensus Field</div>
-        <div className="text-[13px] text-[#F8FAFC] font-medium mt-1 max-w-[300px] leading-snug">
-          1 point = 1 market — the {num(total)}-market universe, to scale.
-        </div>
-        <div className="text-[11px] text-[#94A3B8] mt-1 max-w-[300px] leading-snug">
-          {num(apparent)} apparent gaps · {pctPairs}% of {num(sameEvent)} same-event pairs · <span className="text-[#FCA5A5]">{num(f?.clearExecutableArb ?? 0)} executable after audit</span>
-        </div>
-        <div className="mt-3 space-y-1.5 text-[11px]">
-          <Row color={POLY_COLOR} label="Polymarket universe" value={polyLabel} />
-          <Row color={KALSHI_COLOR} label="Kalshi universe" value={num(study.universe.kalshi)} />
-          <Row color={THREAD_COLOR} label="Same-contract candidates" value={num(f?.sameContract)} />
-          <Row color={GAP_COLOR} label="Apparent gaps" value={num(apparent)} />
-          <Row color="#EF4444" label="Confirmed executable arb" value={String(f?.clearExecutableArb ?? 0)} bright />
-          <div className="text-[9px] text-[#475569] pt-1">threads sample the links at ≈1:120 · points are 1:1</div>
-        </div>
+      {/* Readout — the thesis is legible without motion. Desktop: overlaid on the field. */}
+      <div className="hidden sm:block absolute top-4 left-5 pointer-events-none">
+        <Readout num={num} total={total} apparent={apparent} pctPairs={pctPairs} f={f} polyLabel={polyLabel} kalshi={study.universe.kalshi} sameEvent={sameEvent} />
       </div>
 
       {/* Triage state */}
@@ -341,6 +349,37 @@ export function ConsensusField3D({ study, apparentCount }: { study: EfficiencySt
         drag to orbit
       </div>
     </div>
+
+    {/* Phones: the readout stacks under the field so the galaxies keep the whole canvas. */}
+    <div className="sm:hidden px-4 py-3 border-b border-[#1E293B] bg-[#04060e]">
+      <Readout num={num} total={total} apparent={apparent} pctPairs={pctPairs} f={f} polyLabel={polyLabel} kalshi={study.universe.kalshi} sameEvent={sameEvent} />
+    </div>
+    </>
+  );
+}
+
+function Readout({ num, total, apparent, pctPairs, f, polyLabel, kalshi, sameEvent }: {
+  num: (n?: number) => string; total: number; apparent: number; pctPairs: string;
+  f: EfficiencyStudy['funnel']; polyLabel: string; kalshi: number; sameEvent: number;
+}) {
+  return (
+    <>
+      <div className="text-[10px] uppercase tracking-[0.22em] text-[#475569]">Consensus Field</div>
+      <div className="text-[13px] text-[#F8FAFC] font-medium mt-1 max-w-[300px] leading-snug">
+        1 point = 1 market — the {num(total)}-market universe, to scale.
+      </div>
+      <div className="text-[11px] text-[#94A3B8] mt-1 max-w-[300px] leading-snug">
+        {num(apparent)} apparent gaps · {pctPairs}% of {num(sameEvent)} same-event pairs · <span className="text-[#FCA5A5]">{num(f?.clearExecutableArb ?? 0)} executable after audit</span>
+      </div>
+      <div className="mt-3 space-y-1.5 text-[11px]">
+        <Row color={POLY_COLOR} label="Polymarket universe" value={polyLabel} />
+        <Row color={KALSHI_COLOR} label="Kalshi universe" value={num(kalshi)} />
+        <Row color={THREAD_COLOR} label="Same-contract candidates" value={num(f?.sameContract)} />
+        <Row color={GAP_COLOR} label="Apparent gaps" value={num(apparent)} />
+        <Row color="#EF4444" label="Confirmed executable arb" value={String(f?.clearExecutableArb ?? 0)} bright />
+        <div className="text-[9px] text-[#475569] pt-1">threads sample the links at ≈1:120 · points are 1:1</div>
+      </div>
+    </>
   );
 }
 
