@@ -1,5 +1,5 @@
 {
-  "name": "prediction-market-scanner",
+  "name": "parity",
   "version": "1.0.0",
   "description": "Market Efficiency Lab and active prediction-market research terminal.",
   "type": "module",
