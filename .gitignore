@@ -63,3 +63,6 @@ PORTFOLIO-STRATEGY.md
 .vercel
 .env*
 docs/archive/
+
+# the system map PDF is a shipped doc, not a build artifact
+!docs/system-map.pdf

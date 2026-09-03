@@ -78,9 +78,10 @@ src/                         Core engine — clients, embeddings, matcher, batch
 scripts/                     efficiency-study.ts, build-corrections.ts, retriage.ts, snapshot.ts,
                              verify-batch*.ts (Batch API transport + doctor + crash-safe poller)
 docs/data/                   efficiency-study.json, corrections.json, pair-audit.csv, gap-map.csv
+docs/system-map.pdf          three-page visual map: live vs frozen tracks, the funnel, the verifier
 ```
 
-Three TypeScript projects typecheck independently; `npm run check` runs all three + the Vite build + 435 tests.
+Three TypeScript projects typecheck independently; `npm run check` runs all three + the Vite build + 435 tests. For the picture version of all of this, see the [system map (PDF)](docs/system-map.pdf).
 
 ## Reproducibility
 
